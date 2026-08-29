@@ -69,10 +69,44 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+/* The composer already shows focus by lighting its whole pill, so the default
+   ring would draw a second hard rectangle inside it. */
+.chat-pill textarea:focus,
+.chat-pill textarea:focus-visible {
+  outline: none;
+}
+
 code,
 pre,
 .mono {
   font-family: var(--font-mono);
+}
+
+/* Brand art: a lemon halo, and a slow drift for the hero mark. */
+.brand-glow {
+  filter: drop-shadow(0 0 26px rgb(241 255 92 / 0.32)) drop-shadow(0 0 60px rgb(241 255 92 / 0.16));
+}
+@keyframes brand-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.brand-float { animation: brand-float 6s ease-in-out infinite; }
+
+/* A soft lemon bloom behind the landing lock-up. */
+.hero-bloom {
+  position: relative;
+}
+.hero-bloom::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: min(620px, 90vw);
+  aspect-ratio: 1;
+  translate: -50% -28%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle, rgb(241 255 92 / 0.10), rgb(241 255 92 / 0.03) 42%, transparent 68%);
 }
 
 .serif-accent {

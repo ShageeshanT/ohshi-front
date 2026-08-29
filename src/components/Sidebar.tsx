@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { ChatSummary } from "../lib/chat";
 import { groupChatsByDate } from "../lib/chat";
-import { BrandMark } from "./brand";
+import { BrandMark, Wordmark } from "./brand";
 import { Avatar } from "./ui";
 
 export interface SidebarProps {
@@ -60,8 +60,8 @@ export default function Sidebar(p: SidebarProps) {
       >
         <div className={`flex items-center px-3 pb-1 pt-4 ${p.collapsed ? "justify-center" : "justify-between"}`}>
           <Link to="/" className="flex items-center gap-2.5" title="Ohshi" onClick={p.onMobileClose}>
-            <BrandMark />
-            {!p.collapsed && <span className="text-base font-bold tracking-tight">Ohshi</span>}
+            <BrandMark className="h-7" />
+            {!p.collapsed && <Wordmark className="h-[18px]" />}
           </Link>
           {!p.collapsed && (
             <div className="flex items-center gap-1">

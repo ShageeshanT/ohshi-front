@@ -353,7 +353,7 @@ export default function Chat() {
 
       {isLanding ? (
         <div className="honeycomb flex flex-1 flex-col items-center justify-center px-4 pb-16">
-          <div className="rise-in flex w-full max-w-3xl flex-col items-center">
+          <div className="rise-in hero-bloom flex w-full max-w-3xl flex-col items-center">
             <BrandHero />
             <p className="mt-4 text-center text-sm text-ink-dim">
               Gemini, Claude and GPT-OSS — running on{" "}
@@ -563,7 +563,7 @@ function AssistantMessage(props: {
 
   return (
     <div className="flex gap-3">
-      <BrandMark className="mt-0.5 h-7 w-7 rounded-lg" />
+      <BrandMark className="mt-0.5 h-7" />
       <div className="min-w-0 flex-1">
        <div className="rounded-2xl rounded-tl-md border border-white/[0.06] bg-bubble-ai px-4 py-3 shadow-[0_1px_2px_rgb(0_0_0/0.25)] sm:px-5">
         {reasoning && (

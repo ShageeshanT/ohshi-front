@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth, type Me } from "../App";
-import { Brand } from "../components/brand";
+import { BrandHero } from "../components/brand";
 import { Button, Field, Input } from "../components/ui";
 import { friendly, post } from "../lib/api";
 
@@ -28,9 +28,9 @@ export default function Login() {
   return (
     <div className="honeycomb flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="rise-in">
+        <div className="rise-in hero-bloom">
           <div className="mb-7 flex flex-col items-center gap-4 text-center">
-            <Brand dark />
+            <BrandHero />
             <p className="max-w-xs text-sm leading-relaxed text-ink-dim">
               Your Google account, <span className="serif-accent text-ink">everywhere</span> — chat with Gemini,
               Claude and GPT-OSS, and let your agents use them too.

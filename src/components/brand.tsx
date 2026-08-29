@@ -1,33 +1,50 @@
-/** The Ohshi mark (a ring on a dark tile) and wordmark, in a few sizes. */
+/** The Ohshi brand: the dripping mark and the grunge wordmark. */
 
-export function BrandMark(props: { className?: string; light?: boolean }) {
+import markUrl from "../assets/ohshi-mark.webp";
+import wordmarkUrl from "../assets/ohshi-wordmark.webp";
+
+/** The mark on its own. Height-driven — the art is taller than it is wide, so
+ *  never pin both dimensions or it distorts. */
+export function BrandMark(props: { className?: string; glow?: boolean }) {
   return (
-    <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-xl ${
-        props.light ? "bg-white/10" : "bg-accent"
-      } ${props.className ?? "h-8 w-8"}`}
+    <img
+      src={markUrl}
+      alt=""
       aria-hidden
-    >
-      <span className="block h-[44%] w-[44%] rounded-full border-[3px] border-accent-ink" />
-    </span>
+      draggable={false}
+      className={`w-auto select-none ${props.glow ? "brand-glow" : ""} ${props.className ?? "h-8"}`}
+    />
   );
 }
 
-export function Brand(props: { dark?: boolean }) {
+/** The "OHSHI" wordmark. */
+export function Wordmark(props: { className?: string }) {
   return (
-    <div className={`flex items-center gap-2.5 ${props.dark ? "text-ink" : "text-white"}`}>
-      <BrandMark light={!props.dark} />
-      <span className="text-lg font-semibold tracking-tight">Ohshi</span>
+    <img
+      src={wordmarkUrl}
+      alt="Ohshi"
+      draggable={false}
+      className={`w-auto select-none ${props.className ?? "h-6"}`}
+    />
+  );
+}
+
+/** Mark + wordmark, side by side (login, mobile header). */
+export function Brand(props: { dark?: boolean; className?: string }) {
+  return (
+    <div className={`flex items-center gap-2.5 ${props.className ?? ""}`}>
+      <BrandMark className="h-9" />
+      <Wordmark className="h-6" />
     </div>
   );
 }
 
-/** The big landing brand (chat page, empty state). */
+/** The big landing lock-up: a glowing mark over the wordmark. */
 export function BrandHero() {
   return (
-    <div className="flex items-center gap-4 text-ink">
-      <BrandMark className="h-14 w-14 rounded-2xl md:h-16 md:w-16" />
-      <span className="text-5xl font-semibold tracking-tight md:text-6xl">Ohshi</span>
+    <div className="flex flex-col items-center gap-4">
+      <BrandMark className="brand-float h-20 md:h-24" glow />
+      <Wordmark className="h-11 md:h-14" />
     </div>
   );
 }
