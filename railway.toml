@@ -1,4 +1,9 @@
-# Railway service config for the FRONTEND (set the service's Root Directory to `frontend`).
+# Railway service config for the FRONTEND (repo: ohshi-front).
+#
+# This repository IS the service root — leave the service's "Root Directory"
+# setting EMPTY. Pointing it at a `frontend` subfolder (there isn't one) makes
+# the build fail immediately with "Failed to build an image".
+
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
