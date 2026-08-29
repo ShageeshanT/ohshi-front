@@ -69,6 +69,23 @@ export type ChatEvent =
   | { type: "done"; message: ChatMessage; chat: ChatSummary; usage: Record<string, number> }
   | { type: "error"; message: string; code?: string; status?: number };
 
+/** Shown first in the picker; everything else hides under "Other models". */
+export const POPULAR_FAMILIES = [
+  "gemini-3.6-flash",
+  "gemini-3.1-pro",
+  "claude-sonnet-4-6",
+  "gpt-oss-120b-medium",
+];
+
+/** Split a model list into the famous few and the long tail (order preserved). */
+export function splitPopular<T extends { id: string }>(families: T[]): { popular: T[]; other: T[] } {
+  const rank = new Map(POPULAR_FAMILIES.map((id, i) => [id, i]));
+  const popular = families
+    .filter((f) => rank.has(f.id))
+    .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+  return { popular, other: families.filter((f) => !rank.has(f.id)) };
+}
+
 export const MODEL_STORAGE_KEY = "ohshi.chat.model";
 
 export function loadStoredModel(): string {

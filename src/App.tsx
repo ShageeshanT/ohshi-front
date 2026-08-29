@@ -125,7 +125,7 @@ export default function App() {
 
   if (me === undefined) {
     return (
-      <div className="dotted-canvas flex h-screen items-center justify-center text-ink-dim">
+      <div className="honeycomb flex h-screen items-center justify-center text-ink-dim">
         <Spinner />
       </div>
     );
@@ -250,11 +250,11 @@ function Shell(props: { children: ReactNode }) {
         onSignOut={() => void signOut()}
       />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-edge bg-panel px-3 py-2 md:hidden">
+        <header className="flex items-center justify-between border-b border-white/[0.06] bg-[#2d2d2d] px-3 py-2 md:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-panel-2 hover:text-ink"
+            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-white/10 hover:text-ink"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
@@ -262,7 +262,7 @@ function Shell(props: { children: ReactNode }) {
           <Brand dark />
           <Link
             to="/"
-            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-panel-2 hover:text-ink"
+            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-white/10 hover:text-ink"
             aria-label="New chat"
           >
             <SquarePen className="h-5 w-5" />
@@ -279,7 +279,7 @@ function Shell(props: { children: ReactNode }) {
 
 function Page(props: { children: ReactNode }) {
   return (
-    <div id="main-content" className="dotted-canvas min-h-0 flex-1 overflow-y-auto">
+    <div id="main-content" className="honeycomb min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-10">{props.children}</div>
     </div>
   );

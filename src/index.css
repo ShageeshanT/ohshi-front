@@ -1,33 +1,37 @@
 @import "tailwindcss";
 
-/* Ohshi design tokens — warm white canvas, soft slabs, near-black capsules,
-   one blue accent, full-radius geometry, buttery expo easing.
+/* Ohshi design tokens — dark charcoal canvas with a honeycomb texture, one
+   lemon accent, cool near-black capsules. Colours sampled from the reference
+   portal: lemon #F1FF5C, canvas #343434, field #434343, capsule #22272D.
    Type: Plus Jakarta Sans, with Instrument Serif for hero flourishes. */
 @theme {
-  --color-surface: #f7f7f5;
-  --color-panel: #ffffff;
-  --color-panel-2: #f1f1ee;
-  --color-edge: #e6e6e2;
-  --color-ink: #121212;
-  --color-ink-dim: #6b7079;
-  --color-accent: #2563eb;
-  --color-accent-soft: #dbeafe;
-  --color-ok: #15803d;
-  --color-ok-soft: #dcfce7;
-  --color-warn: #b45309;
-  --color-warn-soft: #fef3c7;
-  --color-danger: #dc2626;
-  --color-danger-soft: #fee2e2;
-  --color-violet: #7c3aed;
-  --color-violet-soft: #ede9fe;
-  --color-night: #111318;
+  --color-surface: #343434;
+  --color-panel: #3b3b3b;
+  --color-panel-2: #434343;
+  --color-edge: #4d4d4d;
+  --color-ink: #f2f2f2;
+  --color-ink-dim: #a3a3a3;
+  --color-accent: #f1ff5c;
+  --color-accent-ink: #22272d; /* text/icons sitting ON the accent */
+  --color-accent-soft: #4a5220; /* muted lemon for soft chips */
+  --color-ok: #b7e26a;
+  --color-ok-soft: #3a441f;
+  --color-warn: #f4c04f;
+  --color-warn-soft: #4a3a17;
+  --color-danger: #f79a9a;
+  --color-danger-soft: #4d2a2a;
+  --color-violet: #c4b5fd;
+  --color-violet-soft: #383053;
+  --color-night: #22272d;
+  --color-bubble-me: #4a4a4a; /* your message */
+  --color-bubble-ai: #2a2f36; /* the reply */
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html {
-  color-scheme: light;
+  color-scheme: dark;
   scroll-behavior: smooth;
 }
 
@@ -38,7 +42,8 @@ body {
 }
 
 ::selection {
-  background: rgb(37 99 235 / 0.18);
+  background: rgb(241 255 92 / 0.25);
+  color: #fff;
 }
 
 button,
@@ -60,7 +65,7 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid rgb(18 18 18 / 0.28);
+  outline: 2px solid rgb(241 255 92 / 0.6);
   outline-offset: 2px;
 }
 
@@ -70,40 +75,56 @@ pre,
   font-family: var(--font-mono);
 }
 
-/* Serif flourish for hero words. */
 .serif-accent {
   font-family: var(--font-serif);
   font-weight: 400;
   font-style: italic;
 }
 
-/* ── surfaces ──────────────────────────────────────────────────────────────
-   The card: a borderless-feeling soft slab that floats off the canvas. */
+/* ── honeycomb canvas ──────────────────────────────────────────────────────
+   A seamless hexagon tile, scaled up and faded toward the middle so the
+   pattern reads at the edges (like the reference) without fighting content. */
+.honeycomb {
+  position: relative;
+  background-color: var(--color-surface);
+  isolation: isolate;
+}
+.honeycomb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.045'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-size: 84px 147px;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, transparent 32%, transparent 68%, #000 100%);
+  mask-image: linear-gradient(90deg, #000 0%, transparent 32%, transparent 68%, #000 100%);
+}
+
+/* ── surfaces ────────────────────────────────────────────────────────────── */
 .glass,
 .panel {
   @apply rounded-3xl bg-panel;
-  border: 1px solid rgb(18 18 18 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.06);
   box-shadow:
-    0 1px 2px rgb(18 18 18 / 0.03),
-    0 14px 36px -28px rgb(18 18 18 / 0.26);
+    0 1px 2px rgb(0 0 0 / 0.25),
+    0 18px 40px -30px rgb(0 0 0 / 0.7);
   transition:
     box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
     transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 240ms ease;
 }
 
-/* Lifted hover for interactive cards. */
 .lift {
-  /* z-index (not just position) — it makes .lift a real stacking context so
-     the negative-z hit-area anchor below stays scoped to the card. */
+  /* z-index (not just position) — makes .lift a real stacking context so the
+     negative-z hit-area anchor below stays scoped to the card. */
   position: relative;
   z-index: 0;
 }
 @media (hover: hover) and (pointer: fine) {
-  /* Hit-area anchor. The card lifts 3px on hover, which slides its own bottom
-     edge out from under a cursor resting in that bottom band — hover is lost,
-     the card drops, hover re-fires, and the card vibrates forever. This
-     invisible pseudo-element keeps the pre-lift edge hoverable. */
+  /* The card lifts 3px on hover, which slides its bottom edge out from under a
+     cursor resting there — hover is lost, the card drops, hover re-fires, and
+     it vibrates forever. This anchor keeps the pre-lift edge hoverable. */
   .lift::after {
     content: "";
     position: absolute;
@@ -112,43 +133,22 @@ pre,
   }
   .lift:hover {
     transform: translate3d(0, -3px, 0);
-    border-color: rgb(18 18 18 / 0.08);
-    box-shadow: 0 18px 40px -24px rgb(0 0 0 / 0.24);
+    border-color: rgb(255 255 255 / 0.12);
+    box-shadow: 0 24px 46px -28px rgb(0 0 0 / 0.85);
   }
-}
-
-/* Subtle dot-grid texture for the white canvas. */
-.dotted-canvas {
-  background-color: var(--color-surface);
-  background-image:
-    radial-gradient(circle at 8% -10%, rgb(37 99 235 / 0.07), transparent 28rem),
-    radial-gradient(circle at 100% 100%, rgb(124 58 237 / 0.05), transparent 34rem),
-    radial-gradient(circle, rgb(18 18 18 / 0.05) 1px, transparent 1px);
-  background-size: auto, auto, 22px 22px;
 }
 
 /* ── motion ───────────────────────────────────────────────────────────────── */
 
-/* Soft entrance for page content + staggered children. fill-mode BACKWARDS
-   (not both): after the animation ends the element must return to
-   transform:none — a lingering transform turns it into a containing block,
+/* fill-mode BACKWARDS (not both): after the animation the element must return
+   to transform:none — a lingering transform turns it into a containing block,
    which re-anchors every fixed-position descendant (modals!) to it. */
 @keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.rise-in {
-  animation: rise-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
-.rise-in > * {
-  animation: rise-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
+.rise-in { animation: rise-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.rise-in > * { animation: rise-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 .rise-in > *:nth-child(2) { animation-delay: 60ms; }
 .rise-in > *:nth-child(3) { animation-delay: 120ms; }
 .rise-in > *:nth-child(4) { animation-delay: 180ms; }
@@ -157,28 +157,16 @@ pre,
 /* Routed pages animate at the route boundary — don't stack a second entrance
    and child stagger on top of that transition. */
 .route-fade > .rise-in,
-.route-fade > .rise-in > * {
-  animation: none;
-}
+.route-fade > .rise-in > * { animation: none; }
 
 @keyframes route-fade {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 8px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-.route-fade {
-  animation: route-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
+.route-fade { animation: route-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 
-/* Dialog motion — no fractional scale() anywhere: these panels carry text, and
-   a 0.97 → 1 scale makes the browser rasterize every glyph at 97% then again
-   at 100%, so letters visibly soften and snap on each open. A whole-pixel
-   translate has the same feel with none of the wobble. */
+/* No fractional scale() on text panels: a 0.97 → 1 scale re-rasterizes every
+   glyph, so letters visibly soften and snap on each open. */
 @keyframes modal-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -206,16 +194,14 @@ pre,
 }
 .drawer-in { animation: drawer-in 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 
-/* Popovers portal to <body>, so the `.route-fade > .rise-in` neutraliser never
-   matches them and the child stagger would re-index rows as a list filters —
-   the menu jitters as you type. Own keyframe, no child stagger. */
+/* Popovers must not inherit the child stagger — filtering a list re-indexes
+   the rows and restarts delayed animations, so the menu jitters as you type. */
 @keyframes pop-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .pop-in { animation: pop-in 140ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 
-/* Pulsing live dot. */
 @keyframes pulse-ring {
   0% { opacity: 0.55; transform: scale(1); }
   75%, 100% { opacity: 0; transform: scale(2.5); }
@@ -240,9 +226,9 @@ pre,
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgb(18 18 18 / 0.06),
-    rgb(18 18 18 / 0.11),
-    rgb(18 18 18 / 0.06)
+    rgb(255 255 255 / 0.05),
+    rgb(255 255 255 / 0.12),
+    rgb(255 255 255 / 0.05)
   );
   background-size: 240% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
@@ -261,11 +247,11 @@ pre,
 }
 
 /* ── scrollbars ────────────────────────────────────────────────────────────
-   scrollbar-gutter: stable is load-bearing, not cosmetic. These are classic
-   (space-taking) 8px scrollbars, so without a reserved gutter every content
-   height change that crosses the container height adds/removes 8px of width —
-   the column re-lays out and every line of text re-wraps. Pages poll every
-   3–15s, so that flip fires constantly and reads as the UI vibrating. */
+   scrollbar-gutter: stable is load-bearing. These are classic (space-taking)
+   scrollbars, so without a reserved gutter every content-height change that
+   crosses the container height adds/removes 8px of width — the column
+   re-lays out and every line re-wraps. Pages poll, so that flip fires
+   constantly and reads as the UI vibrating. */
 #main-content,
 .gutter-stable {
   scrollbar-gutter: stable;
@@ -273,30 +259,29 @@ pre,
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d4d4d4 transparent;
+  scrollbar-color: #5a5a5a transparent;
 }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 8px; }
-*::-webkit-scrollbar-thumb:hover { background: #bcbcbc; }
+*::-webkit-scrollbar-thumb { background: #5a5a5a; border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: #6e6e6e; }
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* ── chat ─────────────────────────────────────────────────────────────────── */
 
-/* The composer pill: hairline border + soft floating shadow. */
 .chat-pill {
-  border: 1px solid var(--color-edge);
+  border: 1px solid rgb(255 255 255 / 0.09);
   box-shadow:
-    0 1px 2px rgb(18 18 18 / 0.04),
-    0 10px 30px -14px rgb(18 18 18 / 0.28);
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 14px 34px -18px rgb(0 0 0 / 0.8);
   transition:
     box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 240ms ease;
 }
 .chat-pill:focus-within {
-  border-color: #d3d3ce;
+  border-color: rgb(241 255 92 / 0.45);
   box-shadow:
-    0 1px 2px rgb(18 18 18 / 0.05),
-    0 16px 40px -16px rgb(18 18 18 / 0.32);
+    0 1px 2px rgb(0 0 0 / 0.35),
+    0 18px 44px -18px rgb(0 0 0 / 0.9);
 }
 
 /* Blinking caret at the end of a streaming reply. */
@@ -309,14 +294,13 @@ pre,
   margin-left: 2px;
   vertical-align: -0.2em;
   border-radius: 2px;
-  background: var(--color-ink);
+  background: var(--color-accent);
   animation: blink 1s steps(2, start) infinite;
 }
 @keyframes blink {
   to { visibility: hidden; }
 }
 
-/* Three bouncing dots while the model is thinking. */
 .thinking-dots {
   display: inline-flex;
   gap: 4px;
@@ -328,16 +312,15 @@ pre,
   width: var(--dot);
   height: var(--dot);
   border-radius: 999px;
-  background: var(--color-ink-dim);
+  background: var(--color-accent);
   animation: bounce 1.2s infinite ease-in-out;
 }
 .thinking-dots::after { animation-delay: 0.2s; }
 @keyframes bounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
   40% { transform: translateY(-4px); opacity: 1; }
 }
 
-/* Quota bar fill. */
 .bar-fill {
   transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -361,25 +344,25 @@ pre,
   line-height: 1.3;
   margin: 1.3em 0 0.5em;
 }
-.md h1 { font-size: 1.45em; }
-.md h2 { font-size: 1.25em; }
-.md h3 { font-size: 1.1em; }
+.md h1 { font-size: 1.4em; }
+.md h2 { font-size: 1.22em; }
+.md h3 { font-size: 1.08em; }
 .md h4 { font-size: 1em; }
-.md ul { list-style: disc; padding-left: 1.5em; margin: 0.5em 0; }
-.md ol { list-style: decimal; padding-left: 1.5em; margin: 0.5em 0; }
+.md ul { list-style: disc; padding-left: 1.4em; margin: 0.5em 0; }
+.md ol { list-style: decimal; padding-left: 1.4em; margin: 0.5em 0; }
 .md li { margin: 0.25em 0; }
 .md li > p { margin: 0.25em 0; }
-.md li input[type="checkbox"] { margin-right: 0.4em; }
+.md li::marker { color: var(--color-ink-dim); }
 .md a {
   color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.md strong { font-weight: 700; }
+.md strong { font-weight: 700; color: #fff; }
 .md blockquote {
   margin: 0.8em 0;
   padding-left: 1em;
-  border-left: 3px solid var(--color-edge);
+  border-left: 3px solid var(--color-accent);
   color: var(--color-ink-dim);
 }
 .md hr {
@@ -390,8 +373,9 @@ pre,
 .md :not(pre) > code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: var(--color-panel-2);
-  border: 1px solid var(--color-edge);
+  background: rgb(0 0 0 / 0.3);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  color: var(--color-accent);
   padding: 0.1em 0.4em;
   border-radius: 6px;
 }
@@ -399,31 +383,33 @@ pre,
   margin: 0;
   padding: 0.9rem 1rem;
   overflow-x: auto;
-  background: var(--color-night);
-  color: #f3f4f6;
+  background: #1b1f24;
+  color: #e6e8eb;
   font-size: 13px;
   line-height: 1.6;
-  border-radius: 0 0 16px 16px;
+  border-radius: 0 0 14px 14px;
 }
 .md pre code {
   font-family: var(--font-mono);
   background: transparent;
   border: 0;
   padding: 0;
+  color: inherit;
   font-size: inherit;
 }
 .md .codeblock {
   margin: 0.9em 0;
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.07);
 }
 .md .codeblock-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.4rem 0.75rem 0.4rem 1rem;
-  background: #1c1f26;
-  color: #a1a7b3;
+  background: #15181c;
+  color: #8b929c;
   font-size: 11px;
   font-family: var(--font-mono);
 }
@@ -433,14 +419,14 @@ pre,
   gap: 0.35rem;
   padding: 0.25rem 0.5rem;
   border-radius: 999px;
-  color: #d1d5db;
+  color: #c9ced6;
   font-family: var(--font-sans);
   font-weight: 600;
-  transition: background-color 200ms ease;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 .md .codeblock-bar button:hover {
   background: rgb(255 255 255 / 0.1);
-  color: #fff;
+  color: var(--color-accent);
 }
 .md table {
   display: block;
@@ -458,10 +444,11 @@ pre,
   vertical-align: top;
 }
 .md th {
-  background: var(--color-panel-2);
+  background: rgb(255 255 255 / 0.04);
   font-weight: 600;
+  color: #fff;
 }
 .md img {
   max-width: 100%;
-  border-radius: 16px;
+  border-radius: 14px;
 }

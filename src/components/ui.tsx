@@ -19,12 +19,12 @@ const toneText: Record<Tone, string> = {
 };
 
 const toneSoft: Record<Tone, string> = {
-  accent: "bg-accent-soft text-accent",
+  accent: "bg-accent/15 text-accent",
   ok: "bg-ok-soft text-ok",
   warn: "bg-warn-soft text-warn",
   danger: "bg-danger-soft text-danger",
   violet: "bg-violet-soft text-violet",
-  dim: "bg-ink/5 text-ink-dim",
+  dim: "bg-white/[0.07] text-ink-dim",
 };
 
 const toneBar: Record<Tone, string> = {
@@ -110,7 +110,7 @@ export function Button(props: {
   children: ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
-  tone?: "primary" | "accent" | "ghost" | "danger";
+  tone?: "primary" | "accent" | "night" | "ghost" | "danger";
   busy?: boolean;
   disabled?: boolean;
   className?: string;
@@ -119,10 +119,13 @@ export function Button(props: {
 }) {
   const tone = props.tone ?? "primary";
   const tones = {
-    primary: "bg-night text-white hover:bg-ink shadow-[0_2px_14px_-6px_rgb(18_18_18/0.55)] hover:shadow-[0_8px_22px_-8px_rgb(18_18_18/0.6)]",
-    accent: "bg-accent text-white hover:brightness-110 shadow-[0_2px_14px_-6px_rgb(37_99_235/0.7)] hover:shadow-[0_8px_22px_-8px_rgb(37_99_235/0.8)]",
-    ghost: "border border-edge bg-panel text-ink hover:bg-panel-2",
-    danger: "bg-danger-soft text-danger hover:bg-danger hover:text-white",
+    primary:
+      "bg-accent text-accent-ink hover:brightness-105 shadow-[0_2px_16px_-6px_rgb(241_255_92/0.5)] hover:shadow-[0_10px_26px_-8px_rgb(241_255_92/0.6)]",
+    accent:
+      "bg-accent text-accent-ink hover:brightness-105 shadow-[0_2px_16px_-6px_rgb(241_255_92/0.5)]",
+    night: "bg-night text-ink border border-white/10 hover:bg-night/80",
+    ghost: "border border-edge bg-panel-2 text-ink hover:bg-edge",
+    danger: "bg-danger-soft text-danger hover:bg-danger hover:text-night",
   }[tone];
   const size = props.size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-5 py-2.5 text-sm";
   return (
@@ -178,7 +181,7 @@ export function Input(props: {
           props.onEnter();
         }
       }}
-      className={`w-full rounded-full border border-edge bg-panel px-4 py-2.5 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/[0.06] disabled:opacity-50 ${
+      className={`w-full rounded-full border border-edge bg-panel-2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-accent/60 focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:opacity-50 ${
         props.mono ? "font-mono text-[13px]" : ""
       } ${props.className ?? ""}`}
     />
@@ -199,7 +202,7 @@ export function TextArea(props: {
       rows={props.rows ?? 5}
       placeholder={props.placeholder}
       onChange={(e) => props.onChange(e.target.value)}
-      className={`w-full resize-y rounded-2xl border border-edge bg-panel px-4 py-3 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/[0.06] ${
+      className={`w-full resize-y rounded-2xl border border-edge bg-panel-2 px-4 py-3 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-accent/60 focus:outline-none focus:ring-4 focus:ring-accent/10 ${
         props.mono ? "font-mono text-[13px]" : ""
       } ${props.className ?? ""}`}
     />
@@ -221,12 +224,12 @@ export function Toggle(props: {
         disabled={props.disabled}
         onClick={() => props.onChange(!props.checked)}
         className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] disabled:opacity-50 ${
-          props.checked ? "bg-night" : "bg-ink/15"
+          props.checked ? "bg-accent" : "bg-white/15"
         }`}
       >
         <span
           className={`absolute top-1 h-5 w-5 rounded-full shadow transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            props.checked ? "left-[26px] bg-accent" : "left-1 bg-white"
+            props.checked ? "left-[26px] bg-accent-ink" : "left-1 bg-white"
           }`}
         />
       </button>
@@ -254,7 +257,7 @@ export function Tabs(props: { tabs: string[]; active: string; onChange: (tab: st
             props.onChange(props.tabs[next]);
           }}
           className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            t === props.active ? "bg-night text-white shadow-sm" : "text-ink-dim hover:text-ink"
+            t === props.active ? "bg-accent text-accent-ink shadow-sm" : "text-ink-dim hover:text-ink"
           }`}
         >
           {t}
@@ -289,7 +292,7 @@ export function Skeleton(props: { className?: string }) {
 
 export function EmptyState(props: { title: string; hint?: string; action?: ReactNode; tone?: Tone }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-edge bg-panel-2/50 px-6 py-10 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-edge bg-white/[0.02] px-6 py-10 text-center">
       <p className={`text-sm font-bold ${props.tone ? toneText[props.tone] : "text-ink"}`}>{props.title}</p>
       {props.hint && <p className="max-w-sm text-sm text-ink-dim">{props.hint}</p>}
       {props.action && <div className="mt-3">{props.action}</div>}
@@ -299,12 +302,12 @@ export function EmptyState(props: { title: string; hint?: string; action?: React
 
 export function StatChip(props: { label: string; value: ReactNode; sub?: string; tone?: Tone }) {
   return (
-    <div className="glass lift flex flex-col gap-1 px-5 py-4">
+    <div className="glass lift flex flex-col gap-0.5 px-4 py-3">
       <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">{props.label}</span>
-      <span className={`text-2xl font-extrabold tracking-tight ${props.tone ? toneText[props.tone] : "text-ink"}`}>
+      <span className={`text-xl font-extrabold tracking-tight ${props.tone ? toneText[props.tone] : "text-ink"}`}>
         {props.value}
       </span>
-      {props.sub && <span className="text-xs text-ink-dim">{props.sub}</span>}
+      {props.sub && <span className="text-[11px] text-ink-dim">{props.sub}</span>}
     </div>
   );
 }
@@ -319,11 +322,11 @@ export function Avatar(props: { name: string; size?: "sm" | "md" }) {
   if (!initials) initials = "·";
 
   const palette = [
-    "bg-night text-white",
-    "bg-accent text-white",
+    "bg-accent text-accent-ink",
     "bg-violet-soft text-violet",
     "bg-ok-soft text-ok",
     "bg-warn-soft text-warn",
+    "bg-white/10 text-ink",
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
@@ -343,9 +346,9 @@ export function Avatar(props: { name: string; size?: "sm" | "md" }) {
 export function Progress(props: { percent: number | null; tone?: Tone; className?: string }) {
   const tone = props.tone ?? "accent";
   return (
-    <div className={`h-2 w-full overflow-hidden rounded-full bg-ink/[0.07] ${props.className ?? ""}`}>
+    <div className={`h-2 w-full overflow-hidden rounded-full bg-white/[0.08] ${props.className ?? ""}`}>
       {props.percent === null ? (
-        <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgb(0_0_0/0.07)_4px,rgb(0_0_0/0.07)_8px)]" />
+        <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgb(255_255_255/0.09)_4px,rgb(255_255_255/0.09)_8px)]" />
       ) : (
         <div
           className={`bar-fill h-full rounded-full ${toneBar[tone]}`}
@@ -384,7 +387,7 @@ export function Notice(props: { tone: Tone; children: ReactNode; onClose?: () =>
 export function Code(props: { children: string; className?: string }) {
   return (
     <pre
-      className={`overflow-x-auto rounded-2xl bg-night p-4 text-xs leading-relaxed text-white ${props.className ?? ""}`}
+      className={`overflow-x-auto rounded-2xl border border-white/8 bg-[#1b1f24] p-4 text-xs leading-relaxed text-white ${props.className ?? ""}`}
     >
       <code>{props.children}</code>
     </pre>
@@ -459,7 +462,7 @@ export function Modal(props: {
     <div
       className={`${
         props.open ? "backdrop-in" : "backdrop-out pointer-events-none"
-      } fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-3 pt-[8vh] backdrop-blur-[2px] sm:p-4 sm:pt-[10vh]`}
+      } fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-3 pt-[8vh] backdrop-blur-[3px] sm:p-4 sm:pt-[10vh]`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && props.open) props.onClose();
       }}
@@ -472,7 +475,7 @@ export function Modal(props: {
         aria-labelledby={titleId}
         className={`${
           props.open ? "modal-in" : "modal-out"
-        } flex max-h-[min(78dvh,52rem)] w-full flex-col overflow-hidden rounded-3xl bg-panel shadow-2xl ${
+        } flex max-h-[min(78dvh,52rem)] w-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-panel shadow-2xl ${
           props.wide ? "max-w-3xl" : "max-w-lg"
         }`}
       >
@@ -483,7 +486,7 @@ export function Modal(props: {
           <button
             ref={closeRef}
             onClick={props.onClose}
-            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-panel-2 hover:text-ink"
+            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-white/10 hover:text-ink"
             aria-label="Close dialog"
           >
             <X className="h-4 w-4" />

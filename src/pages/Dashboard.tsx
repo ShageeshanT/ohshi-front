@@ -134,8 +134,6 @@ interface UsageSummary {
   }[];
 }
 
-const VENDOR_LABEL: Record<string, string> = { google: "Gemini", anthropic: "Claude", openai: "GPT-OSS" };
-
 function endpointNote(endpoint?: string | null): string {
   if (!endpoint) return "";
   if (endpoint.includes("daily-")) return " · via Google's daily endpoint";
@@ -456,10 +454,10 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
 
   return (
     <div>
-      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-bold tracking-tight">Remaining usage</h3>
-          <p className="text-xs text-ink-dim">
+          <h3 className="text-[13px] font-bold tracking-tight">Remaining usage</h3>
+          <p className="text-[11px] text-ink-dim">
             {snapshot
               ? `Live from Google · ${snapshot.endpointLabel} endpoint · ${timeAgo(snapshot.fetchedMs)}${
                   snapshot.cached ? " · cached" : ""
@@ -485,11 +483,11 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
 
       {!snapshot ? (
         loading ? (
-          <div className="space-y-2.5">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="rounded-2xl bg-panel-2/60 px-4 py-3.5">
-                <Skeleton className="h-3 w-40" />
-                <Skeleton className="mt-2.5 h-2 w-full" />
+          <div className="grid gap-1.5 md:grid-cols-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl bg-white/[0.03] px-3 py-2.5">
+                <Skeleton className="h-2.5 w-32" />
+                <Skeleton className="mt-2 h-1.5 w-full" />
               </div>
             ))}
           </div>
@@ -502,7 +500,7 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
           hint="The plan may not include Antigravity yet."
         />
       ) : (
-        <div className="space-y-2.5">
+        <div className="grid gap-1.5 md:grid-cols-2">
           {snapshot.families.map((f) => (
             <FamilyRow key={f.id} family={f} now={now} />
           ))}
@@ -516,39 +514,45 @@ function FamilyRow(props: { family: FamilyQuota; now: number }) {
   const f = props.family;
   const tone = quotaTone(f.remainingPercent);
   const Logo = vendorLogo(f.vendor);
-  const percentText = f.remainingPercent === null ? "no quota data" : `${f.remainingPercent}% left`;
   const reset = f.resetMs ? countdown(f.resetMs, props.now) : "";
-  const toneCls = { accent: "text-accent", ok: "text-ok", warn: "text-warn", danger: "text-danger", violet: "text-violet", dim: "text-ink-dim" }[tone];
+  const toneCls = {
+    accent: "text-accent",
+    ok: "text-ok",
+    warn: "text-warn",
+    danger: "text-danger",
+    violet: "text-violet",
+    dim: "text-ink-dim",
+  }[tone];
 
   return (
-    <div className="rounded-2xl bg-panel-2/60 px-4 py-3.5 transition-colors duration-300 hover:bg-panel-2">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <div className="flex items-center gap-2">
-          <Logo className="h-4 w-4 shrink-0 text-ink-dim" />
-          <span className="text-sm font-semibold">{f.known ? f.label : (f.variants[0]?.displayName ?? f.id)}</span>
-          <Badge tone="dim">{VENDOR_LABEL[f.vendor] ?? f.vendor}</Badge>
-          {f.exhausted && <Badge tone="danger">Out of quota</Badge>}
-        </div>
-        <span className={`text-xs font-semibold ${toneCls}`}>
-          {percentText}
-          {reset && <span className="font-medium text-ink-dim"> · resets {reset}</span>}
+    <div className="rounded-xl bg-white/[0.03] px-3 py-2.5 transition-colors duration-300 hover:bg-white/[0.06]">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <Logo className="h-3.5 w-3.5 shrink-0 text-ink-dim" />
+          <span className="truncate text-[12.5px] font-semibold">
+            {f.known ? f.label : (f.variants[0]?.displayName ?? f.id)}
+          </span>
+        </span>
+        <span className={`shrink-0 text-[11px] font-semibold ${toneCls}`}>
+          {f.remainingPercent === null ? "—" : f.exhausted ? "out of quota" : `${f.remainingPercent}%`}
+          {reset && <span className="ml-1 font-medium text-ink-dim">· {reset}</span>}
         </span>
       </div>
-      <div className="mt-2.5">
-        <Progress percent={f.remainingPercent} tone={tone} />
+      <div className="mt-1.5">
+        <Progress percent={f.remainingPercent} tone={tone} className="h-1.5" />
       </div>
       {f.variants.length > 1 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <div className="mt-1.5 flex flex-wrap gap-1">
           {f.variants.map((v) => (
             <span
               key={v.id}
               title={`${v.id}${v.resetMs ? ` · resets ${countdown(v.resetMs, props.now)}` : ""}`}
-              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                v.exhausted ? "bg-danger-soft text-danger line-through" : "bg-panel text-ink-dim"
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                v.exhausted ? "bg-danger-soft text-danger line-through" : "bg-white/[0.07] text-ink-dim"
               }`}
             >
               {v.effort || v.id}
-              {v.remainingPercent !== null && ` · ${v.remainingPercent}%`}
+              {v.remainingPercent !== null && ` ${v.remainingPercent}%`}
             </span>
           ))}
         </div>

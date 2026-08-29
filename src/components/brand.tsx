@@ -4,11 +4,11 @@ export function BrandMark(props: { className?: string; light?: boolean }) {
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center rounded-xl ${
-        props.light ? "bg-white/10" : "bg-night"
+        props.light ? "bg-white/10" : "bg-accent"
       } ${props.className ?? "h-8 w-8"}`}
       aria-hidden
     >
-      <span className="block h-[44%] w-[44%] rounded-full border-[3px] border-white" />
+      <span className="block h-[44%] w-[44%] rounded-full border-[3px] border-accent-ink" />
     </span>
   );
 }

@@ -54,14 +54,14 @@ export default function Sidebar(p: SidebarProps) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-edge bg-panel transition-[transform,width] duration-200 md:static md:translate-x-0 ${
-          p.collapsed ? "md:w-[68px]" : "md:w-[272px]"
+        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-white/[0.06] bg-[#2d2d2d] transition-[transform,width] duration-200 md:static md:translate-x-0 ${
+          p.collapsed ? "md:w-[64px]" : "md:w-[264px]"
         } ${p.mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className={`flex items-center px-3 pb-1 pt-4 ${p.collapsed ? "justify-center" : "justify-between"}`}>
           <Link to="/" className="flex items-center gap-2.5" title="Ohshi" onClick={p.onMobileClose}>
             <BrandMark />
-            {!p.collapsed && <span className="text-lg font-semibold tracking-tight">Ohshi</span>}
+            {!p.collapsed && <span className="text-base font-bold tracking-tight">Ohshi</span>}
           </Link>
           {!p.collapsed && (
             <div className="flex items-center gap-1">
@@ -113,11 +113,11 @@ export default function Sidebar(p: SidebarProps) {
           <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-3 pb-2">
             <SectionLabel>History</SectionLabel>
             {groups.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-ink-dim">Your chats will show up here.</p>
+              <p className="px-3 py-2 text-[12px] text-ink-dim">Your chats will show up here.</p>
             ) : (
               groups.map((g) => (
                 <div key={g.label} className="mb-3">
-                  <p className="px-3 pb-1 pt-1 text-[11px] font-medium text-ink-dim/80">{g.label}</p>
+                  <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-dim/60">{g.label}</p>
                   {g.chats.map((chat) => (
                     <HistoryRow
                       key={chat.id}
@@ -134,20 +134,20 @@ export default function Sidebar(p: SidebarProps) {
           </div>
         )}
 
-        <div className={`border-t border-edge p-3 ${p.collapsed ? "flex justify-center" : "flex items-center gap-3"}`}>
+        <div className={`border-t border-white/[0.06] p-3 ${p.collapsed ? "flex justify-center" : "flex items-center gap-3"}`}>
           <span title={p.user.email}>
             <Avatar name={name} size="sm" />
           </span>
           {!p.collapsed && (
             <>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{name}</p>
-                <p className="truncate text-xs text-ink-dim">{p.user.email}</p>
+                <p className="truncate text-[13px] font-semibold">{name}</p>
+                <p className="truncate text-[11px] text-ink-dim">{p.user.email}</p>
               </div>
               <button
                 type="button"
                 onClick={p.onSignOut}
-                className="rounded-lg p-1.5 text-ink-dim hover:bg-panel-2 hover:text-ink"
+                className="rounded-lg p-1.5 text-ink-dim hover:bg-white/10 hover:text-ink"
                 aria-label="Sign out"
                 title="Sign out"
               >
@@ -162,10 +162,10 @@ export default function Sidebar(p: SidebarProps) {
 }
 
 function SectionLabel(props: { children: string }) {
-  return <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-dim">{props.children}</p>;
+  return <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-dim/70">{props.children}</p>;
 }
 
-const itemBase = "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-semibold transition-colors";
+const itemBase = "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors";
 
 function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed: boolean; onClick: () => void }) {
   return (
@@ -173,11 +173,11 @@ function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed
       type="button"
       onClick={props.onClick}
       title={props.label}
-      className={`${itemBase} text-ink hover:bg-panel-2 ${props.collapsed ? "justify-center px-0" : ""}`}
+      className={`${itemBase} text-ink-dim hover:bg-white/[0.06] hover:text-ink ${props.collapsed ? "justify-center px-0" : ""}`}
     >
-      <props.icon className="h-5 w-5 shrink-0" />
+      <props.icon className="h-[17px] w-[17px] shrink-0" />
       {!props.collapsed && <span className="flex-1 text-left">{props.label}</span>}
-      {!props.collapsed && props.hint && <kbd className="text-[10px] font-medium text-ink-dim">{props.hint}</kbd>}
+      {!props.collapsed && props.hint && <kbd className="text-[10px] font-medium text-ink-dim/70">{props.hint}</kbd>}
     </button>
   );
 }
@@ -198,12 +198,12 @@ function SideLink(props: {
       title={props.label}
       className={({ isActive }) => {
         const active = props.active ?? isActive;
-        return `${itemBase} ${active ? "bg-panel-2 text-ink" : "text-ink hover:bg-panel-2/70"} ${
+        return `${itemBase} ${active ? "bg-accent/[0.14] text-accent" : "text-ink-dim hover:bg-white/[0.06] hover:text-ink"} ${
           props.collapsed ? "justify-center px-0" : ""
         }`;
       }}
     >
-      <props.icon className="h-5 w-5 shrink-0" />
+      <props.icon className="h-[17px] w-[17px] shrink-0" />
       {!props.collapsed && <span>{props.label}</span>}
     </NavLink>
   );
@@ -252,12 +252,12 @@ function HistoryRow(props: {
 
   return (
     <div
-      className={`group flex items-center rounded-xl pr-1 ${props.active ? "bg-panel-2" : "hover:bg-panel-2/70"}`}
+      className={`group flex items-center rounded-xl pr-1 ${props.active ? "bg-white/[0.08]" : "hover:bg-white/[0.05]"}`}
     >
       <Link
         to={`/c/${props.chat.id}`}
         onClick={props.onNavigate}
-        className="min-w-0 flex-1 truncate px-3 py-2 text-sm text-ink"
+        className="min-w-0 flex-1 truncate px-3 py-1.5 text-[13px] text-ink-dim transition-colors group-hover:text-ink"
         title={props.chat.title || "New chat"}
       >
         {props.chat.title || "New chat"}
@@ -269,7 +269,7 @@ function HistoryRow(props: {
             setTitle(props.chat.title);
             setEditing(true);
           }}
-          className="rounded-md p-1 text-ink-dim hover:bg-edge hover:text-ink"
+          className="rounded-md p-1 text-ink-dim hover:bg-white/10 hover:text-ink"
           aria-label="Rename chat"
         >
           <Pencil className="h-3.5 w-3.5" />

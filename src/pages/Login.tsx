@@ -26,7 +26,7 @@ export default function Login() {
   };
 
   return (
-    <div className="dotted-canvas flex min-h-screen items-center justify-center p-4">
+    <div className="honeycomb flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="rise-in">
           <div className="mb-7 flex flex-col items-center gap-4 text-center">
@@ -76,7 +76,7 @@ export default function Login() {
               {mode === "login" ? "New here? " : "Already have an account? "}
               <button
                 type="button"
-                className="font-semibold text-accent transition-colors hover:text-ink"
+                className="font-semibold text-accent transition-colors hover:brightness-110"
                 onClick={() => {
                   setMode(mode === "login" ? "register" : "login");
                   setError(null);
