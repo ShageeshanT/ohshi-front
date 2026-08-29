@@ -1,0 +1,46 @@
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT}
+
+root * /srv
+encode zstd gzip
+
+# handle blocks are mutually exclusive; the most specific path wins.
+
+# Railway health check for THIS service (the backend has its own /health).
+handle /healthz {
+	respond "ok" 200
+}
+
+# Everything the API owns goes to the backend service. flush_interval -1
+# streams Server-Sent Events (chat replies) immediately instead of buffering.
+handle /api/* {
+	reverse_proxy {$BACKEND_URL} {
+		flush_interval -1
+	}
+}
+handle /v1/* {
+	reverse_proxy {$BACKEND_URL} {
+		flush_interval -1
+	}
+}
+handle /health {
+	reverse_proxy {$BACKEND_URL}
+}
+
+# Hashed assets are immutable — cache them for a year.
+handle /assets/* {
+	header Cache-Control "public, max-age=31536000, immutable"
+	file_server
+}
+
+# Single-page app: unknown paths fall back to index.html; nothing here is
+# fingerprinted, so never let the browser cache it.
+handle {
+	header Cache-Control "no-cache"
+	try_files {path} /index.html
+	file_server
+}

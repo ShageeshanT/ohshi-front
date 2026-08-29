@@ -1,0 +1,20 @@
+# dependencies & build output
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# package-lock.json is intentionally NOT ignored — the Docker build runs
+# `npm ci`, which requires it.

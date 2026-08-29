@@ -1,0 +1,10 @@
+# Normalize text to LF in the repository.
+* text=auto
+
+# These end up inside a Linux image — CRLF would break them.
+*.sh text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
