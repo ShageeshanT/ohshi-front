@@ -1,18 +1,20 @@
 /**
- * Dashboard — connected Google accounts, live remaining quota per model, and
- * what your agents used through the gateway.
+ * Google accounts — connect an account, see whether it actually answers, and
+ * watch the remaining usage per model. Plus what your agents spent through the
+ * gateway.
  *
  * Data:
- *   GET /api/google/connections                    -> {connections, redirectMode, endpoints}
- *   GET /api/google/connections/:id/quota[?force=1] -> QuotaSnapshot (or 502 {error, stale})
- *   POST /api/google/connections/:id/test           -> {ok, latencyMs, endpointLabel, error, health}
- *   GET /api/usage/summary?days=30                  -> totals / byModel / series / recent
+ *   GET  /api/google/connections                     -> {connections, redirectMode, endpoints}
+ *   GET  /api/google/connections/:id/quota[?force=1] -> QuotaSnapshot (or 502 {error, stale})
+ *   POST /api/google/connections/:id/test            -> {ok, latencyMs, endpointLabel, error, health}
+ *   GET  /api/usage/summary?days=30                  -> totals / byModel / series / recent
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Activity, ChevronDown, ChevronUp, Plug, RefreshCw, Star, Trash2, Zap } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Activity, Plug, RefreshCw, Star, Trash2, Zap } from "lucide-react";
 import ConnectGoogleModal from "../components/ConnectGoogleModal";
+import { GoogleLogo, vendorLogo } from "../components/logos";
 import {
   Badge,
   Button,
@@ -20,9 +22,11 @@ import {
   EmptyState,
   Notice,
   Progress,
+  Skeleton,
   Spinner,
   StatChip,
   quotaTone,
+  type Tone,
 } from "../components/ui";
 import { ApiError, countdown, formatNumber, friendly, get, poll, post, timeAgo } from "../lib/api";
 
@@ -104,12 +108,17 @@ interface TestResult {
   reply?: string;
   error?: string;
   tried?: string[];
-  health?: Health;
 }
 
 interface UsageSummary {
   windowDays: number;
-  totals: { requests: number; promptTokens: number; completionTokens: number; totalTokens: number; errors: number };
+  totals: {
+    requests: number;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    errors: number;
+  };
   byModel: { model: string; requests: number; totalTokens: number; errors: number }[];
   recent: {
     id: number;
@@ -134,13 +143,15 @@ function endpointNote(endpoint?: string | null): string {
   return "";
 }
 
-function healthLine(c: Connection): { tone: "ok" | "warn" | "danger" | "dim"; text: string } {
+/** One plain-language line per account: working / failing / untested. */
+function healthLine(c: Connection, testing: boolean): { tone: Tone; text: string } {
+  if (testing) return { tone: "dim", text: "Testing — sending a tiny message…" };
   if (c.status === "needs_reconnect") {
     return { tone: "danger", text: "Google no longer accepts this sign-in — reconnect the account." };
   }
   const h = c.health;
   if (!h || h.status === "unknown") {
-    return { tone: "dim", text: "Not tested yet — click Test to check it actually answers." };
+    return { tone: "dim", text: "Not tested yet — hit Test to check it actually answers." };
   }
   if (h.status === "ok") {
     const latency = h.lastLatencyMs != null ? ` in ${(h.lastLatencyMs / 1000).toFixed(1)}s` : "";
@@ -165,7 +176,7 @@ export default function Dashboard() {
   const [quotas, setQuotas] = useState<Record<string, QuotaState>>({});
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
-  const [flash, setFlash] = useState<{ tone: "ok" | "danger"; text: string } | null>(() => {
+  const [flash, setFlash] = useState<{ tone: Tone; text: string } | null>(() => {
     const connected = params.get("connected");
     const error = params.get("connect_error");
     if (connected) return { tone: "ok", text: `Connected ${connected}.` };
@@ -191,7 +202,7 @@ export default function Dashboard() {
     try {
       setUsage(await get<UsageSummary>("/api/usage/summary?days=30"));
     } catch {
-      /* the connections section is the important one */
+      /* the accounts section is the important one */
     }
   }, []);
 
@@ -201,7 +212,8 @@ export default function Dashboard() {
       const snap = await get<QuotaSnapshot>(`/api/google/connections/${id}/quota${force ? "?force=1" : ""}`);
       setQuotas((q) => ({ ...q, [id]: { snapshot: snap, error: null, loading: false } }));
     } catch (e) {
-      const stale = e instanceof ApiError ? (e.body as { stale?: QuotaSnapshot | null } | null)?.stale ?? null : null;
+      const stale =
+        e instanceof ApiError ? ((e.body as { stale?: QuotaSnapshot | null } | null)?.stale ?? null) : null;
       setQuotas((q) => ({
         ...q,
         [id]: { snapshot: stale ?? q[id]?.snapshot ?? null, error: friendly(e), loading: false },
@@ -212,8 +224,14 @@ export default function Dashboard() {
   useEffect(() => poll(loadConnections, 20_000), [loadConnections]);
   useEffect(() => poll(loadUsage, 30_000), [loadUsage]);
 
-  // Quota per connection: fetch when the list changes, refresh every 60s.
-  const connectionIds = useMemo(() => (connections ?? []).filter((c) => c.status === "active").map((c) => c.id).join(","), [connections]);
+  const connectionIds = useMemo(
+    () =>
+      (connections ?? [])
+        .filter((c) => c.status === "active")
+        .map((c) => c.id)
+        .join(","),
+    [connections],
+  );
   useEffect(() => {
     if (!connectionIds) return;
     const ids = connectionIds.split(",");
@@ -256,13 +274,15 @@ export default function Dashboard() {
     <div className="rise-in space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Your Google accounts</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">
+            Your <span className="serif-accent">Google</span> accounts
+          </h1>
           <p className="mt-1 text-sm text-ink-dim">
-            Connect once — every model call from your agents runs on your own Google plan.
+            Connect once — every model call from your agents and from chat runs on your own Google plan.
           </p>
         </div>
-        <Button onClick={() => setConnectOpen(true)}>
-          <Plug className="h-4 w-4" /> Connect Google account
+        <Button onClick={() => setConnectOpen(true)} arrow>
+          <Plug className="h-4 w-4" /> Connect account
         </Button>
       </header>
 
@@ -274,40 +294,38 @@ export default function Dashboard() {
       {loadError && <Notice tone="danger">{loadError}</Notice>}
 
       {connections === null ? (
-        <div className="flex justify-center py-10 text-ink-dim">
-          <Spinner />
-        </div>
+        <Card>
+          <Spinner label="Checking your accounts…" />
+        </Card>
       ) : connections.length === 0 ? (
         <Card>
           <EmptyState
             title="No Google account connected yet"
-            hint="Sign in with Google, paste the code Google shows you, and your agents get Gemini, Claude and GPT-OSS on that plan — with live remaining quota right here."
+            hint="Sign in with Google, paste the code it shows you, and your agents get Gemini, Claude and GPT-OSS on that plan — with live remaining quota right here."
             action={
-              <Button onClick={() => setConnectOpen(true)}>
-                <Plug className="h-4 w-4" /> Connect Google account
+              <Button onClick={() => setConnectOpen(true)} arrow>
+                <Plug className="h-4 w-4" /> Connect account
               </Button>
             }
           />
         </Card>
       ) : (
-        <div className="space-y-5">
-          {connections.map((c) => (
-            <ConnectionCard
-              key={c.id}
-              connection={c}
-              quota={quotas[c.id] ?? { snapshot: null, error: null, loading: true }}
-              onRefreshQuota={() => loadQuota(c.id, true)}
-              onDisconnect={() => disconnect(c)}
-              onMakeDefault={() => makeDefault(c)}
-              onReconnect={() => setConnectOpen(true)}
-              onTested={() => {
-                void loadConnections();
-                void loadQuota(c.id, true);
-              }}
-              soloAccount={connections.length === 1}
-            />
-          ))}
-        </div>
+        connections.map((c) => (
+          <ConnectionCard
+            key={c.id}
+            connection={c}
+            quota={quotas[c.id] ?? { snapshot: null, error: null, loading: true }}
+            soloAccount={connections.length === 1}
+            onRefreshQuota={() => loadQuota(c.id, true)}
+            onDisconnect={() => disconnect(c)}
+            onMakeDefault={() => makeDefault(c)}
+            onReconnect={() => setConnectOpen(true)}
+            onTested={() => {
+              void loadConnections();
+              void loadQuota(c.id, true);
+            }}
+          />
+        ))
       )}
 
       <UsageSection usage={usage} />
@@ -332,15 +350,22 @@ function ConnectionCard(props: {
   const c = props.connection;
   const [testing, setTesting] = useState(false);
   const [test, setTest] = useState<TestResult | null>(null);
-  const line = testing
-    ? { tone: "dim" as const, text: "Testing — sending a tiny message…" }
-    : healthLine(c);
+  const line = healthLine(c, testing);
+  const lineCls = {
+    accent: "text-accent",
+    ok: "text-ok",
+    warn: "text-warn",
+    danger: "text-danger",
+    violet: "text-violet",
+    dim: "text-ink-dim",
+  }[line.tone];
+  const connected = c.status === "active";
 
   const runTest = () => {
     setTesting(true);
     setTest(null);
     post<TestResult>(`/api/google/connections/${c.id}/test`)
-      .then((r) => setTest(r))
+      .then(setTest)
       .catch((e) => setTest({ ok: false, latencyMs: 0, model: "", error: friendly(e) }))
       .finally(() => {
         setTesting(false);
@@ -349,46 +374,55 @@ function ConnectionCard(props: {
   };
 
   return (
-    <Card>
+    <Card className={c.isDefault ? "ring-1 ring-accent/25" : undefined}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-base font-semibold">{c.email}</h2>
-            {c.isDefault && (
-              <Badge tone="accent">
-                <Star className="h-3 w-3" /> Default
-              </Badge>
+        <div className="flex min-w-0 flex-1 items-start gap-3.5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-edge bg-panel">
+            <GoogleLogo className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate text-sm font-bold tracking-tight">{c.email}</span>
+              {c.isDefault && (
+                <Badge tone="accent">
+                  <Star className="h-3 w-3" /> Default
+                </Badge>
+              )}
+              {connected ? (
+                c.health?.status === "error" ? (
+                  <Badge tone="danger">Connected · not answering</Badge>
+                ) : (
+                  <Badge tone="ok">Connected</Badge>
+                )
+              ) : (
+                <Badge tone="danger">Needs reconnect</Badge>
+              )}
+              {c.tier && <Badge>{c.tier === "free" ? "Code Assist free tier" : `${c.tier} tier`}</Badge>}
+            </div>
+            <p className={`mt-1.5 text-xs ${lineCls}`}>{line.text}</p>
+            {test && !testing && (
+              <p className={`mt-1 text-xs ${test.ok ? "text-ok" : "text-danger"}`}>
+                {test.ok
+                  ? `Test passed — “${test.reply}” from ${test.model} via ${test.endpointLabel} in ${(test.latencyMs / 1000).toFixed(1)}s`
+                  : `Test failed — ${test.error}${test.tried?.length ? ` (tried ${test.tried.join(", ")})` : ""}`}
+              </p>
             )}
-            {c.status === "needs_reconnect" ? (
-              <Badge tone="danger">Needs reconnect</Badge>
-            ) : (
-              <Badge tone="ok">Connected</Badge>
-            )}
-            {c.tier && <Badge>{c.tier === "free" ? "Code Assist free tier" : `${c.tier} tier`}</Badge>}
-          </div>
-          <p className={`mt-1.5 text-sm text-${line.tone === "dim" ? "ink-dim" : line.tone}`}>{line.text}</p>
-          {test && !testing && (
-            <p className={`mt-1 text-xs ${test.ok ? "text-ok" : "text-danger"}`}>
-              {test.ok
-                ? `Test passed — "${test.reply}" from ${test.model} via ${test.endpointLabel} in ${(test.latencyMs / 1000).toFixed(1)}s`
-                : `Test failed — ${test.error}${test.tried?.length ? ` (tried ${test.tried.join(", ")})` : ""}`}
+            <p className="mt-1 text-xs text-ink-dim">
+              Connected {timeAgo(c.connectedMs)} · project {c.projectId || "pending"}
             </p>
-          )}
-          <p className="mt-1 text-xs text-ink-dim">
-            Connected {timeAgo(c.connectedMs)} · project {c.projectId || "pending"}
-          </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {c.status === "needs_reconnect" ? (
-            <Button size="sm" onClick={props.onReconnect}>
-              <Plug className="h-3.5 w-3.5" /> Reconnect
-            </Button>
-          ) : (
+          {connected ? (
             <Button size="sm" tone="ghost" busy={testing} onClick={runTest}>
               <Zap className="h-3.5 w-3.5" /> Test
             </Button>
+          ) : (
+            <Button size="sm" onClick={props.onReconnect}>
+              <Plug className="h-3.5 w-3.5" /> Reconnect
+            </Button>
           )}
-          {!c.isDefault && !props.soloAccount && (
+          {!c.isDefault && !props.soloAccount && connected && (
             <Button size="sm" tone="ghost" onClick={props.onMakeDefault}>
               <Star className="h-3.5 w-3.5" /> Make default
             </Button>
@@ -399,7 +433,7 @@ function ConnectionCard(props: {
         </div>
       </div>
 
-      {c.status === "active" && (
+      {connected && (
         <div className="mt-5 border-t border-edge pt-5">
           <QuotaPanel quota={props.quota} onRefresh={props.onRefreshQuota} />
         </div>
@@ -412,27 +446,24 @@ function ConnectionCard(props: {
 
 function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
   const { snapshot, error, loading } = props.quota;
-  const [showOther, setShowOther] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(t);
   }, []);
 
-  const known = snapshot?.families.filter((f) => f.known) ?? [];
-  const other = snapshot?.families.filter((f) => !f.known) ?? [];
   const exhaustedCount = snapshot?.summary.exhausted.length ?? 0;
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold">Remaining usage</h3>
+          <h3 className="text-sm font-bold tracking-tight">Remaining usage</h3>
           <p className="text-xs text-ink-dim">
             {snapshot
-              ? `Live from Google (${snapshot.endpointLabel} endpoint) · ${timeAgo(snapshot.fetchedMs)}${snapshot.cached ? " · cached" : ""}${
-                  exhaustedCount ? ` · ${exhaustedCount} model${exhaustedCount > 1 ? "s" : ""} out of quota` : ""
-                }`
+              ? `Live from Google · ${snapshot.endpointLabel} endpoint · ${timeAgo(snapshot.fetchedMs)}${
+                  snapshot.cached ? " · cached" : ""
+                }${exhaustedCount ? ` · ${exhaustedCount} model${exhaustedCount > 1 ? "s" : ""} out of quota` : ""}`
               : loading
                 ? "Reading your quota from Google…"
                 : "Quota unavailable"}
@@ -454,39 +485,27 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
 
       {!snapshot ? (
         loading ? (
-          <div className="flex justify-center py-6 text-ink-dim">
-            <Spinner />
+          <div className="space-y-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-2xl bg-panel-2/60 px-4 py-3.5">
+                <Skeleton className="h-3 w-40" />
+                <Skeleton className="mt-2.5 h-2 w-full" />
+              </div>
+            ))}
           </div>
         ) : (
-          <EmptyState title="No quota reading yet" hint="Click Refresh to ask Google again." />
+          <EmptyState title="No quota reading yet" hint="Hit Refresh to ask Google again." />
         )
+      ) : snapshot.families.length === 0 ? (
+        <EmptyState
+          title="Google listed no models for this account"
+          hint="The plan may not include Antigravity yet."
+        />
       ) : (
         <div className="space-y-2.5">
-          {known.length === 0 && other.length === 0 && (
-            <EmptyState title="Google listed no models for this account" hint="The plan may not include Antigravity yet." />
-          )}
-          {known.map((f) => (
+          {snapshot.families.map((f) => (
             <FamilyRow key={f.id} family={f} now={now} />
           ))}
-          {other.length > 0 && (
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowOther((v) => !v)}
-                className="flex items-center gap-1 text-xs font-semibold text-ink-dim hover:text-ink"
-              >
-                {showOther ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                {other.length} other model{other.length > 1 ? "s" : ""} on this account
-              </button>
-              {showOther && (
-                <div className="mt-2 space-y-2.5">
-                  {other.map((f) => (
-                    <FamilyRow key={f.id} family={f} now={now} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -496,33 +515,36 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
 function FamilyRow(props: { family: FamilyQuota; now: number }) {
   const f = props.family;
   const tone = quotaTone(f.remainingPercent);
+  const Logo = vendorLogo(f.vendor);
   const percentText = f.remainingPercent === null ? "no quota data" : `${f.remainingPercent}% left`;
   const reset = f.resetMs ? countdown(f.resetMs, props.now) : "";
-  const multi = f.variants.length > 1;
+  const toneCls = { accent: "text-accent", ok: "text-ok", warn: "text-warn", danger: "text-danger", violet: "text-violet", dim: "text-ink-dim" }[tone];
+
   return (
-    <div className="rounded-xl bg-panel-2/70 px-4 py-3">
+    <div className="rounded-2xl bg-panel-2/60 px-4 py-3.5 transition-colors duration-300 hover:bg-panel-2">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">{f.known ? f.label : f.variants[0]?.displayName ?? f.id}</span>
+          <Logo className="h-4 w-4 shrink-0 text-ink-dim" />
+          <span className="text-sm font-semibold">{f.known ? f.label : (f.variants[0]?.displayName ?? f.id)}</span>
           <Badge tone="dim">{VENDOR_LABEL[f.vendor] ?? f.vendor}</Badge>
           {f.exhausted && <Badge tone="danger">Out of quota</Badge>}
         </div>
-        <span className={`text-xs font-medium ${tone === "dim" ? "text-ink-dim" : `text-${tone}`}`}>
+        <span className={`text-xs font-semibold ${toneCls}`}>
           {percentText}
-          {reset && <span className="text-ink-dim"> · resets {reset}</span>}
+          {reset && <span className="font-medium text-ink-dim"> · resets {reset}</span>}
         </span>
       </div>
-      <div className="mt-2">
+      <div className="mt-2.5">
         <Progress percent={f.remainingPercent} tone={tone} />
       </div>
-      {multi && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+      {f.variants.length > 1 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {f.variants.map((v) => (
             <span
               key={v.id}
               title={`${v.id}${v.resetMs ? ` · resets ${countdown(v.resetMs, props.now)}` : ""}`}
-              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                v.exhausted ? "bg-danger-soft text-danger" : "bg-panel text-ink-dim"
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                v.exhausted ? "bg-danger-soft text-danger line-through" : "bg-panel text-ink-dim"
               }`}
             >
               {v.effort || v.id}
@@ -543,36 +565,49 @@ function UsageSection(props: { usage: UsageSummary | null }) {
     <section className="space-y-4">
       <div className="flex items-center gap-2">
         <Activity className="h-4 w-4 text-ink-dim" />
-        <h2 className="text-base font-semibold">What your agents used</h2>
+        <h2 className="text-base font-bold tracking-tight">What your agents used</h2>
         <span className="text-xs text-ink-dim">last {u?.windowDays ?? 30} days, through this gateway</span>
       </div>
       {!u ? (
-        <div className="flex justify-center py-6 text-ink-dim">
-          <Spinner />
-        </div>
+        <Card>
+          <Spinner label="Loading usage…" />
+        </Card>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <StatChip label="Requests" value={formatNumber(u.totals.requests)} />
-            <StatChip label="Tokens" value={formatNumber(u.totals.totalTokens)} sub={`${formatNumber(u.totals.promptTokens)} in · ${formatNumber(u.totals.completionTokens)} out`} />
-            <StatChip label="Errors" value={formatNumber(u.totals.errors)} tone={u.totals.errors ? "danger" : undefined} />
+            <StatChip
+              label="Tokens"
+              value={formatNumber(u.totals.totalTokens)}
+              sub={`${formatNumber(u.totals.promptTokens)} in · ${formatNumber(u.totals.completionTokens)} out`}
+            />
+            <StatChip
+              label="Errors"
+              value={formatNumber(u.totals.errors)}
+              tone={u.totals.errors ? "danger" : undefined}
+            />
             <StatChip label="Models used" value={u.byModel.length} />
           </div>
           {u.totals.requests === 0 ? (
             <Card>
               <EmptyState
                 title="No calls yet"
-                hint="Create an API key and point your agent at /v1 — see Docs. Requests show up here as they happen."
+                hint="Start a chat, or create an API key and point your agent at /v1 — requests show up here as they happen."
+                action={
+                  <Link to="/">
+                    <Button tone="ghost">Open chat</Button>
+                  </Link>
+                }
               />
             </Card>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               <Card title="By model">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-[11px] uppercase tracking-wide text-ink-dim">
+                  <thead className="text-left text-[10px] uppercase tracking-[0.12em] text-ink-dim">
                     <tr>
                       <th className="pb-2 font-semibold">Model</th>
-                      <th className="pb-2 text-right font-semibold">Requests</th>
+                      <th className="pb-2 text-right font-semibold">Calls</th>
                       <th className="pb-2 text-right font-semibold">Tokens</th>
                       <th className="pb-2 text-right font-semibold">Errors</th>
                     </tr>
@@ -580,10 +615,12 @@ function UsageSection(props: { usage: UsageSummary | null }) {
                   <tbody>
                     {u.byModel.map((row) => (
                       <tr key={row.model} className="border-t border-edge">
-                        <td className="py-2 mono text-xs">{row.model}</td>
+                        <td className="mono py-2 text-xs">{row.model}</td>
                         <td className="py-2 text-right">{formatNumber(row.requests)}</td>
                         <td className="py-2 text-right">{formatNumber(row.totalTokens)}</td>
-                        <td className={`py-2 text-right ${row.errors ? "text-danger" : ""}`}>{row.errors}</td>
+                        <td className={`py-2 text-right ${row.errors ? "font-semibold text-danger" : ""}`}>
+                          {row.errors}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -592,17 +629,21 @@ function UsageSection(props: { usage: UsageSummary | null }) {
               <Card title="Recent calls">
                 <ul className="space-y-2">
                   {u.recent.slice(0, 10).map((r) => (
-                    <li key={r.id} className="flex items-start justify-between gap-3 border-t border-edge pt-2 text-xs first:border-t-0 first:pt-0">
+                    <li
+                      key={r.id}
+                      className="flex items-start justify-between gap-3 border-t border-edge pt-2 text-xs first:border-t-0 first:pt-0"
+                    >
                       <div className="min-w-0">
                         <p className="mono truncate">{r.apiModel}</p>
                         <p className="text-ink-dim">
-                          {timeAgo(r.createdMs)} · {(r.latencyMs / 1000).toFixed(1)}s{r.streamed ? " · streamed" : ""}
+                          {timeAgo(r.createdMs)} · {(r.latencyMs / 1000).toFixed(1)}s
+                          {r.streamed ? " · streamed" : ""}
                           {r.status !== "ok" && r.error ? ` · ${r.error}` : ""}
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
                         {r.status === "ok" ? (
-                          <span>{formatNumber(r.totalTokens)} tokens</span>
+                          <span className="font-medium">{formatNumber(r.totalTokens)} tokens</span>
                         ) : (
                           <Badge tone="danger">{r.httpStatus ?? "error"}</Badge>
                         )}

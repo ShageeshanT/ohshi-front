@@ -62,12 +62,12 @@ export default function SearchDialog(props: { open: boolean; onClose: () => void
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-night/40 p-4 pt-[12vh] backdrop-blur-sm"
+      className="backdrop-in fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[12vh] backdrop-blur-[2px]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) props.onClose();
       }}
     >
-      <div className="rise-in w-full max-w-xl overflow-hidden rounded-2xl bg-panel shadow-2xl">
+      <div className="modal-in w-full max-w-xl overflow-hidden rounded-3xl bg-panel shadow-2xl">
         <div className="flex items-center gap-3 border-b border-edge px-4 py-3">
           <Search className="h-4 w-4 text-ink-dim" />
           <input

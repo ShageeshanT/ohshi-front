@@ -1,22 +1,30 @@
-import { useEffect, type ReactNode } from "react";
-import { X } from "lucide-react";
+/** Shared UI kit — white canvas, soft slabs, night capsules, full-radius
+ *  geometry, buttery expo easing. */
 
-type Tone = "accent" | "ok" | "warn" | "danger" | "dim";
+import { useEffect, useId, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { ArrowUpRight, Loader2, X } from "lucide-react";
+
+export type Tone = "accent" | "ok" | "warn" | "danger" | "violet" | "dim";
+
+const EASE = "ease-[cubic-bezier(0.16,1,0.3,1)]";
 
 const toneText: Record<Tone, string> = {
   accent: "text-accent",
   ok: "text-ok",
   warn: "text-warn",
   danger: "text-danger",
+  violet: "text-violet",
   dim: "text-ink-dim",
 };
 
-const toneBadge: Record<Tone, string> = {
+const toneSoft: Record<Tone, string> = {
   accent: "bg-accent-soft text-accent",
   ok: "bg-ok-soft text-ok",
   warn: "bg-warn-soft text-warn",
   danger: "bg-danger-soft text-danger",
-  dim: "bg-panel-2 text-ink-dim",
+  violet: "bg-violet-soft text-violet",
+  dim: "bg-ink/5 text-ink-dim",
 };
 
 const toneBar: Record<Tone, string> = {
@@ -24,13 +32,74 @@ const toneBar: Record<Tone, string> = {
   ok: "bg-ok",
   warn: "bg-warn",
   danger: "bg-danger",
+  violet: "bg-violet",
   dim: "bg-ink-dim",
 };
+
+/** Keep an overlay mounted briefly after it closes so its exit animation can
+ *  finish. The interaction layer is disabled by each consumer while exiting. */
+export function usePresence(open: boolean, exitMs = 180): boolean {
+  const [rendered, setRendered] = useState(open);
+
+  useEffect(() => {
+    if (open) {
+      setRendered(true);
+      return;
+    }
+    if (!rendered) return;
+    const timer = window.setTimeout(() => setRendered(false), exitMs);
+    return () => window.clearTimeout(timer);
+  }, [exitMs, open, rendered]);
+
+  return rendered;
+}
+
+/** Freeze the page behind an open overlay, and return the undo. The page
+ *  scroller is `#main-content` (or the chat's own pane), not <body>, so
+ *  locking body would be a no-op and a wheel over the backdrop would slide
+ *  the page behind the fixed panel. */
+export function lockPageScroll(): () => void {
+  const target = document.getElementById("main-content") ?? document.body;
+  const previous = target.style.overflowY;
+  target.style.overflowY = "hidden";
+  return () => {
+    target.style.overflowY = previous;
+  };
+}
+
+// ── primitives ───────────────────────────────────────────────────────────────
+
+export function Card(props: {
+  children: ReactNode;
+  className?: string;
+  title?: ReactNode;
+  aside?: ReactNode;
+  /** Denser padding for space-tight surfaces. */
+  compact?: boolean;
+}) {
+  return (
+    <section className={`glass ${props.compact ? "p-4" : "p-5 sm:p-6"} ${props.className ?? ""}`}>
+      {(props.title || props.aside) && (
+        <header className={`${props.compact ? "mb-3" : "mb-5"} flex items-start justify-between gap-3`}>
+          {props.title && (
+            <h2 className={`${props.compact ? "text-sm" : "text-base"} font-bold tracking-tight text-ink`}>
+              {props.title}
+            </h2>
+          )}
+          {props.aside}
+        </header>
+      )}
+      {props.children}
+    </section>
+  );
+}
 
 export function Badge(props: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${toneBadge[props.tone ?? "dim"]} ${props.className ?? ""}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+        toneSoft[props.tone ?? "dim"]
+      } ${props.className ?? ""}`}
     >
       {props.children}
     </span>
@@ -41,54 +110,43 @@ export function Button(props: {
   children: ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
-  tone?: "primary" | "ghost" | "danger";
+  tone?: "primary" | "accent" | "ghost" | "danger";
   busy?: boolean;
   disabled?: boolean;
   className?: string;
   size?: "sm" | "md";
+  arrow?: boolean;
 }) {
   const tone = props.tone ?? "primary";
-  const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]";
-  const size = props.size === "sm" ? "px-3 py-1.5 text-xs" : "px-4 py-2.5 text-sm";
   const tones = {
-    primary: "bg-night text-white hover:bg-black shadow-sm",
-    ghost: "bg-panel-2 text-ink hover:bg-edge",
+    primary: "bg-night text-white hover:bg-ink shadow-[0_2px_14px_-6px_rgb(18_18_18/0.55)] hover:shadow-[0_8px_22px_-8px_rgb(18_18_18/0.6)]",
+    accent: "bg-accent text-white hover:brightness-110 shadow-[0_2px_14px_-6px_rgb(37_99_235/0.7)] hover:shadow-[0_8px_22px_-8px_rgb(37_99_235/0.8)]",
+    ghost: "border border-edge bg-panel text-ink hover:bg-panel-2",
     danger: "bg-danger-soft text-danger hover:bg-danger hover:text-white",
-  } as const;
+  }[tone];
+  const size = props.size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-5 py-2.5 text-sm";
   return (
     <button
       type={props.type ?? "button"}
       onClick={props.onClick}
       disabled={props.disabled || props.busy}
-      className={`${base} ${size} ${tones[tone]} ${props.className ?? ""}`}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-full font-semibold transition-[transform,box-shadow,background-color,filter,opacity] duration-[250ms] ${EASE} hover:-translate-y-px active:translate-y-0 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${size} ${tones} ${props.className ?? ""}`}
     >
-      {props.busy && <Spinner size={14} />}
+      {props.busy && <Loader2 className={props.size === "sm" ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4 animate-spin"} />}
       {props.children}
+      {props.arrow && !props.busy && <ArrowUpRight className="h-4 w-4" />}
     </button>
-  );
-}
-
-export function Card(props: { children: ReactNode; className?: string; title?: ReactNode; aside?: ReactNode }) {
-  return (
-    <section className={`panel p-5 ${props.className ?? ""}`}>
-      {(props.title || props.aside) && (
-        <header className="mb-4 flex items-start justify-between gap-3">
-          {props.title && <h2 className="text-base font-semibold">{props.title}</h2>}
-          {props.aside}
-        </header>
-      )}
-      {props.children}
-    </section>
   );
 }
 
 export function Field(props: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium">{props.label}</span>
+    <label className="block">
+      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">
+        {props.label}
+      </span>
       {props.children}
-      {props.hint && <span className="block text-xs text-ink-dim">{props.hint}</span>}
+      {props.hint && <span className="mt-1.5 block text-xs text-ink-dim/90">{props.hint}</span>}
     </label>
   );
 }
@@ -102,6 +160,8 @@ export function Input(props: {
   onEnter?: () => void;
   autoComplete?: string;
   mono?: boolean;
+  disabled?: boolean;
+  className?: string;
 }) {
   return (
     <input
@@ -110,6 +170,7 @@ export function Input(props: {
       placeholder={props.placeholder}
       autoFocus={props.autoFocus}
       autoComplete={props.autoComplete}
+      disabled={props.disabled}
       onChange={(e) => props.onChange(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter" && props.onEnter) {
@@ -117,12 +178,101 @@ export function Input(props: {
           props.onEnter();
         }
       }}
-      className={`w-full rounded-xl border border-edge bg-panel px-3.5 py-2.5 text-sm placeholder:text-ink-dim/70 focus:border-accent ${props.mono ? "mono" : ""}`}
+      className={`w-full rounded-full border border-edge bg-panel px-4 py-2.5 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/[0.06] disabled:opacity-50 ${
+        props.mono ? "font-mono text-[13px]" : ""
+      } ${props.className ?? ""}`}
     />
   );
 }
 
-export function Spinner(props: { size?: number; className?: string }) {
+export function TextArea(props: {
+  value: string;
+  onChange: (value: string) => void;
+  rows?: number;
+  placeholder?: string;
+  className?: string;
+  mono?: boolean;
+}) {
+  return (
+    <textarea
+      value={props.value}
+      rows={props.rows ?? 5}
+      placeholder={props.placeholder}
+      onChange={(e) => props.onChange(e.target.value)}
+      className={`w-full resize-y rounded-2xl border border-edge bg-panel px-4 py-3 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/[0.06] ${
+        props.mono ? "font-mono text-[13px]" : ""
+      } ${props.className ?? ""}`}
+    />
+  );
+}
+
+export function Toggle(props: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label className="inline-flex cursor-pointer select-none items-center gap-3">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={props.checked}
+        disabled={props.disabled}
+        onClick={() => props.onChange(!props.checked)}
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] disabled:opacity-50 ${
+          props.checked ? "bg-night" : "bg-ink/15"
+        }`}
+      >
+        <span
+          className={`absolute top-1 h-5 w-5 rounded-full shadow transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            props.checked ? "left-[26px] bg-accent" : "left-1 bg-white"
+          }`}
+        />
+      </button>
+      {props.label && <span className="text-sm font-medium text-ink">{props.label}</span>}
+    </label>
+  );
+}
+
+export function Tabs(props: { tabs: string[]; active: string; onChange: (tab: string) => void }) {
+  return (
+    <div role="tablist" className="inline-flex gap-1 rounded-full bg-panel-2 p-1">
+      {props.tabs.map((t, index) => (
+        <button
+          key={t}
+          type="button"
+          role="tab"
+          aria-selected={t === props.active}
+          tabIndex={t === props.active ? 0 : -1}
+          onClick={() => props.onChange(t)}
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const delta = event.key === "ArrowRight" ? 1 : -1;
+            const next = (index + delta + props.tabs.length) % props.tabs.length;
+            props.onChange(props.tabs[next]);
+          }}
+          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            t === props.active ? "bg-night text-white shadow-sm" : "text-ink-dim hover:text-ink"
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function Spinner(props: { size?: number; className?: string; label?: string }) {
+  if (props.label !== undefined) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-10 text-ink-dim">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span className="text-sm font-medium">{props.label || "Loading…"}</span>
+      </div>
+    );
+  }
   const size = props.size ?? 18;
   return (
     <span
@@ -133,37 +283,73 @@ export function Spinner(props: { size?: number; className?: string }) {
   );
 }
 
+export function Skeleton(props: { className?: string }) {
+  return <span className={`skeleton block ${props.className ?? "h-4 w-full"}`} aria-hidden />;
+}
+
 export function EmptyState(props: { title: string; hint?: string; action?: ReactNode; tone?: Tone }) {
   return (
-    <div className="rounded-xl border border-dashed border-edge bg-panel-2/60 p-6 text-center">
-      <p className={`text-sm font-semibold ${toneText[props.tone ?? "dim"]}`}>{props.title}</p>
-      {props.hint && <p className="mt-1 text-sm text-ink-dim">{props.hint}</p>}
-      {props.action && <div className="mt-4 flex justify-center">{props.action}</div>}
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-edge bg-panel-2/50 px-6 py-10 text-center">
+      <p className={`text-sm font-bold ${props.tone ? toneText[props.tone] : "text-ink"}`}>{props.title}</p>
+      {props.hint && <p className="max-w-sm text-sm text-ink-dim">{props.hint}</p>}
+      {props.action && <div className="mt-3">{props.action}</div>}
     </div>
   );
 }
 
 export function StatChip(props: { label: string; value: ReactNode; sub?: string; tone?: Tone }) {
   return (
-    <div className="panel px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-dim">{props.label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${props.tone ? toneText[props.tone] : ""}`}>{props.value}</p>
-      {props.sub && <p className="text-xs text-ink-dim">{props.sub}</p>}
+    <div className="glass lift flex flex-col gap-1 px-5 py-4">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">{props.label}</span>
+      <span className={`text-2xl font-extrabold tracking-tight ${props.tone ? toneText[props.tone] : "text-ink"}`}>
+        {props.value}
+      </span>
+      {props.sub && <span className="text-xs text-ink-dim">{props.sub}</span>}
     </div>
   );
 }
 
+/** Initials circle with a deterministic on-brand background. */
+export function Avatar(props: { name: string; size?: "sm" | "md" }) {
+  const name = (props.name ?? "").trim();
+  const parts = name.split(/\s+/).filter(Boolean);
+  let initials = "";
+  if (parts.length >= 2) initials = (parts[0][0] + parts[1][0]).toUpperCase();
+  else if (parts.length === 1) initials = parts[0].slice(0, 2).toUpperCase();
+  if (!initials) initials = "·";
+
+  const palette = [
+    "bg-night text-white",
+    "bg-accent text-white",
+    "bg-violet-soft text-violet",
+    "bg-ok-soft text-ok",
+    "bg-warn-soft text-warn",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  const cls = palette[Math.abs(hash) % palette.length];
+  const dims = props.size === "sm" ? "h-8 w-8 text-[11px]" : "h-10 w-10 text-xs";
+  return (
+    <span
+      aria-hidden
+      className={`flex shrink-0 items-center justify-center rounded-full font-bold tracking-tight ${dims} ${cls}`}
+    >
+      {initials}
+    </span>
+  );
+}
+
 /** Remaining-quota bar. `percent` null = unknown (renders hatched). */
-export function Progress(props: { percent: number | null; tone?: Tone }) {
+export function Progress(props: { percent: number | null; tone?: Tone; className?: string }) {
   const tone = props.tone ?? "accent";
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-panel-2">
+    <div className={`h-2 w-full overflow-hidden rounded-full bg-ink/[0.07] ${props.className ?? ""}`}>
       {props.percent === null ? (
-        <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgb(0_0_0/0.08)_4px,rgb(0_0_0/0.08)_8px)]" />
+        <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgb(0_0_0/0.07)_4px,rgb(0_0_0/0.07)_8px)]" />
       ) : (
         <div
-          className={`h-full rounded-full transition-[width] duration-500 ${toneBar[tone]}`}
-          style={{ width: `${Math.max(0, Math.min(100, props.percent))}%` }}
+          className={`bar-fill h-full rounded-full ${toneBar[tone]}`}
+          style={{ width: `${Math.max(2, Math.min(100, props.percent))}%` }}
         />
       )}
     </div>
@@ -177,47 +363,17 @@ export function quotaTone(percent: number | null): Tone {
   return "ok";
 }
 
-export function Modal(props: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
-  useEffect(() => {
-    if (!props.open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") props.onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [props.open, props.onClose]);
-  if (!props.open) return null;
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-night/40 p-4 backdrop-blur-sm"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) props.onClose();
-      }}
-    >
-      <div className="rise-in w-full max-w-lg rounded-2xl bg-panel p-6 shadow-2xl">
-        <header className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{props.title}</h3>
-          <button
-            type="button"
-            onClick={props.onClose}
-            className="rounded-lg p-1.5 text-ink-dim hover:bg-panel-2"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </header>
-        {props.children}
-      </div>
-    </div>
-  );
-}
-
 export function Notice(props: { tone: Tone; children: ReactNode; onClose?: () => void }) {
   return (
-    <div className={`flex items-start justify-between gap-3 rounded-xl px-4 py-3 text-sm ${toneBadge[props.tone]}`}>
+    <div className={`flex items-start justify-between gap-3 rounded-2xl px-4 py-3 text-sm ${toneSoft[props.tone]}`}>
       <div className="normal-case tracking-normal">{props.children}</div>
       {props.onClose && (
-        <button type="button" onClick={props.onClose} aria-label="Dismiss" className="opacity-70 hover:opacity-100">
+        <button
+          type="button"
+          onClick={props.onClose}
+          aria-label="Dismiss"
+          className="shrink-0 rounded-full p-0.5 opacity-70 transition-opacity hover:opacity-100"
+        >
           <X className="h-4 w-4" />
         </button>
       )}
@@ -227,8 +383,118 @@ export function Notice(props: { tone: Tone; children: ReactNode; onClose?: () =>
 
 export function Code(props: { children: string; className?: string }) {
   return (
-    <pre className={`overflow-x-auto rounded-xl bg-night p-4 text-xs leading-relaxed text-white ${props.className ?? ""}`}>
+    <pre
+      className={`overflow-x-auto rounded-2xl bg-night p-4 text-xs leading-relaxed text-white ${props.className ?? ""}`}
+    >
       <code>{props.children}</code>
     </pre>
+  );
+}
+
+/** Modal with a focus trap, scroll lock and an exit animation.
+ *
+ *  Anchored near the top (items-start), NOT centred: a centred panel
+ *  re-centres itself on every content-height change, so each async status line
+ *  that lands inside an open dialog moves every letter in it by half the delta.
+ *  The outer card clips and only the body scrolls, so the scrollbar stays
+ *  inside the rounded corners. */
+export function Modal(props: {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  children: ReactNode;
+  wide?: boolean;
+}) {
+  const rendered = usePresence(props.open);
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(props.onClose);
+  onCloseRef.current = props.onClose;
+
+  useEffect(() => {
+    if (!props.open) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const unlockScroll = lockPageScroll();
+    // preventScroll: focusing a control inside a freshly-mounted overlay
+    // otherwise lets the browser scroll ancestors to reveal it — a one-shot
+    // page jump at the exact moment the dialog appears.
+    const focusTimer = window.setTimeout(() => closeRef.current?.focus({ preventScroll: true }), 0);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !panelRef.current) return;
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", onKeyDown);
+      unlockScroll();
+      previousFocus?.focus({ preventScroll: true });
+    };
+  }, [props.open]);
+
+  if (!rendered) return null;
+  return (
+    <div
+      className={`${
+        props.open ? "backdrop-in" : "backdrop-out pointer-events-none"
+      } fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-3 pt-[8vh] backdrop-blur-[2px] sm:p-4 sm:pt-[10vh]`}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && props.open) props.onClose();
+      }}
+      aria-hidden={!props.open}
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className={`${
+          props.open ? "modal-in" : "modal-out"
+        } flex max-h-[min(78dvh,52rem)] w-full flex-col overflow-hidden rounded-3xl bg-panel shadow-2xl ${
+          props.wide ? "max-w-3xl" : "max-w-lg"
+        }`}
+      >
+        <header className="flex shrink-0 items-center justify-between px-5 pb-4 pt-5 sm:px-7 sm:pt-6">
+          <h3 id={titleId} className="text-lg font-bold tracking-tight">
+            {props.title}
+          </h3>
+          <button
+            ref={closeRef}
+            onClick={props.onClose}
+            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-panel-2 hover:text-ink"
+            aria-label="Close dialog"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+        {/* overscroll-contain: without it, scrolling past the end of the dialog
+            body chains into the page and slides it behind the fixed panel. */}
+        <div className="gutter-stable min-h-0 overflow-y-auto overscroll-contain pb-5 pl-5 pr-3 sm:pb-7 sm:pl-7 sm:pr-5">
+          {props.children}
+        </div>
+      </div>
+    </div>
   );
 }

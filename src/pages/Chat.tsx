@@ -334,22 +334,32 @@ export default function Chat() {
 
   return (
     <div className="relative flex h-full flex-col">
-      {!isLanding && (
-        <div className="pointer-events-none absolute left-5 top-4 z-10 hidden max-w-[45%] md:block">
-          <p className="truncate text-sm font-medium text-ink-dim" title={chat?.title || undefined}>
+      {/* Floating top bar. The gradient masks content scrolling underneath it —
+          without it, lines slide out from behind the title with a hard edge. */}
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 z-10 hidden items-start justify-between gap-4 px-5 pb-6 pt-4 md:flex ${
+          isLanding ? "" : "bg-gradient-to-b from-surface via-surface/85 to-transparent"
+        }`}
+      >
+        {!isLanding && (
+          <p className="max-w-[45%] truncate text-sm font-medium text-ink-dim" title={chat?.title || undefined}>
             {chat?.title || (loading ? "" : "New chat")}
           </p>
+        )}
+        <div className="pointer-events-auto ml-auto">
+          <AccountChip models={models} />
         </div>
-      )}
-      <div className="absolute right-4 top-3 z-10 hidden md:block">
-        <AccountChip models={models} />
       </div>
 
       {isLanding ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 pb-16">
+        <div className="dotted-canvas flex flex-1 flex-col items-center justify-center px-4 pb-16">
           <div className="rise-in flex w-full max-w-3xl flex-col items-center">
             <BrandHero />
-            <div className="mt-9 w-full">{composer}</div>
+            <p className="mt-4 text-center text-sm text-ink-dim">
+              Gemini, Claude and GPT-OSS — running on{" "}
+              <span className="serif-accent text-ink">your own</span> Google account.
+            </p>
+            <div className="mt-8 w-full">{composer}</div>
             {models && !models.connected && (
               <div className="mt-6 w-full">
                 <Notice tone="warn">
@@ -474,7 +484,13 @@ function Composer(props: {
   const multiline = props.value.includes("\n") || props.value.length > 90;
 
   return (
-    <div className={`chat-pill flex items-end gap-2 bg-panel py-2 pl-5 pr-2 ${multiline ? "rounded-3xl" : "rounded-full"}`}>
+    // Narrow screens stack: the message gets the full width and the controls sit
+    // on their own row — otherwise the model name squeezes the input to nothing.
+    <div
+      className={`chat-pill bg-panel px-4 py-2 sm:flex sm:items-end sm:gap-2 sm:py-2 sm:pl-5 sm:pr-2 ${
+        multiline ? "rounded-3xl" : "rounded-3xl sm:rounded-full"
+      }`}
+    >
       <textarea
         ref={ref}
         value={props.value}
@@ -484,9 +500,9 @@ function Composer(props: {
         rows={1}
         autoFocus={props.autoFocus}
         disabled={props.disabled}
-        className="my-1.5 max-h-[220px] min-h-[28px] flex-1 resize-none bg-transparent text-[16px] leading-7 outline-none placeholder:text-ink-dim/70 disabled:cursor-not-allowed"
+        className="my-1.5 max-h-[220px] min-h-[28px] w-full flex-1 resize-none bg-transparent text-[16px] leading-7 outline-none placeholder:text-ink-dim/70 disabled:cursor-not-allowed"
       />
-      <div className="flex shrink-0 items-center gap-1 pb-0.5">
+      <div className="flex shrink-0 items-center justify-between gap-1 pb-0.5 sm:justify-end">
         <ModelPicker
           models={props.models}
           value={props.model}

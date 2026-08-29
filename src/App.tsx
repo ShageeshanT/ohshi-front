@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Navigate, Route, Routes, useMatch, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useMatch, useNavigate } from "react-router-dom";
 import { Menu, SquarePen } from "lucide-react";
 import { get, onAuthRequired, post } from "./lib/api";
 import type { ChatSummary } from "./lib/chat";
@@ -125,7 +125,7 @@ export default function App() {
 
   if (me === undefined) {
     return (
-      <div className="flex h-screen items-center justify-center text-ink-dim">
+      <div className="dotted-canvas flex h-screen items-center justify-center text-ink-dim">
         <Spinner />
       </div>
     );
@@ -188,8 +188,12 @@ function Shell(props: { children: ReactNode }) {
   const { me, signOut } = useAuth();
   const { chats, rename, remove } = useChatList();
   const navigate = useNavigate();
+  const location = useLocation();
   const match = useMatch("/c/:chatId");
   const activeChatId = match?.params.chatId ?? null;
+  // Chat routes keep their own scroll/stream state — animating on every message
+  // would restart it, so only non-chat routes get the entrance transition.
+  const routeKey = location.pathname.startsWith("/c/") ? "chat" : location.pathname;
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
       return localStorage.getItem(COLLAPSED_KEY) === "1";
@@ -250,17 +254,23 @@ function Shell(props: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-2 text-ink-dim hover:bg-panel-2"
+            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-panel-2 hover:text-ink"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </button>
           <Brand dark />
-          <Link to="/" className="rounded-lg p-2 text-ink-dim hover:bg-panel-2" aria-label="New chat">
+          <Link
+            to="/"
+            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-panel-2 hover:text-ink"
+            aria-label="New chat"
+          >
             <SquarePen className="h-5 w-5" />
           </Link>
         </header>
-        <main className="min-h-0 flex-1">{props.children}</main>
+        <main key={routeKey} className="route-fade flex min-h-0 flex-1 flex-col">
+          {props.children}
+        </main>
       </div>
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
@@ -269,7 +279,7 @@ function Shell(props: { children: ReactNode }) {
 
 function Page(props: { children: ReactNode }) {
   return (
-    <div className="h-full overflow-y-auto">
+    <div id="main-content" className="dotted-canvas min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-10">{props.children}</div>
     </div>
   );

@@ -20,6 +20,13 @@ export default function ModelPicker(props: {
 }) {
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Where the menu fits. The composer sits mid-screen on the landing page, so
+  // a fixed `bottom-full` menu runs off the top of the viewport — measure the
+  // room on each side, open into the larger one, and cap the height to it.
+  const [placement, setPlacement] = useState<{ up: boolean; maxHeight: number }>({
+    up: true,
+    maxHeight: 460,
+  });
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,29 +50,53 @@ export default function ModelPicker(props: {
     props.onRefresh().finally(() => setRefreshing(false));
   };
 
+  const MARGIN = 16;
+  const IDEAL = 460;
+  const toggle = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = ref.current?.getBoundingClientRect();
+    if (rect) {
+      const above = rect.top - MARGIN;
+      const below = window.innerHeight - rect.bottom - MARGIN;
+      const up = above >= Math.min(IDEAL, below) || above > below;
+      setPlacement({ up, maxHeight: Math.max(240, Math.min(IDEAL, up ? above : below)) });
+    }
+    setOpen(true);
+  };
+
   const m = props.models;
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
         disabled={props.disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className="flex max-w-[220px] items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-panel-2 disabled:opacity-50"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <span className="truncate">{modelLabel(m, props.value)}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-ink-dim" />
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-ink-dim transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
         <div
-          className={`absolute bottom-full z-30 mb-2 w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-edge bg-panel shadow-2xl ${
-            props.align === "left" ? "left-0" : "right-0"
+          className={`pop-in absolute z-30 flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border border-edge bg-panel shadow-2xl ${
+            placement.up ? "bottom-full mb-2" : "top-full mt-2"
+          } ${
+            // Mobile: the picker sits at the left of its row, so anchor left or
+            // the menu runs off-screen. From `sm` up it sits at the right.
+            props.align === "left" ? "left-0" : "left-0 sm:left-auto sm:right-0"
           }`}
+          style={{ maxHeight: placement.maxHeight }}
           role="listbox"
         >
-          <div className="flex items-start justify-between gap-2 border-b border-edge px-4 py-3">
+          <div className="flex shrink-0 items-start justify-between gap-2 border-b border-edge px-4 py-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold">
                 {m?.connected ? "Models on your Google account" : "Built-in catalog"}
@@ -88,7 +119,7 @@ export default function ModelPicker(props: {
               </button>
             )}
           </div>
-          <div className="max-h-[400px] overflow-y-auto p-2">
+          <div className="gutter-stable min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
             {!m ? (
               <div className="flex justify-center py-6 text-ink-dim">
                 <Spinner />

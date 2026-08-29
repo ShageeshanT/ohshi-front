@@ -21,6 +21,7 @@ import {
 import type { ChatSummary } from "../lib/chat";
 import { groupChatsByDate } from "../lib/chat";
 import { BrandMark } from "./brand";
+import { Avatar } from "./ui";
 
 export interface SidebarProps {
   chats: ChatSummary[];
@@ -42,13 +43,15 @@ export default function Sidebar(p: SidebarProps) {
   const location = useLocation();
   const onNewChat = location.pathname === "/";
   const groups = groupChatsByDate(p.chats);
-  const initials = (p.user.displayName || p.user.email).trim().charAt(0).toUpperCase() || "?";
   const name = p.user.displayName || p.user.email.split("@")[0];
 
   return (
     <>
       {p.mobileOpen && (
-        <div className="fixed inset-0 z-30 bg-night/40 backdrop-blur-[2px] md:hidden" onClick={p.onMobileClose} />
+        <div
+          className="backdrop-in fixed inset-0 z-30 bg-ink/40 backdrop-blur-[2px] md:hidden"
+          onClick={p.onMobileClose}
+        />
       )}
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-edge bg-panel transition-[transform,width] duration-200 md:static md:translate-x-0 ${
@@ -132,11 +135,8 @@ export default function Sidebar(p: SidebarProps) {
         )}
 
         <div className={`border-t border-edge p-3 ${p.collapsed ? "flex justify-center" : "flex items-center gap-3"}`}>
-          <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-night text-sm font-semibold text-white"
-            title={p.user.email}
-          >
-            {initials}
+          <span title={p.user.email}>
+            <Avatar name={name} size="sm" />
           </span>
           {!p.collapsed && (
             <>
