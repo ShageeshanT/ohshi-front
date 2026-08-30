@@ -523,7 +523,23 @@ pre,
    own contrast. A tight halo in the page colour does that locally — it looks
    like the haze already in the picture — instead of another wash over the
    whole frame. The buttons paint their own ground, so they opt out. */
+/* Several short shadows rather than one soft one: they build a near-solid
+   sheath right at the glyph edge, which reads as haze already in the painting
+   instead of a box behind the words, and survives a busy mid-tone like the
+   torii or the treeline.
+
+   Light needs far more of it than dark. Near-white ink on a night painting
+   separates on its own; dark ink on a dawn one does not, and the light scrim
+   was deliberately thinned so the picture still reads. */
 .hero-copy {
+  text-shadow:
+    0 0 3px color-mix(in srgb, var(--color-surface) 94%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-surface) 90%, transparent),
+    0 0 8px color-mix(in srgb, var(--color-surface) 78%, transparent),
+    0 0 20px color-mix(in srgb, var(--color-surface) 60%, transparent),
+    0 0 40px color-mix(in srgb, var(--color-surface) 38%, transparent);
+}
+[data-theme="dark"] .hero-copy {
   text-shadow:
     0 1px 1px color-mix(in srgb, var(--color-surface) 62%, transparent),
     0 0 14px color-mix(in srgb, var(--color-surface) 52%, transparent),
@@ -551,9 +567,41 @@ pre,
 .hero-lede {
   font-size: clamp(15px, min(1.35vw, 2.5vh), 19px);
   line-height: 1.55;
-  /* Darker than the ink-dim used elsewhere: this paragraph sits on a painting,
-     not on a flat panel. */
-  color: color-mix(in srgb, var(--color-ink) 76%, transparent);
+  font-weight: 500;
+  /* Nearly full ink: this paragraph sits on a painting, not on a flat panel,
+     and the muted grey it used to wear disappeared into the treeline. */
+  color: color-mix(in srgb, var(--color-ink) 92%, transparent);
+}
+[data-theme="dark"] .hero-lede {
+  font-weight: 400;
+  color: color-mix(in srgb, var(--color-ink) 78%, transparent);
+}
+
+/* The trust row is the smallest type in the hero and sits lowest, over the
+   busiest part of the picture. It gets the weight and the densest sheath. */
+.hero-trust {
+  font-weight: 600;
+  color: var(--color-ink);
+  text-shadow:
+    0 0 3px color-mix(in srgb, var(--color-surface) 96%, transparent),
+    0 0 5px color-mix(in srgb, var(--color-surface) 92%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-surface) 92%, transparent),
+    0 0 12px color-mix(in srgb, var(--color-surface) 80%, transparent),
+    0 0 26px color-mix(in srgb, var(--color-surface) 55%, transparent);
+}
+/* text-shadow does not reach an SVG, so the shields get the same separation
+   as a filter or they float on the painting with nothing behind them. */
+.hero-trust-icon {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--color-surface) 90%, transparent))
+    drop-shadow(0 0 7px color-mix(in srgb, var(--color-surface) 70%, transparent));
+}
+
+[data-theme="dark"] .hero-trust {
+  font-weight: 500;
+  text-shadow:
+    0 1px 1px color-mix(in srgb, var(--color-surface) 70%, transparent),
+    0 0 14px color-mix(in srgb, var(--color-surface) 55%, transparent),
+    0 0 30px color-mix(in srgb, var(--color-surface) 35%, transparent);
 }
 
 /* The gaps down the hero stack. Named rather than utility classes because each

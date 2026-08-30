@@ -148,14 +148,14 @@ function Hero() {
           </motion.div>
           <motion.ul
             {...rise(0.52)}
-            className="hero-gap-lg flex flex-wrap items-center gap-y-1 text-[13px] font-medium text-ink"
+            className="hero-trust hero-gap-lg flex flex-wrap items-center gap-y-1 text-[13px]"
           >
             {h.trust.map((label, i) => (
               <li
                 key={label}
-                className={`flex items-center gap-2 py-1 pr-5 ${i === 0 ? "" : "sm:border-l sm:border-ink/15 sm:pl-5"}`}
+                className={`flex items-center gap-2 py-1 pr-5 ${i === 0 ? "" : "sm:border-l sm:border-ink/30 sm:pl-5"}`}
               >
-                <ShieldCheck className="h-4 w-4 text-accent" />
+                <ShieldCheck className="hero-trust-icon h-4 w-4 shrink-0 text-accent" />
                 {label}
               </li>
             ))}
