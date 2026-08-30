@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/react": "^6.14.8",
     "framer-motion": "^13.1.1",
     "lenis": "^1.3.26",
     "lucide-react": "^0.469.0",

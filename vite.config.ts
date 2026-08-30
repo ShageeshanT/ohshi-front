@@ -14,10 +14,14 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        // Stable vendor chunk = long-lived browser cache across app releases;
-        // the markdown renderer is already split off by React.lazy.
+        // Stable vendor chunks = long-lived browser cache across app releases;
+        // the markdown renderer is already split off by React.lazy. Clerk gets
+        // its own: it is needed at boot to know whether anyone is signed in, so
+        // it cannot be lazy, but it changes on its own release cycle and should
+        // not invalidate the app chunk.
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
+          clerk: ["@clerk/react"],
         },
       },
     },

@@ -10,8 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
+import { AuthenticateWithRedirectCallback, useAuth as useClerkAuth } from "@clerk/react";
 import { Menu, SquarePen } from "lucide-react";
-import { get, onAuthRequired, post } from "./lib/api";
+import { get, onAuthRequired, post, setTokenSource } from "./lib/api";
+import { AFTER_AUTH_PATH, CLERK_ENABLED, SSO_CALLBACK_PATH } from "./lib/clerk";
 import type { ChatSummary } from "./lib/chat";
 import { Wordmark } from "./components/brand";
 import { TilesBackdrop } from "./components/marketing/Backdrop";
@@ -33,8 +35,21 @@ const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 
 export interface Me {
-  user: { id: string; email: string; displayName: string; createdMs: number };
-  config: { allowRegistration: boolean; redirectMode: "paste" | "callback"; publicUrl: string };
+  user: {
+    id: string;
+    email: string;
+    displayName: string;
+    createdMs: number;
+    termsAcceptedMs?: number | null;
+  };
+  config: {
+    allowRegistration: boolean;
+    redirectMode: "paste" | "callback";
+    publicUrl: string;
+    termsVersion?: string;
+    /** Which engine the backend is running — see lib/clerk.ts. */
+    authProvider?: "clerk" | "password";
+  };
 }
 
 // --- auth ------------------------------------------------------------------------
@@ -120,7 +135,18 @@ function LegacyChatRedirect() {
   return <Navigate to={`/app/c/${chatId ?? ""}`} replace />;
 }
 
+/**
+ * Which engine signs people in is a build-time constant, so the two gates are
+ * separate components rather than branches inside one — the hook order can
+ * never change between renders, and a build without Clerk never calls a Clerk
+ * hook. Both end at the same `AuthedRoutes`.
+ */
 export default function App() {
+  return CLERK_ENABLED ? <ClerkAuthGate /> : <SessionAuthGate />;
+}
+
+/** Cookie sessions: ask the backend who we are, once, on load. */
+function SessionAuthGate() {
   // undefined = still checking the session; null = signed out
   const [me, setMeState] = useState<Me | null | undefined>(undefined);
   const navigate = useNavigate();
@@ -147,7 +173,77 @@ export default function App() {
   }, [navigate, setMe]);
 
   if (me === undefined) return <PageFallback />;
+  return <AuthedRoutes me={me} setMe={setMe} signOut={signOut} />;
+}
 
+/**
+ * Clerk holds the credential. Wait for the SDK, hand the API client a way to
+ * mint bearer tokens, then fetch the profile and config that hang off the
+ * account on our side — `me` is still ours, Clerk only says who it belongs to.
+ */
+function ClerkAuthGate() {
+  const { isLoaded, isSignedIn, getToken, signOut: clerkSignOut } = useClerkAuth();
+  const [me, setMeState] = useState<Me | null | undefined>(undefined);
+  const navigate = useNavigate();
+
+  const setMe = useCallback((value: Me | null) => setMeState(value), []);
+
+  // Every request asks for a token; Clerk hands back a cached one until it is
+  // close to expiry, so this is not a round trip per call.
+  useEffect(() => {
+    setTokenSource(() => getToken());
+    return () => setTokenSource(null);
+  }, [getToken]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      setMe(null);
+      return;
+    }
+    let cancelled = false;
+    get<Me>("/api/auth/me")
+      .then((value) => {
+        if (cancelled) return;
+        if (value.config.authProvider !== "clerk") {
+          console.error(
+            "This build signs in with Clerk but the backend does not — set OHSHI_CLERK_PUBLISHABLE_KEY on the API.",
+          );
+        }
+        setMe(value);
+      })
+      .catch(() => {
+        if (!cancelled) setMe(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, isSignedIn, setMe]);
+
+  useEffect(
+    () =>
+      onAuthRequired(() => {
+        setMe(null);
+        navigate("/login", { replace: true });
+      }),
+    [navigate, setMe],
+  );
+
+  const signOut = useCallback(async () => {
+    try {
+      await clerkSignOut();
+    } finally {
+      setMe(null);
+      navigate("/", { replace: true });
+    }
+  }, [clerkSignOut, navigate, setMe]);
+
+  if (!isLoaded || me === undefined) return <PageFallback />;
+  return <AuthedRoutes me={me} setMe={setMe} signOut={signOut} />;
+}
+
+function AuthedRoutes(props: { me: Me | null; setMe: (me: Me | null) => void; signOut: () => Promise<void> }) {
+  const { me, setMe, signOut } = props;
   const lazyPage = (node: ReactNode) => <Suspense fallback={<PageFallback />}>{node}</Suspense>;
 
   return (
@@ -158,6 +254,22 @@ export default function App() {
         <Route path="/privacy" element={lazyPage(<Privacy />)} />
         <Route path="/login" element={me ? <Navigate to="/app" replace /> : lazyPage(<Login />)} />
         <Route path="/signup" element={me ? <Navigate to="/app" replace /> : lazyPage(<Signup />)} />
+        {/* Where Clerk drops the browser back after a social sign-in round
+            trip; it finishes the handshake and then routes on. */}
+        {CLERK_ENABLED && (
+          <Route
+            path={SSO_CALLBACK_PATH}
+            element={
+              <>
+                <PageFallback />
+                <AuthenticateWithRedirectCallback
+                  signInFallbackRedirectUrl={AFTER_AUTH_PATH}
+                  signUpFallbackRedirectUrl={AFTER_AUTH_PATH}
+                />
+              </>
+            }
+          />
+        )}
 
         {/* Paths from before the landing page existed. */}
         <Route path="/c/:chatId" element={<LegacyChatRedirect />} />

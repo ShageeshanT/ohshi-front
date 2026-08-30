@@ -1,41 +1,33 @@
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth, type Me } from "../App";
+/**
+ * Sign in. The card, the painting and the copy are the same either way — only
+ * the form inside changes, depending on whether Clerk holds the credential
+ * (see lib/clerk.ts). `CLERK_ENABLED` is a build-time constant, so the two
+ * forms are never swapped at runtime.
+ */
+
+import { Link, useSearchParams } from "react-router-dom";
 import { AuthShell } from "../components/auth/AuthShell";
-import { Button, Field, Input } from "../components/ui";
-import { friendly, post } from "../lib/api";
+import { CLERK_ENABLED } from "../lib/clerk";
+import { ClerkLoginForm } from "./auth/ClerkLoginForm";
+import { PasswordLoginForm } from "./auth/PasswordLoginForm";
 
 export default function Login() {
-  const { setMe } = useAuth();
-  const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(params.get("connect_error"));
-
-  const submit = (e?: FormEvent) => {
-    e?.preventDefault();
-    if (!email.trim() || !password) return;
-    setBusy(true);
-    setError(null);
-    post<Me>("/api/auth/login", { email: email.trim(), password })
-      .then((me) => {
-        setMe(me);
-        navigate("/app", { replace: true });
-      })
-      .catch((err) => setError(friendly(err)))
-      .finally(() => setBusy(false));
-  };
+  // A Google connect attempt that failed redirects here with its reason.
+  const initialError = params.get("connect_error");
 
   return (
     <AuthShell
       page="login"
       caption="Every model on your plan, one login."
-      captionSub="Your Google accounts, chats and API keys are where you left them."
+      captionSub="Your connected accounts, chats and API keys are where you left them."
       eyebrow="Welcome Back"
       title="Sign In to Ohshi"
-      subtitle="Use the email and password you signed up with."
+      subtitle={
+        CLERK_ENABLED
+          ? "Continue with a provider, or use your email."
+          : "Use the email and password you signed up with."
+      }
       footer={
         <>
           New here?{" "}
@@ -45,32 +37,11 @@ export default function Login() {
         </>
       }
     >
-      <form onSubmit={submit} className="auth-stack">
-        <Field label="Email">
-          <Input
-            value={email}
-            onChange={setEmail}
-            type="email"
-            autoComplete="email"
-            autoFocus
-            placeholder="you@example.com"
-          />
-        </Field>
-        <Field label="Password">
-          <Input
-            value={password}
-            onChange={setPassword}
-            type="password"
-            autoComplete="current-password"
-            onEnter={submit}
-            placeholder="••••••••••"
-          />
-        </Field>
-        {error && <p className="text-sm font-medium text-danger">{error}</p>}
-        <Button type="submit" busy={busy} className="w-full" disabled={!email.trim() || !password}>
-          Sign In
-        </Button>
-      </form>
+      {CLERK_ENABLED ? (
+        <ClerkLoginForm initialError={initialError} />
+      ) : (
+        <PasswordLoginForm initialError={initialError} />
+      )}
     </AuthShell>
   );
 }
