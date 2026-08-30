@@ -41,3 +41,24 @@ export function clerkMessage(error: unknown, fallback = "Something went wrong. P
   if (first) return clerkMessage(first, fallback);
   return e.longMessage || e.long_message || e.message || fallback;
 }
+
+/**
+ * The one way frontend and backend can disagree: the API has Clerk switched on
+ * (it answers 409) but this bundle was built without `VITE_CLERK_PUBLISHABLE_KEY`,
+ * so it is still showing the password form. Always a deploy fault, never the
+ * visitor's — say something true to them and put the fix in the console.
+ *
+ * Almost always the Docker build did not receive the key: it is baked in at
+ * build time, so it needs the `ARG` in the frontend Dockerfile, and the
+ * variable must be named VITE_CLERK_PUBLISHABLE_KEY (not the NEXT_PUBLIC_…
+ * name Clerk's dashboard suggests when the framework picker says Next.js).
+ */
+export function buildMismatch(error: unknown): string | null {
+  if ((error as { status?: number } | null)?.status !== 409) return null;
+  console.error(
+    "Sign-in is misconfigured: the API expects Clerk but this bundle was built " +
+      "without VITE_CLERK_PUBLISHABLE_KEY. Set it on the frontend service and REBUILD " +
+      "(it is compiled in, not read at runtime). See backend/docs/CLERK.md.",
+  );
+  return "Sign-in is being updated right now. Please try again in a few minutes.";
+}

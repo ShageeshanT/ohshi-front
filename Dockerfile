@@ -8,7 +8,23 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build
+
+# Vite bakes VITE_* into the bundle at BUILD time, so the key has to exist right
+# here — setting it as a runtime service variable does nothing. Railway does
+# inject service variables into the build, but a Dockerfile only sees them
+# through an ARG declared in the stage that needs it. Without this line the
+# build quietly succeeds and ships a bundle with Clerk switched off, while a
+# backend that has OHSHI_CLERK_PUBLISHABLE_KEY set refuses every password
+# login — so the deploy looks fine and nobody can sign in.
+ARG VITE_CLERK_PUBLISHABLE_KEY=""
+ENV VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
+
+# Say which way it was built, so the deploy log answers the question directly.
+RUN if [ -n "$VITE_CLERK_PUBLISHABLE_KEY" ]; then \
+      echo ">> sign-in: CLERK (key ${VITE_CLERK_PUBLISHABLE_KEY%%_*}_… present at build)"; \
+    else \
+      echo ">> sign-in: EMAIL + PASSWORD (no VITE_CLERK_PUBLISHABLE_KEY at build)"; \
+    fi && npm run build
 
 # ── Stage 2: serve ────────────────────────────────────────────────────────────
 FROM caddy:2-alpine

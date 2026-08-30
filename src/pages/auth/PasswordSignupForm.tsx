@@ -9,6 +9,7 @@ import { useAuth, type Me } from "../../App";
 import { ErrorLine, TermsCheckbox } from "../../components/auth/AuthBits";
 import { Button, Field, Input } from "../../components/ui";
 import { friendly, post } from "../../lib/api";
+import { buildMismatch } from "../../lib/clerk";
 
 export function PasswordSignupForm(props: { registrationOpen: boolean }) {
   const { setMe } = useAuth();
@@ -34,7 +35,7 @@ export function PasswordSignupForm(props: { registrationOpen: boolean }) {
         setMe(me);
         navigate("/app", { replace: true });
       })
-      .catch((err) => setError(friendly(err)))
+      .catch((err) => setError(buildMismatch(err) ?? friendly(err)))
       .finally(() => setBusy(false));
   };
 
