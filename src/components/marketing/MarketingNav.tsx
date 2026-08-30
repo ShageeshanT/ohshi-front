@@ -20,10 +20,28 @@ const spring = { type: "spring" as const, stiffness: 260, damping: 32, mass: 0.8
 const HASHES = ["#features", "#how", "#models", "#developers", "#faq"];
 export const NAV_LINKS = HASHES.map((hash, i) => ({ hash, label: COPY.nav[i] ?? hash.slice(1) }));
 
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const sync = () => setMatches(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, [query]);
+  return matches;
+}
+
 export function MarketingNav(props: { minimal?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { me } = useAuth();
+  /* A 1080p panel at the Windows 150% scale is a 640 CSS pixel tall viewport,
+     where the resting pill would eat a sixth of the screen; a phone is too
+     narrow for it at full size. Both get the same denser lock-up. */
+  const short = useMediaQuery("(max-height: 760px)");
+  const narrow = useMediaQuery("(max-width: 480px)");
+  const dense = short || narrow;
   const { mark, wordmark } = useBrandArt();
   const lenis = useLenis();
   const navigate = useNavigate();
@@ -61,6 +79,10 @@ export function MarketingNav(props: { minimal?: boolean }) {
     else el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  /* The lock-up is 152x60 at rest; a tight window gets the same art, smaller. */
+  const lockupH = narrow ? 40 : dense ? 46 : 60;
+  const lockupW = Math.round((lockupH * 152) / 60);
+
   const actions = me ? (
     <Link to="/app" className="btn-primary btn-sm">
       Open app <ArrowRight className="h-4 w-4" />
@@ -77,16 +99,16 @@ export function MarketingNav(props: { minimal?: boolean }) {
   );
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-4 sm:px-7 lg:px-9">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-3 sm:px-7 lg:px-9">
       <motion.div
         initial={false}
         animate={{
-          marginTop: scrolled ? 10 : 22,
+          marginTop: scrolled ? 10 : dense ? 12 : 22,
           maxWidth: scrolled ? 1000 : 1460,
-          paddingTop: scrolled ? 7 : 12,
-          paddingBottom: scrolled ? 7 : 12,
-          paddingLeft: scrolled ? 18 : 30,
-          paddingRight: scrolled ? 8 : 14,
+          paddingTop: scrolled ? 7 : dense ? 8 : 12,
+          paddingBottom: scrolled ? 7 : dense ? 8 : 12,
+          paddingLeft: scrolled ? 18 : narrow ? 18 : dense ? 22 : 30,
+          paddingRight: scrolled ? 8 : narrow ? 8 : dense ? 10 : 14,
         }}
         transition={spring}
         className={`mk-nav pointer-events-auto relative mx-auto flex items-center rounded-full ${
@@ -101,7 +123,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
           <Link to="/" aria-label="Ohshi home" className="relative block shrink-0">
             <motion.span
               initial={false}
-              animate={{ width: scrolled ? 40 : 152, height: scrolled ? 42 : 60 }}
+              animate={{ width: scrolled ? 40 : lockupW, height: scrolled ? 42 : lockupH }}
               transition={spring}
               className="relative block"
             >
@@ -110,9 +132,9 @@ export function MarketingNav(props: { minimal?: boolean }) {
                 alt="Ohshi"
                 draggable={false}
                 initial={false}
-                animate={{ opacity: scrolled ? 0 : 1, scale: scrolled ? 0.85 : 1 }}
-                transition={{ duration: 0.22 }}
-                className="absolute left-0 top-0 h-[60px] w-auto select-none"
+                animate={{ opacity: scrolled ? 0 : 1, scale: scrolled ? 0.85 : 1, height: lockupH }}
+                transition={{ duration: 0.22, height: spring }}
+                className="absolute left-0 top-0 w-auto select-none"
                 style={{ transformOrigin: "left center" }}
               />
               <motion.img

@@ -103,29 +103,23 @@ function Hero() {
       </div>
       <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-surface to-transparent" />
 
-      <div className="mx-auto flex min-h-[100svh] max-w-[1460px] flex-col px-6 pb-28 pt-[26vh] sm:px-10 lg:px-[5.5%]">
-        <div className="max-w-[800px]">
+      <div className="hero-shell mx-auto flex min-h-[100svh] max-w-[1460px] flex-col justify-center px-6 sm:px-10 lg:px-[5.5%]">
+        <div className="max-w-[52rem]">
           <motion.div {...rise(0.05)}>
             <span className="eyebrow">
               <span className="eyebrow-dot" />
               {h.badge}
             </span>
           </motion.div>
-          <motion.h1
-            {...rise(0.15)}
-            className="hero-title mt-7 text-[2.6rem] sm:text-[3.8rem] lg:text-[4.6vw] xl:text-[5rem]"
-          >
+          <motion.h1 {...rise(0.15)} className="hero-title hero-gap">
             {h.line1}
             <br />
             {h.line2}
           </motion.h1>
-          <motion.p
-            {...rise(0.28)}
-            className="mt-7 max-w-[30rem] text-[17px] leading-[1.55] text-ink-dim lg:text-[19px]"
-          >
+          <motion.p {...rise(0.28)} className="hero-lede hero-gap max-w-[30rem] text-ink-dim">
             {h.paragraph}
           </motion.p>
-          <motion.div {...rise(0.4)} className="mt-9 flex flex-wrap items-center gap-3">
+          <motion.div {...rise(0.4)} className="hero-gap-lg flex flex-wrap items-center gap-3">
             <Link to="/signup" className="btn-primary btn-lg">
               {h.primaryCta} <ArrowRight className="h-4 w-4" />
             </Link>
@@ -135,7 +129,7 @@ function Hero() {
           </motion.div>
           <motion.ul
             {...rise(0.52)}
-            className="mt-9 flex flex-wrap items-center gap-y-1 text-[13px] font-medium text-ink/80"
+            className="hero-gap-lg flex flex-wrap items-center gap-y-1 text-[13px] font-medium text-ink/80"
           >
             {h.trust.map((label, i) => (
               <li
@@ -153,7 +147,7 @@ function Hero() {
       <button
         type="button"
         onClick={() => scrollToHash(lenis, "#features")}
-        className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.14em] text-ink/70 transition-colors hover:text-ink"
+        className="hero-cue absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.14em] text-ink/70 transition-colors hover:text-ink"
       >
         Scroll to explore
         <ChevronDown className="scroll-cue h-5 w-5" />
@@ -248,8 +242,11 @@ function Models() {
     <section id="models" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
       <SectionHeader eyebrow={m.eyebrow} title={m.title} text={m.intro} />
       <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* min-w-0 on each card: the model name and note never wrap, so without
+            it the single column on a phone widens to fit them and the page
+            slides sideways. */}
         {MODELS.map((model, i) => (
-          <Reveal key={model.name} delay={i * 60}>
+          <Reveal key={model.name} delay={i * 60} className="min-w-0">
             <div className="glass lift flex items-center gap-4 p-5">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-edge bg-panel text-ink">
                 <model.Logo className="h-5 w-5" />
@@ -302,7 +299,9 @@ function Developers() {
             ))}
           </ul>
         </Reveal>
-        <Reveal delay={120}>
+        {/* min-w-0: without it the code block's longest line sets the grid
+            track's min-content width and pushes the page sideways. */}
+        <Reveal delay={120} className="min-w-0">
           <div className="glass overflow-hidden p-2">
             <div className="flex items-center justify-between px-3 py-2 text-[11px] text-ink-dim">
               <span className="mono">agent.py</span>

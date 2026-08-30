@@ -34,6 +34,9 @@
   --color-code: #0f1420;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-app: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Display face for the marketing pages, same as the CAGS front end: a high
+     contrast serif reserved for headlines. Body copy stays on Inter. */
+  --font-display: "Instrument Serif", "Playfair Display", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -151,21 +154,33 @@ pre,
   z-index: -20;
   overflow: hidden;
 }
+/* The painting is 3:2. Sized by height it keeps its own ratio, which is what
+   we want on the usual 16:9 and 16:10 windows. Two things break that:
+   an ultra wide window leaves a bare slab of surface on the left, and a tall
+   one pushes the art wider than the page. So the box is clamped to at least
+   62% of the viewport and at most all of it, and `cover` absorbs the
+   difference — cropping the water first, never the spire or its ring. */
 .hero-art img {
   position: absolute;
   top: 0;
   right: 0;
   height: 100%;
   width: auto;
-  max-width: none;
+  aspect-ratio: 3 / 2;
+  min-width: 62%;
+  max-width: 100%;
+  object-fit: cover;
+  /* Only an ultra wide, short window crops vertically; hold the ring and the
+     ridge rather than the empty sky above them. */
+  object-position: 55% 30%;
   user-select: none;
 }
 /* Below md the art is too wide to fit by height, so cover and hold the spire. */
 @media (max-width: 767px) {
   .hero-art img {
     width: 100%;
+    min-width: 0;
     height: 100%;
-    object-fit: cover;
     object-position: 68% top;
   }
 }
@@ -189,8 +204,8 @@ pre,
     background: linear-gradient(
       to right,
       var(--color-surface) 0%,
-      color-mix(in srgb, var(--color-surface) 70%, transparent) 45%,
-      color-mix(in srgb, var(--color-surface) 20%, transparent) 100%
+      color-mix(in srgb, var(--color-surface) 78%, transparent) 52%,
+      color-mix(in srgb, var(--color-surface) 34%, transparent) 100%
     );
   }
 }
@@ -431,6 +446,14 @@ pre,
   font-size: 16px;
   border-radius: 999px;
 }
+/* A phone cannot hold the lock-up, the call to action and the menu chip at
+   full size on one row — the pill used to spill past the viewport. */
+@media (max-width: 480px) {
+  .btn-sm {
+    padding: 0.6rem 1.05rem;
+    font-size: 14px;
+  }
+}
 
 .eyebrow {
   display: inline-flex;
@@ -460,19 +483,57 @@ pre,
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-glow) 18%, transparent);
 }
 
+/* ── hero layout ───────────────────────────────────────────────────────────
+   The hero has to hold the whole stack — badge, headline, lede, buttons, trust
+   row and the scroll cue — inside one screen. A 1920x1080 panel at the Windows
+   150% scale is a 1280x640 viewport, so every vertical measure here is driven
+   by vh as well as vw: `min(vw, vh)` on the type, vh clamps on the gaps. Sized
+   by width alone the headline overflowed a short window and pushed the cue and
+   the trust row below the fold. */
+.hero-shell {
+  padding-top: clamp(6.75rem, 15vh, 11rem);
+  padding-bottom: clamp(4.25rem, 11vh, 7.5rem);
+}
+
 .hero-title {
-  font-family: var(--font-app);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.03;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, min(5.4vw, 10vh), 5rem);
+  letter-spacing: -0.005em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.hero-lede {
+  font-size: clamp(15px, min(1.35vw, 2.5vh), 19px);
+  line-height: 1.55;
+}
+
+/* The gaps down the hero stack. Named rather than utility classes because each
+   one has to breathe with the window height, not just its width. */
+.hero-gap {
+  margin-top: clamp(0.9rem, 2.6vh, 1.75rem);
+}
+.hero-gap-lg {
+  margin-top: clamp(1.15rem, 3.4vh, 2.25rem);
+}
+.hero-cue {
+  bottom: clamp(1.1rem, 3vh, 2rem);
+}
+@media (max-height: 720px) {
+  .btn-lg {
+    padding: 0.85rem 2rem;
+    font-size: 15px;
+  }
 }
 
 /* Section titles on the marketing pages. */
 .mk-h2 {
-  font-size: clamp(1.9rem, 3.2vw, 2.6rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 3.6vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.04;
 }
 
 /* Reveal on scroll — a soft rise once the element enters the viewport. */
