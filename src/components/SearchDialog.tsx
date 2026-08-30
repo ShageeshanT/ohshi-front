@@ -57,12 +57,12 @@ export default function SearchDialog(props: { open: boolean; onClose: () => void
   const rows: Result[] = results ?? chats.slice(0, 8).map((chat) => ({ chat, snippet: "" }));
   const open = (id: string) => {
     props.onClose();
-    navigate(`/c/${id}`);
+    navigate(`/app/c/${id}`);
   };
 
   return (
     <div
-      className="backdrop-in fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[12vh] backdrop-blur-[2px]"
+      className="backdrop-in fixed inset-0 z-50 flex items-start justify-center bg-black/55 p-4 pt-[12vh] backdrop-blur-[3px]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) props.onClose();
       }}

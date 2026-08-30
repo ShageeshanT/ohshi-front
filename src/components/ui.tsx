@@ -1,5 +1,5 @@
-/** Shared UI kit — white canvas, soft slabs, night capsules, full-radius
- *  geometry, buttery expo easing. */
+/** Shared UI kit — token-only, so it renders correctly on both themes.
+ *  Full-radius geometry, buttery expo easing. */
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -19,12 +19,12 @@ const toneText: Record<Tone, string> = {
 };
 
 const toneSoft: Record<Tone, string> = {
-  accent: "bg-accent/15 text-accent",
+  accent: "bg-accent-soft text-accent",
   ok: "bg-ok-soft text-ok",
   warn: "bg-warn-soft text-warn",
   danger: "bg-danger-soft text-danger",
   violet: "bg-violet-soft text-violet",
-  dim: "bg-white/[0.07] text-ink-dim",
+  dim: "bg-ink/[0.07] text-ink-dim",
 };
 
 const toneBar: Record<Tone, string> = {
@@ -36,8 +36,7 @@ const toneBar: Record<Tone, string> = {
   dim: "bg-ink-dim",
 };
 
-/** Keep an overlay mounted briefly after it closes so its exit animation can
- *  finish. The interaction layer is disabled by each consumer while exiting. */
+/** Keep an overlay mounted briefly after it closes so its exit animation can finish. */
 export function usePresence(open: boolean, exitMs = 180): boolean {
   const [rendered, setRendered] = useState(open);
 
@@ -54,10 +53,7 @@ export function usePresence(open: boolean, exitMs = 180): boolean {
   return rendered;
 }
 
-/** Freeze the page behind an open overlay, and return the undo. The page
- *  scroller is `#main-content` (or the chat's own pane), not <body>, so
- *  locking body would be a no-op and a wheel over the backdrop would slide
- *  the page behind the fixed panel. */
+/** Freeze the page behind an open overlay, and return the undo. */
 export function lockPageScroll(): () => void {
   const target = document.getElementById("main-content") ?? document.body;
   const previous = target.style.overflowY;
@@ -74,7 +70,6 @@ export function Card(props: {
   className?: string;
   title?: ReactNode;
   aside?: ReactNode;
-  /** Denser padding for space-tight surfaces. */
   compact?: boolean;
 }) {
   return (
@@ -120,12 +115,11 @@ export function Button(props: {
   const tone = props.tone ?? "primary";
   const tones = {
     primary:
-      "bg-accent text-accent-ink hover:brightness-105 shadow-[0_2px_16px_-6px_rgb(241_255_92/0.5)] hover:shadow-[0_10px_26px_-8px_rgb(241_255_92/0.6)]",
-    accent:
-      "bg-accent text-accent-ink hover:brightness-105 shadow-[0_2px_16px_-6px_rgb(241_255_92/0.5)]",
-    night: "bg-night text-ink border border-white/10 hover:bg-night/80",
-    ghost: "border border-edge bg-panel-2 text-ink hover:bg-edge",
-    danger: "bg-danger-soft text-danger hover:bg-danger hover:text-night",
+      "bg-accent text-accent-ink hover:brightness-110 shadow-[0_2px_16px_-6px_color-mix(in_srgb,var(--color-glow)_60%,transparent)] hover:shadow-[0_10px_26px_-8px_color-mix(in_srgb,var(--color-glow)_70%,transparent)]",
+    accent: "bg-accent text-accent-ink hover:brightness-110",
+    night: "bg-night text-white hover:brightness-110",
+    ghost: "border border-edge bg-panel text-ink hover:bg-panel-2",
+    danger: "bg-danger-soft text-danger hover:bg-danger hover:text-white",
   }[tone];
   const size = props.size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-5 py-2.5 text-sm";
   return (
@@ -154,6 +148,9 @@ export function Field(props: { label: string; hint?: string; children: ReactNode
   );
 }
 
+const fieldCls =
+  "w-full rounded-full border border-edge bg-panel-2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-accent/60 focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:opacity-50";
+
 export function Input(props: {
   value: string;
   onChange: (value: string) => void;
@@ -181,9 +178,7 @@ export function Input(props: {
           props.onEnter();
         }
       }}
-      className={`w-full rounded-full border border-edge bg-panel-2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-accent/60 focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:opacity-50 ${
-        props.mono ? "font-mono text-[13px]" : ""
-      } ${props.className ?? ""}`}
+      className={`${fieldCls} ${props.mono ? "font-mono text-[13px]" : ""} ${props.className ?? ""}`}
     />
   );
 }
@@ -224,12 +219,12 @@ export function Toggle(props: {
         disabled={props.disabled}
         onClick={() => props.onChange(!props.checked)}
         className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] disabled:opacity-50 ${
-          props.checked ? "bg-accent" : "bg-white/15"
+          props.checked ? "bg-accent" : "bg-ink/15"
         }`}
       >
         <span
-          className={`absolute top-1 h-5 w-5 rounded-full shadow transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            props.checked ? "left-[26px] bg-accent-ink" : "left-1 bg-white"
+          className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            props.checked ? "left-[26px]" : "left-1"
           }`}
         />
       </button>
@@ -240,7 +235,7 @@ export function Toggle(props: {
 
 export function Tabs(props: { tabs: string[]; active: string; onChange: (tab: string) => void }) {
   return (
-    <div role="tablist" className="inline-flex gap-1 rounded-full bg-panel-2 p-1">
+    <div role="tablist" className="inline-flex gap-1 rounded-full bg-ink/[0.06] p-1">
       {props.tabs.map((t, index) => (
         <button
           key={t}
@@ -292,7 +287,7 @@ export function Skeleton(props: { className?: string }) {
 
 export function EmptyState(props: { title: string; hint?: string; action?: ReactNode; tone?: Tone }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-edge bg-white/[0.02] px-6 py-10 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-edge bg-ink/[0.02] px-6 py-10 text-center">
       <p className={`text-sm font-bold ${props.tone ? toneText[props.tone] : "text-ink"}`}>{props.title}</p>
       {props.hint && <p className="max-w-sm text-sm text-ink-dim">{props.hint}</p>}
       {props.action && <div className="mt-3">{props.action}</div>}
@@ -304,7 +299,7 @@ export function StatChip(props: { label: string; value: ReactNode; sub?: string;
   return (
     <div className="glass lift flex flex-col gap-0.5 px-4 py-3">
       <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">{props.label}</span>
-      <span className={`text-xl font-extrabold tracking-tight ${props.tone ? toneText[props.tone] : "text-ink"}`}>
+      <span className={`app-display text-xl font-semibold tracking-tight ${props.tone ? toneText[props.tone] : "text-ink"}`}>
         {props.value}
       </span>
       {props.sub && <span className="text-[11px] text-ink-dim">{props.sub}</span>}
@@ -323,10 +318,10 @@ export function Avatar(props: { name: string; size?: "sm" | "md" }) {
 
   const palette = [
     "bg-accent text-accent-ink",
+    "bg-night text-white",
     "bg-violet-soft text-violet",
     "bg-ok-soft text-ok",
     "bg-warn-soft text-warn",
-    "bg-white/10 text-ink",
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
@@ -346,9 +341,9 @@ export function Avatar(props: { name: string; size?: "sm" | "md" }) {
 export function Progress(props: { percent: number | null; tone?: Tone; className?: string }) {
   const tone = props.tone ?? "accent";
   return (
-    <div className={`h-2 w-full overflow-hidden rounded-full bg-white/[0.08] ${props.className ?? ""}`}>
+    <div className={`h-2 w-full overflow-hidden rounded-full bg-ink/[0.08] ${props.className ?? ""}`}>
       {props.percent === null ? (
-        <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgb(255_255_255/0.09)_4px,rgb(255_255_255/0.09)_8px)]" />
+        <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,color-mix(in_srgb,var(--color-ink)_12%,transparent)_4px,color-mix(in_srgb,var(--color-ink)_12%,transparent)_8px)]" />
       ) : (
         <div
           className={`bar-fill h-full rounded-full ${toneBar[tone]}`}
@@ -387,20 +382,15 @@ export function Notice(props: { tone: Tone; children: ReactNode; onClose?: () =>
 export function Code(props: { children: string; className?: string }) {
   return (
     <pre
-      className={`overflow-x-auto rounded-2xl border border-white/8 bg-[#1b1f24] p-4 text-xs leading-relaxed text-white ${props.className ?? ""}`}
+      className={`overflow-x-auto rounded-2xl border border-ink/10 bg-code p-4 text-xs leading-relaxed text-[#e6e8eb] ${props.className ?? ""}`}
     >
       <code>{props.children}</code>
     </pre>
   );
 }
 
-/** Modal with a focus trap, scroll lock and an exit animation.
- *
- *  Anchored near the top (items-start), NOT centred: a centred panel
- *  re-centres itself on every content-height change, so each async status line
- *  that lands inside an open dialog moves every letter in it by half the delta.
- *  The outer card clips and only the body scrolls, so the scrollbar stays
- *  inside the rounded corners. */
+/** Modal with a focus trap, scroll lock and an exit animation. Anchored near
+ *  the top so async content can't re-centre it while you read. */
 export function Modal(props: {
   open: boolean;
   onClose: () => void;
@@ -419,9 +409,6 @@ export function Modal(props: {
     if (!props.open) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const unlockScroll = lockPageScroll();
-    // preventScroll: focusing a control inside a freshly-mounted overlay
-    // otherwise lets the browser scroll ancestors to reveal it — a one-shot
-    // page jump at the exact moment the dialog appears.
     const focusTimer = window.setTimeout(() => closeRef.current?.focus({ preventScroll: true }), 0);
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -462,7 +449,7 @@ export function Modal(props: {
     <div
       className={`${
         props.open ? "backdrop-in" : "backdrop-out pointer-events-none"
-      } fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-3 pt-[8vh] backdrop-blur-[3px] sm:p-4 sm:pt-[10vh]`}
+      } fixed inset-0 z-50 flex items-start justify-center bg-black/55 p-3 pt-[8vh] backdrop-blur-[3px] sm:p-4 sm:pt-[10vh]`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && props.open) props.onClose();
       }}
@@ -475,7 +462,7 @@ export function Modal(props: {
         aria-labelledby={titleId}
         className={`${
           props.open ? "modal-in" : "modal-out"
-        } flex max-h-[min(78dvh,52rem)] w-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-panel shadow-2xl ${
+        } flex max-h-[min(78dvh,52rem)] w-full flex-col overflow-hidden rounded-3xl border border-edge bg-panel shadow-2xl ${
           props.wide ? "max-w-3xl" : "max-w-lg"
         }`}
       >
@@ -486,14 +473,12 @@ export function Modal(props: {
           <button
             ref={closeRef}
             onClick={props.onClose}
-            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-white/10 hover:text-ink"
+            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
             aria-label="Close dialog"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
-        {/* overscroll-contain: without it, scrolling past the end of the dialog
-            body chains into the page and slides it behind the fixed panel. */}
         <div className="gutter-stable min-h-0 overflow-y-auto overscroll-contain pb-5 pl-5 pr-3 sm:pb-7 sm:pl-7 sm:pr-5">
           {props.children}
         </div>

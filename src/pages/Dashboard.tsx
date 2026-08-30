@@ -485,7 +485,7 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
         loading ? (
           <div className="grid gap-1.5 md:grid-cols-2">
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="rounded-xl bg-white/[0.03] px-3 py-2.5">
+              <div key={i} className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
                 <Skeleton className="h-2.5 w-32" />
                 <Skeleton className="mt-2 h-1.5 w-full" />
               </div>
@@ -525,7 +525,7 @@ function FamilyRow(props: { family: FamilyQuota; now: number }) {
   }[tone];
 
   return (
-    <div className="rounded-xl bg-white/[0.03] px-3 py-2.5 transition-colors duration-300 hover:bg-white/[0.06]">
+    <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5 transition-colors duration-300 hover:bg-ink/[0.06]">
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
           <Logo className="h-3.5 w-3.5 shrink-0 text-ink-dim" />
@@ -548,7 +548,7 @@ function FamilyRow(props: { family: FamilyQuota; now: number }) {
               key={v.id}
               title={`${v.id}${v.resetMs ? ` · resets ${countdown(v.resetMs, props.now)}` : ""}`}
               className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                v.exhausted ? "bg-danger-soft text-danger line-through" : "bg-white/[0.07] text-ink-dim"
+                v.exhausted ? "bg-danger-soft text-danger line-through" : "bg-ink/[0.06] text-ink-dim"
               }`}
             >
               {v.effort || v.id}
@@ -598,7 +598,7 @@ function UsageSection(props: { usage: UsageSummary | null }) {
                 title="No calls yet"
                 hint="Start a chat, or create an API key and point your agent at /v1 — requests show up here as they happen."
                 action={
-                  <Link to="/">
+                  <Link to="/app">
                     <Button tone="ghost">Open chat</Button>
                   </Link>
                 }

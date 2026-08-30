@@ -3,35 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ohshi</title>
+    <title>Ohshi — your Google account, every frontier model</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#343434" />
+    <meta name="theme-color" content="#f7f7f9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0c10" media="(prefers-color-scheme: dark)" />
     <meta
       name="description"
-      content="Connect your Google account and run Gemini, Claude and GPT-OSS models for your agents — with live remaining quota."
+      content="Ohshi turns the Google AI plan you already pay for into a chat workspace and an OpenAI-compatible API — Gemini, Claude and GPT-OSS on your own quota, with live remaining usage."
     />
+    <meta property="og:title" content="Ohshi — your Google account, every frontier model" />
+    <meta
+      property="og:description"
+      content="Chat with Gemini, Claude and GPT-OSS, and give your agents an OpenAI-compatible API — all on the Google account you already have."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.ohshi.space/" />
+    <script>
+      // Paint the right theme before React mounts — no flash of the wrong one.
+      (function () {
+        try {
+          var t = localStorage.getItem("ohshi.theme");
+          if (t !== "light" && t !== "dark") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Exo+2:wght@400;500;600;700&family=Orbitron:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
     />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
     <style>
-      body { background: #f7f7f5; }
+      html { background: #f7f7f9; }
+      html[data-theme="dark"] { background: #0a0c10; }
     </style>
   </head>
   <body>

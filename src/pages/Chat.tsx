@@ -280,7 +280,7 @@ export default function Chat() {
       try {
         const created = await post<{ chat: ChatSummary }>("/api/chats", { model: modelRef.current });
         upsert(created.chat);
-        navigate(`/c/${created.chat.id}`, { state: { pending: text } satisfies PendingState });
+        navigate(`/app/c/${created.chat.id}`, { state: { pending: text } satisfies PendingState });
       } catch (e) {
         setInput(text);
         setTurnError(friendly(e, "Couldn't start a chat — please try again."));
@@ -338,7 +338,7 @@ export default function Chat() {
           without it, lines slide out from behind the title with a hard edge. */}
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-10 hidden items-start justify-between gap-4 px-5 pb-6 pt-4 md:flex ${
-          isLanding ? "" : "bg-gradient-to-b from-surface via-surface/85 to-transparent"
+          isLanding ? "" : "bg-gradient-to-b from-surface/90 via-surface/70 to-transparent"
         }`}
       >
         {!isLanding && (
@@ -352,7 +352,7 @@ export default function Chat() {
       </div>
 
       {isLanding ? (
-        <div className="honeycomb flex flex-1 flex-col items-center justify-center px-4 pb-16">
+        <div className="flex flex-1 flex-col items-center justify-center px-4 pb-16">
           <div className="rise-in hero-bloom flex w-full max-w-3xl flex-col items-center">
             <BrandHero />
             <p className="mt-4 text-center text-sm text-ink-dim">
@@ -365,7 +365,7 @@ export default function Chat() {
                 <Notice tone="warn">
                   <span className="normal-case">
                     Connect a Google account first — every reply runs on your own Google plan.{" "}
-                    <Link to="/accounts" className="font-semibold underline underline-offset-2">
+                    <Link to="/app/accounts" className="font-semibold underline underline-offset-2">
                       Google accounts →
                     </Link>
                   </span>
@@ -393,7 +393,7 @@ export default function Chat() {
               {loadError && (
                 <Notice tone="danger">
                   {loadError}{" "}
-                  <Link to="/" className="font-semibold underline underline-offset-2">
+                  <Link to="/app" className="font-semibold underline underline-offset-2">
                     Start a new chat
                   </Link>
                 </Notice>
@@ -565,7 +565,7 @@ function AssistantMessage(props: {
     <div className="flex gap-3">
       <BrandMark className="mt-0.5 h-7" />
       <div className="min-w-0 flex-1">
-       <div className="rounded-2xl rounded-tl-md border border-white/[0.06] bg-bubble-ai px-4 py-3 shadow-[0_1px_2px_rgb(0_0_0/0.25)] sm:px-5">
+       <div className="rounded-2xl rounded-tl-md border border-edge bg-bubble-ai px-4 py-3 shadow-[0_1px_2px_rgb(0_0_0/0.25)] sm:px-5">
         {reasoning && (
           <div className="mb-2">
             <button
@@ -604,7 +604,7 @@ function AssistantMessage(props: {
                   window.setTimeout(() => setCopied(false), 1500);
                 });
               }}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-white/10 hover:text-ink"
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink/10 hover:text-ink"
               aria-label="Copy reply"
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -614,7 +614,7 @@ function AssistantMessage(props: {
               <button
                 type="button"
                 onClick={props.onRegenerate}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-white/10 hover:text-ink"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink/10 hover:text-ink"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Regenerate
               </button>
@@ -637,7 +637,7 @@ function AccountChip(props: { models: ChatModelsPayload | null }) {
   if (!m.connected) {
     return (
       <Link
-        to="/accounts"
+        to="/app/accounts"
         className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink shadow-sm hover:brightness-105"
       >
         <Plug className="h-4 w-4" /> Connect Google
@@ -646,7 +646,7 @@ function AccountChip(props: { models: ChatModelsPayload | null }) {
   }
   return (
     <Link
-      to="/accounts"
+      to="/app/accounts"
       className="inline-flex items-center gap-2 rounded-full border border-edge bg-panel-2 px-3.5 py-1.5 text-sm font-medium text-ink-dim hover:text-ink"
       title="Google accounts & remaining usage"
     >

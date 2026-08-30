@@ -83,7 +83,7 @@ export default function Docs() {
                   className={`flex flex-col gap-1 rounded-2xl border px-3.5 py-3 text-left transition-colors ${
                     active
                       ? "border-accent/60 bg-accent/[0.12]"
-                      : "border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.06]"
+                      : "border-edge bg-ink/[0.03] hover:bg-ink/[0.06]"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -103,7 +103,7 @@ export default function Docs() {
         )}
 
         {family && family.efforts.length > 0 && (
-          <div className="mt-4 border-t border-white/[0.07] pt-4">
+          <div className="mt-4 border-t border-edge pt-4">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">
               Reasoning effort
             </p>
@@ -116,7 +116,7 @@ export default function Docs() {
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                     e === effort
                       ? "bg-accent text-accent-ink"
-                      : "bg-white/[0.08] text-ink-dim hover:bg-white/15 hover:text-ink"
+                      : "bg-ink/[0.07] text-ink-dim hover:bg-ink/15 hover:text-ink"
                   }`}
                 >
                   {effortLabel(e)}
@@ -227,7 +227,7 @@ function Snippet(props: { code: string }) {
             window.setTimeout(() => setCopied(false), 1500);
           });
         }}
-        className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-ink-dim transition-colors hover:bg-white/20 hover:text-ink"
+        className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-ink/10 px-2.5 py-1 text-[11px] font-semibold text-ink-dim transition-colors hover:bg-ink/20 hover:text-ink"
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copied" : "Copy"}

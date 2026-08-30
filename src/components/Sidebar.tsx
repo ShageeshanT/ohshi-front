@@ -41,7 +41,7 @@ type Icon = ComponentType<{ className?: string }>;
 
 export default function Sidebar(p: SidebarProps) {
   const location = useLocation();
-  const onNewChat = location.pathname === "/";
+  const onNewChat = location.pathname === "/app";
   const groups = groupChatsByDate(p.chats);
   const name = p.user.displayName || p.user.email.split("@")[0];
 
@@ -49,19 +49,18 @@ export default function Sidebar(p: SidebarProps) {
     <>
       {p.mobileOpen && (
         <div
-          className="backdrop-in fixed inset-0 z-30 bg-ink/40 backdrop-blur-[2px] md:hidden"
+          className="backdrop-in fixed inset-0 z-30 bg-black/50 backdrop-blur-[2px] md:hidden"
           onClick={p.onMobileClose}
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-white/[0.06] bg-[#2d2d2d] transition-[transform,width] duration-200 md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-edge bg-rail/85 backdrop-blur-lg transition-[transform,width] duration-200 md:static md:translate-x-0 ${
           p.collapsed ? "md:w-[64px]" : "md:w-[264px]"
         } ${p.mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className={`flex items-center px-3 pb-1 pt-4 ${p.collapsed ? "justify-center" : "justify-between"}`}>
-          <Link to="/" className="flex items-center gap-2.5" title="Ohshi" onClick={p.onMobileClose}>
-            <BrandMark className="h-7" />
-            {!p.collapsed && <Wordmark className="h-[18px]" />}
+          <Link to="/app" className="flex items-center gap-2.5" title="Ohshi" onClick={p.onMobileClose}>
+            {p.collapsed ? <BrandMark className="h-8" /> : <Wordmark className="h-8" />}
           </Link>
           {!p.collapsed && (
             <div className="flex items-center gap-1">
@@ -97,14 +96,14 @@ export default function Sidebar(p: SidebarProps) {
 
         <nav className="mt-2 space-y-1 px-3">
           <SideButton icon={Search} label="Search" hint="Ctrl K" collapsed={p.collapsed} onClick={p.onSearch} />
-          <SideLink icon={SquarePen} label="New Chat" to="/" active={onNewChat} collapsed={p.collapsed} onClick={p.onMobileClose} />
+          <SideLink icon={SquarePen} label="New Chat" to="/app" active={onNewChat} collapsed={p.collapsed} onClick={p.onMobileClose} />
         </nav>
 
         <div className="mt-5 space-y-1 px-3">
           {!p.collapsed && <SectionLabel>Workspace</SectionLabel>}
-          <SideLink icon={Plug} label="Google accounts" to="/accounts" collapsed={p.collapsed} onClick={p.onMobileClose} />
-          <SideLink icon={KeyRound} label="API keys" to="/keys" collapsed={p.collapsed} onClick={p.onMobileClose} />
-          <SideLink icon={BookOpen} label="Docs" to="/docs" collapsed={p.collapsed} onClick={p.onMobileClose} />
+          <SideLink icon={Plug} label="Google accounts" to="/app/accounts" collapsed={p.collapsed} onClick={p.onMobileClose} />
+          <SideLink icon={KeyRound} label="API keys" to="/app/keys" collapsed={p.collapsed} onClick={p.onMobileClose} />
+          <SideLink icon={BookOpen} label="Docs" to="/app/docs" collapsed={p.collapsed} onClick={p.onMobileClose} />
         </div>
 
         {p.collapsed ? (
@@ -134,7 +133,7 @@ export default function Sidebar(p: SidebarProps) {
           </div>
         )}
 
-        <div className={`border-t border-white/[0.06] p-3 ${p.collapsed ? "flex justify-center" : "flex items-center gap-3"}`}>
+        <div className={`border-t border-edge p-3 ${p.collapsed ? "flex justify-center" : "flex items-center gap-3"}`}>
           <span title={p.user.email}>
             <Avatar name={name} size="sm" />
           </span>
@@ -147,7 +146,7 @@ export default function Sidebar(p: SidebarProps) {
               <button
                 type="button"
                 onClick={p.onSignOut}
-                className="rounded-lg p-1.5 text-ink-dim hover:bg-white/10 hover:text-ink"
+                className="rounded-lg p-1.5 text-ink-dim hover:bg-ink/10 hover:text-ink"
                 aria-label="Sign out"
                 title="Sign out"
               >
@@ -173,7 +172,7 @@ function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed
       type="button"
       onClick={props.onClick}
       title={props.label}
-      className={`${itemBase} text-ink-dim hover:bg-white/[0.06] hover:text-ink ${props.collapsed ? "justify-center px-0" : ""}`}
+      className={`${itemBase} text-ink-dim hover:bg-ink/[0.06] hover:text-ink ${props.collapsed ? "justify-center px-0" : ""}`}
     >
       <props.icon className="h-[17px] w-[17px] shrink-0" />
       {!props.collapsed && <span className="flex-1 text-left">{props.label}</span>}
@@ -193,12 +192,12 @@ function SideLink(props: {
   return (
     <NavLink
       to={props.to}
-      end={props.to === "/"}
+      end={props.to === "/app"}
       onClick={props.onClick}
       title={props.label}
       className={({ isActive }) => {
         const active = props.active ?? isActive;
-        return `${itemBase} ${active ? "bg-accent/[0.14] text-accent" : "text-ink-dim hover:bg-white/[0.06] hover:text-ink"} ${
+        return `${itemBase} ${active ? "bg-accent-soft text-accent" : "text-ink-dim hover:bg-ink/[0.06] hover:text-ink"} ${
           props.collapsed ? "justify-center px-0" : ""
         }`;
       }}
@@ -252,10 +251,10 @@ function HistoryRow(props: {
 
   return (
     <div
-      className={`group flex items-center rounded-xl pr-1 ${props.active ? "bg-white/[0.08]" : "hover:bg-white/[0.05]"}`}
+      className={`group flex items-center rounded-xl pr-1 ${props.active ? "bg-ink/[0.07]" : "hover:bg-ink/[0.05]"}`}
     >
       <Link
-        to={`/c/${props.chat.id}`}
+        to={`/app/c/${props.chat.id}`}
         onClick={props.onNavigate}
         className="min-w-0 flex-1 truncate px-3 py-1.5 text-[13px] text-ink-dim transition-colors group-hover:text-ink"
         title={props.chat.title || "New chat"}
@@ -269,7 +268,7 @@ function HistoryRow(props: {
             setTitle(props.chat.title);
             setEditing(true);
           }}
-          className="rounded-md p-1 text-ink-dim hover:bg-white/10 hover:text-ink"
+          className="rounded-md p-1 text-ink-dim hover:bg-ink/10 hover:text-ink"
           aria-label="Rename chat"
         >
           <Pencil className="h-3.5 w-3.5" />
