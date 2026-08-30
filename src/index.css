@@ -170,43 +170,80 @@ pre,
    so the headline holds its contrast over the blossom and the lantern, and a
    thin wash at the top and bottom so the pill and the section below meet the
    painting rather than butt against it. Both are mixed from --color-surface,
-   so the same rule reads as haze at dawn and as dusk in the dark theme. */
+   so the same geometry reads as haze at dawn and as dusk after sunset.
+
+   The strengths are variables because the two themes need different amounts:
+   near white ink on a night painting barely needs a veil, while dark ink on a
+   morning one does. Light keeps the lightest wash the headline can still hold
+   over, so the torii and the lanterns stay legible as picture. */
 .hero-art::after {
+  --scrim-near: 62%;
+  --scrim-mid: 44%;
+  --scrim-far: 18%;
+  --scrim-edge: 5%;
+  --scrim-top: 24%;
+  --scrim-top-fade: 4%;
+  --scrim-bottom: 40%;
+
   content: "";
   position: absolute;
   inset: 0;
   background:
     radial-gradient(
       115% 118% at -6% 52%,
-      color-mix(in srgb, var(--color-surface) 90%, transparent) 0%,
-      color-mix(in srgb, var(--color-surface) 74%, transparent) 26%,
-      color-mix(in srgb, var(--color-surface) 40%, transparent) 46%,
-      color-mix(in srgb, var(--color-surface) 12%, transparent) 62%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-near), transparent) 0%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-mid), transparent) 26%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-far), transparent) 46%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-edge), transparent) 62%,
       transparent 76%
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-surface) 45%, transparent) 0%,
-      color-mix(in srgb, var(--color-surface) 10%, transparent) 22%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-top), transparent) 0%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-top-fade), transparent) 22%,
       transparent 46%,
       transparent 72%,
-      color-mix(in srgb, var(--color-surface) 55%, transparent) 100%
+      color-mix(in srgb, var(--color-surface) var(--scrim-bottom), transparent) 100%
     );
 }
+[data-theme="dark"] .hero-art::after {
+  --scrim-near: 90%;
+  --scrim-mid: 74%;
+  --scrim-far: 40%;
+  --scrim-edge: 12%;
+  --scrim-top: 45%;
+  --scrim-top-fade: 10%;
+  --scrim-bottom: 55%;
+}
+
 /* On a phone the copy sits over the whole width, so the bloom becomes a wash
    from the top instead of from the left. */
 @media (max-width: 767px) {
   .hero-art::after {
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--color-surface) 88%, transparent) 0%,
-        color-mix(in srgb, var(--color-surface) 72%, transparent) 30%,
-        color-mix(in srgb, var(--color-surface) 52%, transparent) 50%,
-        color-mix(in srgb, var(--color-surface) 50%, transparent) 66%,
-        color-mix(in srgb, var(--color-surface) 58%, transparent) 84%,
-        color-mix(in srgb, var(--color-surface) 70%, transparent) 100%
-      );
+    --scrim-near: 66%;
+    --scrim-mid: 48%;
+    --scrim-far: 37%;
+    --scrim-edge: 39%;
+    --scrim-top: 47%;
+    --scrim-bottom: 55%;
+
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) var(--scrim-near), transparent) 0%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-mid), transparent) 30%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-far), transparent) 50%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-edge), transparent) 66%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-top), transparent) 84%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-bottom), transparent) 100%
+    );
+  }
+  [data-theme="dark"] .hero-art::after {
+    --scrim-near: 88%;
+    --scrim-mid: 72%;
+    --scrim-far: 52%;
+    --scrim-edge: 50%;
+    --scrim-top: 58%;
+    --scrim-bottom: 70%;
   }
 }
 
@@ -465,7 +502,7 @@ pre,
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-ink) 78%, transparent);
+  color: color-mix(in srgb, var(--color-ink) 90%, transparent);
 }
 .eyebrow-dot {
   width: 7px;
@@ -482,6 +519,21 @@ pre,
    by vh as well as vw: `min(vw, vh)` on the type, vh clamps on the gaps. Sized
    by width alone the headline overflowed a short window and pushed the cue and
    the trust row below the fold. */
+/* With the scrim thinned out so the painting reads, the copy has to carry its
+   own contrast. A tight halo in the page colour does that locally — it looks
+   like the haze already in the picture — instead of another wash over the
+   whole frame. The buttons paint their own ground, so they opt out. */
+.hero-copy {
+  text-shadow:
+    0 1px 1px color-mix(in srgb, var(--color-surface) 62%, transparent),
+    0 0 14px color-mix(in srgb, var(--color-surface) 52%, transparent),
+    0 0 34px color-mix(in srgb, var(--color-surface) 34%, transparent);
+}
+.hero-copy .btn-primary,
+.hero-copy .btn-ghost {
+  text-shadow: none;
+}
+
 .hero-shell {
   padding-top: clamp(6.75rem, 15vh, 11rem);
   padding-bottom: clamp(4.25rem, 11vh, 7.5rem);
@@ -499,6 +551,9 @@ pre,
 .hero-lede {
   font-size: clamp(15px, min(1.35vw, 2.5vh), 19px);
   line-height: 1.55;
+  /* Darker than the ink-dim used elsewhere: this paragraph sits on a painting,
+     not on a flat panel. */
+  color: color-mix(in srgb, var(--color-ink) 76%, transparent);
 }
 
 /* The gaps down the hero stack. Named rather than utility classes because each

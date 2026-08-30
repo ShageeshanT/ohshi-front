@@ -112,7 +112,7 @@ function Hero() {
       <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-surface to-transparent" />
 
       <div className="hero-shell mx-auto flex min-h-[100svh] max-w-[1460px] flex-col justify-center px-6 sm:px-10 lg:px-[5.5%]">
-        <div className="max-w-[52rem]">
+        <div className="hero-copy max-w-[52rem]">
           <motion.div {...rise(0.05)}>
             <span className="eyebrow">
               <span className="eyebrow-dot" />
@@ -124,7 +124,7 @@ function Hero() {
             <br />
             {h.line2}
           </motion.h1>
-          <motion.p {...rise(0.28)} className="hero-lede hero-gap max-w-[30rem] text-ink-dim">
+          <motion.p {...rise(0.28)} className="hero-lede hero-gap max-w-[30rem]">
             {h.paragraph}
           </motion.p>
           <motion.div {...rise(0.4)} className="hero-gap-lg flex flex-wrap items-center gap-3">
@@ -137,7 +137,7 @@ function Hero() {
           </motion.div>
           <motion.ul
             {...rise(0.52)}
-            className="hero-gap-lg flex flex-wrap items-center gap-y-1 text-[13px] font-medium text-ink/80"
+            className="hero-gap-lg flex flex-wrap items-center gap-y-1 text-[13px] font-medium text-ink"
           >
             {h.trust.map((label, i) => (
               <li
@@ -155,7 +155,7 @@ function Hero() {
       <button
         type="button"
         onClick={() => scrollToHash(lenis, "#features")}
-        className="hero-cue absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.14em] text-ink/70 transition-colors hover:text-ink"
+        className="hero-copy hero-cue absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.14em] text-ink/85 transition-colors hover:text-ink"
       >
         Scroll to explore
         <ChevronDown className="scroll-cue h-5 w-5" />
