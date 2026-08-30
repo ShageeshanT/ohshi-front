@@ -10,6 +10,7 @@ import { ErrorLine } from "../../components/auth/AuthBits";
 import { Button, Field, Input } from "../../components/ui";
 import { useAuth, type Me } from "../../App";
 import { friendly, post } from "../../lib/api";
+import { buildMismatch } from "../../lib/clerk";
 import { useNavigate } from "react-router-dom";
 
 export function PasswordLoginForm(props: { initialError?: string | null }) {
@@ -30,7 +31,7 @@ export function PasswordLoginForm(props: { initialError?: string | null }) {
         setMe(me);
         navigate("/app", { replace: true });
       })
-      .catch((err) => setError(friendly(err)))
+      .catch((err) => setError(buildMismatch(err) ?? friendly(err)))
       .finally(() => setBusy(false));
   };
 
