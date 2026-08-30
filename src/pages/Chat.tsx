@@ -347,7 +347,7 @@ export default function Chat() {
           </p>
         )}
         <div className="pointer-events-auto ml-auto">
-          <AccountChip models={models} />
+          <AccountsBar models={models} onAccountChange={() => void loadModels(true)} />
         </div>
       </div>
 
@@ -356,12 +356,8 @@ export default function Chat() {
           {/* Brand sits in the upper third; the composer is pinned to the bottom
               exactly where it lives once a conversation starts. */}
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="rise-in hero-bloom mx-auto flex w-full max-w-3xl flex-col items-center px-4 pt-[16vh] md:pt-[20vh]">
+            <div className="rise-in mx-auto flex w-full max-w-3xl flex-col items-center px-4 pt-[16vh] md:pt-[20vh]">
               <BrandHero />
-              <p className="mt-6 text-center text-[15px] text-ink-dim">
-                Gemini, Claude and GPT-OSS, running on <span className="font-semibold text-ink">your own</span> Google
-                account.
-              </p>
               {models && !models.connected && (
                 <div className="mt-8 w-full max-w-xl">
                   <Notice tone="warn">
@@ -386,9 +382,7 @@ export default function Chat() {
           <div className="px-4 pb-4 pt-2">
             <div className="mx-auto w-full max-w-3xl">
               {composer}
-              <p className="mt-2 text-center text-[11px] text-ink-dim">
-                Ohshi can make mistakes. Replies run on {models?.email ?? "your Google account"}.
-              </p>
+              <p className="mt-2 text-center text-[11px] text-ink-dim">Ohshi can make mistakes.</p>
             </div>
           </div>
         </>
@@ -449,9 +443,7 @@ export default function Chat() {
           <div className="px-4 pb-4 pt-2">
             <div className="mx-auto w-full max-w-3xl">
               {composer}
-              <p className="mt-2 text-center text-[11px] text-ink-dim">
-                Ohshi can make mistakes. Replies run on {models?.email ?? "your Google account"}.
-              </p>
+              <p className="mt-2 text-center text-[11px] text-ink-dim">Ohshi can make mistakes.</p>
             </div>
           </div>
         </>
@@ -642,8 +634,68 @@ function AssistantMessage(props: {
   );
 }
 
-function AccountChip(props: { models: ChatModelsPayload | null }) {
+interface AccountRow {
+  id: string;
+  email: string;
+  isDefault: boolean;
+  status: "active" | "needs_reconnect" | "revoked";
+}
+
+/** Compact "accounts" pill: no email on the bar itself — click it to see and
+ *  switch between connected Google accounts. */
+function AccountsBar(props: { models: ChatModelsPayload | null; onAccountChange?: () => void }) {
   const m = props.models;
+  const [open, setOpen] = useState(false);
+  const [accounts, setAccounts] = useState<AccountRow[] | null>(null);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey as unknown as EventListener);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey as unknown as EventListener);
+    };
+  }, [open]);
+
+  const load = useCallback(() => {
+    get<{ connections: AccountRow[] }>("/api/google/connections")
+      .then((d) => setAccounts(d.connections))
+      .catch((e) => setError(friendly(e)));
+  }, []);
+
+  const toggle = () => {
+    setOpen((v) => {
+      if (!v) {
+        setError(null);
+        load();
+      }
+      return !v;
+    });
+  };
+
+  const makeDefault = (row: AccountRow) => {
+    if (row.isDefault || switchingId) return;
+    setSwitchingId(row.id);
+    setError(null);
+    post(`/api/google/connections/${row.id}/default`)
+      .then(() => {
+        load();
+        props.onAccountChange?.();
+      })
+      .catch((e) => setError(friendly(e)))
+      .finally(() => setSwitchingId(null));
+  };
+
   if (!m) return null;
   if (!m.connected) {
     return (
@@ -655,14 +707,71 @@ function AccountChip(props: { models: ChatModelsPayload | null }) {
       </Link>
     );
   }
+
   return (
-    <Link
-      to="/app/accounts"
-      className="inline-flex items-center gap-2 rounded-full border border-edge bg-panel-2 px-3.5 py-1.5 text-sm font-medium text-ink-dim hover:text-ink"
-      title="Google accounts & remaining usage"
-    >
-      <span className={`h-2 w-2 rounded-full ${m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
-      <span className="max-w-[220px] truncate">{m.email}</span>
-    </Link>
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={toggle}
+        className="inline-flex items-center gap-2 rounded-full border border-edge bg-panel-2 px-3 py-1.5 text-sm font-medium text-ink-dim hover:text-ink"
+        title="Google accounts"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className={`h-2 w-2 rounded-full ${m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
+        <Plug className="h-4 w-4" />
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div
+          className="pop-in absolute right-0 top-full z-30 mt-2 w-[21rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-edge bg-panel shadow-2xl"
+          role="listbox"
+        >
+          <p className="border-b border-edge px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim">
+            Google accounts
+          </p>
+          <div className="max-h-72 overflow-y-auto p-1.5">
+            {accounts === null ? (
+              <div className="flex justify-center py-6 text-ink-dim">
+                <Spinner size={16} />
+              </div>
+            ) : (
+              accounts.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  disabled={row.isDefault || switchingId !== null}
+                  onClick={() => makeDefault(row)}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] ${
+                    row.isDefault ? "bg-accent-soft" : "hover:bg-ink/[0.04] disabled:opacity-60"
+                  }`}
+                >
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      row.status === "active" ? "bg-ok" : row.status === "needs_reconnect" ? "bg-warn" : "bg-danger"
+                    }`}
+                  />
+                  <span className="min-w-0 flex-1 truncate font-medium text-ink">{row.email}</span>
+                  {switchingId === row.id ? (
+                    <Spinner size={13} />
+                  ) : row.isDefault ? (
+                    <span className="shrink-0 text-[11px] font-semibold text-accent">Default</span>
+                  ) : null}
+                </button>
+              ))
+            )}
+          </div>
+          {error && <p className="border-t border-edge px-3.5 py-2 text-[11px] text-danger">{error}</p>}
+          <Link
+            to="/app/accounts"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 border-t border-edge px-3.5 py-2.5 text-[13px] font-medium text-ink-dim hover:text-ink"
+          >
+            <Plug className="h-3.5 w-3.5" /> Manage accounts
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }

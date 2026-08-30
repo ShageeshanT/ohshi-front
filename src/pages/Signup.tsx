@@ -37,7 +37,7 @@ export default function Signup() {
 
   return (
     <div className="relative min-h-screen">
-      <TilesBackdrop watermark={false} />
+      <TilesBackdrop />
       <MarketingNav minimal />
       <main className="relative z-10 flex min-h-screen items-center justify-center px-4 pb-16 pt-28">
         <form onSubmit={submit} className="glass rise-in w-full max-w-md space-y-5 p-7 sm:p-8">
