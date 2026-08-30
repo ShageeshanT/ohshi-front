@@ -16,11 +16,13 @@ import { useNavigate } from "react-router-dom";
 import { CodeField, ErrorLine, OrRule, SocialButton } from "../../components/auth/AuthBits";
 import { Button, Field, Input } from "../../components/ui";
 import { AFTER_AUTH_PATH, SOCIAL_PROVIDERS, SSO_CALLBACK_PATH, clerkMessage } from "../../lib/clerk";
+import { useClerkReady } from "./useClerkReady";
 
 type Step = "credentials" | "code";
 
 export function ClerkLoginForm(props: { initialError?: string | null }) {
   const { signIn, fetchStatus } = useSignIn();
+  const { ready, failed } = useClerkReady();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>("credentials");
@@ -142,6 +144,11 @@ export function ClerkLoginForm(props: { initialError?: string | null }) {
 
   return (
     <div className="auth-stack">
+      {failed && (
+        <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
+          Sign-in is temporarily unavailable. Please try again in a few minutes.
+        </p>
+      )}
       <div className="grid gap-2">
         {SOCIAL_PROVIDERS.map((p) => (
           <SocialButton
@@ -149,7 +156,7 @@ export function ClerkLoginForm(props: { initialError?: string | null }) {
             strategy={p.strategy}
             label={`Continue with ${p.label}`}
             onClick={() => void social(p.strategy)}
-            disabled={working}
+            disabled={working || !ready}
           />
         ))}
       </div>
@@ -185,7 +192,7 @@ export function ClerkLoginForm(props: { initialError?: string | null }) {
           type="submit"
           busy={working}
           className="w-full"
-          disabled={!email.trim() || (usePassword && !password)}
+          disabled={!email.trim() || (usePassword && !password) || !ready}
         >
           {usePassword ? "Sign In" : "Email Me a Code"}
         </Button>

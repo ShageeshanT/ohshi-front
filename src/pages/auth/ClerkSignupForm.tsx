@@ -17,11 +17,13 @@ import { CodeField, ErrorLine, OrRule, SocialButton, TermsCheckbox } from "../..
 import { Button, Field, Input } from "../../components/ui";
 import { AFTER_AUTH_PATH, SOCIAL_PROVIDERS, SSO_CALLBACK_PATH, clerkMessage } from "../../lib/clerk";
 import { useTheme } from "../../lib/theme";
+import { useClerkReady } from "./useClerkReady";
 
 type Step = "details" | "code";
 
 export function ClerkSignupForm(props: { registrationOpen: boolean }) {
   const { signUp, fetchStatus } = useSignUp();
+  const { ready, failed } = useClerkReady();
   const { theme } = useTheme();
   const navigate = useNavigate();
 
@@ -35,7 +37,12 @@ export function ClerkSignupForm(props: { registrationOpen: boolean }) {
 
   const working = busy || fetchStatus === "fetching";
   const canSubmit =
-    email.trim().length > 0 && password.length >= 8 && accepted && !working && props.registrationOpen;
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    accepted &&
+    !working &&
+    ready &&
+    props.registrationOpen;
 
   const finish = async () => {
     const { error: finalizeError } = await signUp.finalize();
@@ -134,6 +141,11 @@ export function ClerkSignupForm(props: { registrationOpen: boolean }) {
 
   return (
     <div className="auth-stack">
+      {failed && (
+        <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
+          Sign-in is temporarily unavailable. Please try again in a few minutes.
+        </p>
+      )}
       {!props.registrationOpen && (
         <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
           Sign-ups are closed right now. If you already have an account you can{" "}
@@ -151,7 +163,7 @@ export function ClerkSignupForm(props: { registrationOpen: boolean }) {
             strategy={p.strategy}
             label={`Continue with ${p.label}`}
             onClick={() => void social(p.strategy)}
-            disabled={working || !props.registrationOpen}
+            disabled={working || !props.registrationOpen || !ready}
           />
         ))}
       </div>

@@ -18,6 +18,24 @@ const KEY = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? "").trim();
 export const CLERK_PUBLISHABLE_KEY = KEY;
 export const CLERK_ENABLED = KEY.length > 0;
 
+/**
+ * The Frontend API the key points at — Clerk base64-encodes the host inside
+ * the publishable key with a `$` terminator. Only used to name the host in a
+ * diagnostic, so a failure to decode is not worth throwing over.
+ */
+export function clerkFrontendApi(): string {
+  for (const prefix of ["pk_test_", "pk_live_"]) {
+    if (KEY.startsWith(prefix)) {
+      try {
+        return `https://${atob(KEY.slice(prefix.length)).replace(/\$$/, "")}`;
+      } catch {
+        /* fall through */
+      }
+    }
+  }
+  return "(the Frontend API in the publishable key)";
+}
+
 /** Where Clerk sends the browser back to once a social sign-in completes. */
 export const SSO_CALLBACK_PATH = "/sso-callback";
 export const AFTER_AUTH_PATH = "/app";

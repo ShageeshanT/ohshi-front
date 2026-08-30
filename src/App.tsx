@@ -13,7 +13,8 @@ import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useP
 import { AuthenticateWithRedirectCallback, useAuth as useClerkAuth } from "@clerk/react";
 import { Menu, SquarePen } from "lucide-react";
 import { get, onAuthRequired, post, setTokenSource } from "./lib/api";
-import { AFTER_AUTH_PATH, CLERK_ENABLED, SSO_CALLBACK_PATH } from "./lib/clerk";
+import { AFTER_AUTH_PATH, CLERK_ENABLED, SSO_CALLBACK_PATH, clerkFrontendApi } from "./lib/clerk";
+import { useClerkReady } from "./pages/auth/useClerkReady";
 import type { ChatSummary } from "./lib/chat";
 import { Wordmark } from "./components/brand";
 import { TilesBackdrop } from "./components/marketing/Backdrop";
@@ -183,10 +184,26 @@ function SessionAuthGate() {
  */
 function ClerkAuthGate() {
   const { isLoaded, isSignedIn, getToken, signOut: clerkSignOut } = useClerkAuth();
+  const { failed: clerkFailed } = useClerkReady();
   const [me, setMeState] = useState<Me | null | undefined>(undefined);
   const navigate = useNavigate();
 
   const setMe = useCallback((value: Me | null) => setMeState(value), []);
+
+  // Clerk never arriving must not strand anyone on a spinner. Give up, treat
+  // the visitor as signed out so the route guards resolve (the landing page
+  // was never waiting; /app now redirects to /login, whose form explains),
+  // and put the real cause in the console for whoever deployed.
+  useEffect(() => {
+    if (!clerkFailed) return;
+    setMe(null);
+    console.error(
+      `Clerk did not load from ${clerkFrontendApi()}. Sign-in is unavailable until it does. ` +
+        "Usually the CNAME for that host has not reached this resolver yet, or certificates " +
+        "are not deployed in the Clerk dashboard. Check: curl -sI " +
+        `${clerkFrontendApi()}/.well-known/jwks.json  (expect 200). See backend/docs/CLERK.md.`,
+    );
+  }, [clerkFailed, setMe]);
 
   // Every request asks for a token; Clerk hands back a cached one until it is
   // close to expiry, so this is not a round trip per call.
@@ -238,16 +255,30 @@ function ClerkAuthGate() {
     }
   }, [clerkSignOut, navigate, setMe]);
 
-  if (!isLoaded || me === undefined) return <PageFallback />;
+  // Deliberately no early spinner here. Public pages render at once and only
+  // /app waits (inside AuthedRoutes) for `me` to be known — a marketing page
+  // must never depend on an auth vendor's script arriving.
+  // `me` stays undefined until Clerk has loaded and /api/auth/me answered,
+  // or until the watchdog above decides Clerk is not coming.
   return <AuthedRoutes me={me} setMe={setMe} signOut={signOut} />;
 }
 
-function AuthedRoutes(props: { me: Me | null; setMe: (me: Me | null) => void; signOut: () => Promise<void> }) {
+/**
+ * `me` is three-valued here: a user, null for signed out, undefined while that
+ * is still unknown. Only /app has to wait for the answer; everything public
+ * renders immediately and treats "unknown" as signed out, so the worst case
+ * for a signed-in visitor is a nav that says "Sign In" for a moment.
+ */
+function AuthedRoutes(props: {
+  me: Me | null | undefined;
+  setMe: (me: Me | null) => void;
+  signOut: () => Promise<void>;
+}) {
   const { me, setMe, signOut } = props;
   const lazyPage = (node: ReactNode) => <Suspense fallback={<PageFallback />}>{node}</Suspense>;
 
   return (
-    <AuthContext.Provider value={{ me, setMe, signOut }}>
+    <AuthContext.Provider value={{ me: me ?? null, setMe, signOut }}>
       <Routes>
         <Route path="/" element={lazyPage(<Landing />)} />
         <Route path="/terms" element={lazyPage(<Terms />)} />
@@ -280,7 +311,9 @@ function AuthedRoutes(props: { me: Me | null; setMe: (me: Me | null) => void; si
         <Route
           path="/app/*"
           element={
-            me ? (
+            me === undefined ? (
+              <PageFallback />
+            ) : me ? (
               <ChatListProvider>
                 <Shell>
                   <Routes>
