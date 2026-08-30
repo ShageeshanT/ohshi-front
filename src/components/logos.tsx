@@ -70,6 +70,26 @@ export function GoogleLogo({ className }: LogoProps) {
   );
 }
 
+/** xAI's mark — a slanted X whose leading stroke is cut short. Two rounded
+ *  bars and a stub, so it still reads at 20px. */
+export function XaiLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.7}
+      strokeLinecap="round"
+      className={className ?? "h-5 w-5"}
+      aria-hidden="true"
+    >
+      <path d="M4.6 4.6 L19.4 19.4" />
+      <path d="M19.4 4.6 L13.1 10.9" />
+      <path d="M9.2 14.8 L4.6 19.4" />
+    </svg>
+  );
+}
+
 /** Fallback mark — a circuit node: hub with three linked nodes. */
 export function ModelFallbackLogo({ className }: LogoProps) {
   return (
@@ -92,5 +112,6 @@ export function vendorLogo(vendor: string) {
   if (vendor === "anthropic") return ClaudeLogo;
   if (vendor === "openai") return OpenAILogo;
   if (vendor === "google") return GeminiLogo;
+  if (vendor === "xai") return XaiLogo;
   return ModelFallbackLogo;
 }

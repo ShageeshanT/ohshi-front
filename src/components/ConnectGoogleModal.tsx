@@ -50,7 +50,7 @@ export default function ConnectGoogleModal(props: {
         setStart(d);
         window.open(d.authorizeUrl, "_blank", "noopener");
       })
-      .catch((e) => setNote(friendly(e, "Couldn't start the sign-in — please try again.")))
+      .catch((e) => setNote(friendly(e, "Couldn't start the sign in. Please try again.")))
       .finally(() => setStarting(false));
   };
 
@@ -65,10 +65,10 @@ export default function ConnectGoogleModal(props: {
           reset();
           props.onDone(d.connection.email);
         } else {
-          setNote(d.error || "That code didn't work — copy it again and retry.");
+          setNote(d.error || "That code didn't work. Copy it again and retry.");
         }
       })
-      .catch((e) => setNote(friendly(e, "That code didn't work — copy it again and retry.")))
+      .catch((e) => setNote(friendly(e, "That code didn't work. Copy it again and retry.")))
       .finally(() => setExchanging(false));
   };
 
@@ -84,7 +84,7 @@ export default function ConnectGoogleModal(props: {
       <div className="space-y-4">
         <p className="text-sm text-ink-dim">
           Sign in with the Google account whose plan you want to use (Google AI Pro / Ultra
-          unlocks the full model line-up). Google shows a code at the end — paste it below and
+          unlocks the full model list). Google shows a code at the end. Paste it below and
           your agents can use Gemini, Claude and GPT-OSS on that account.
         </p>
 
@@ -95,7 +95,7 @@ export default function ConnectGoogleModal(props: {
         ) : (
           <div className="space-y-3">
             <div className="rounded-xl bg-panel-2 px-3.5 py-3 text-xs text-ink-dim">
-              A Google sign-in tab was opened.{" "}
+              A Google sign in tab was opened.{" "}
               <button
                 type="button"
                 className="font-semibold text-accent underline-offset-2 hover:underline"
@@ -107,7 +107,7 @@ export default function ConnectGoogleModal(props: {
             </div>
             <Field
               label="Your code"
-              hint="After signing in, Google shows a code (or lands on a page whose address holds it) — paste either here."
+              hint="After signing in, Google shows a code, or lands on a page whose address holds it. Paste either here."
             >
               <Input
                 value={code}

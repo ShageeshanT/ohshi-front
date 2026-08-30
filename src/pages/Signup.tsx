@@ -1,0 +1,41 @@
+/**
+ * Create an account. As with the sign-in page, the shell is shared and only
+ * the form inside depends on which engine holds the credential.
+ */
+
+import { Link } from "react-router-dom";
+import { useAuth } from "../App";
+import { AuthShell } from "../components/auth/AuthShell";
+import { CLERK_ENABLED } from "../lib/clerk";
+import { ClerkSignupForm } from "./auth/ClerkSignupForm";
+import { PasswordSignupForm } from "./auth/PasswordSignupForm";
+
+export default function Signup() {
+  const { me } = useAuth();
+  const registrationOpen = me?.config.allowRegistration ?? true;
+
+  return (
+    <AuthShell
+      page="signup"
+      caption="Start with the plans you have."
+      captionSub="Connect an account and every model on it is yours, from chat and from the API."
+      eyebrow="Get Started"
+      title="Create Your Account"
+      subtitle="Connect a provider account next to use its models."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link to="/login" className="font-semibold text-accent hover:underline">
+            Sign In
+          </Link>
+        </>
+      }
+    >
+      {CLERK_ENABLED ? (
+        <ClerkSignupForm registrationOpen={registrationOpen} />
+      ) : (
+        <PasswordSignupForm registrationOpen={registrationOpen} />
+      )}
+    </AuthShell>
+  );
+}

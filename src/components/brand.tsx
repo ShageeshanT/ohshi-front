@@ -1,14 +1,25 @@
-/** The Ohshi brand: the dripping mark and the grunge wordmark. */
+/** The Ohshi brand, theme-aware. Dark-ink art on the light theme, chrome art
+ *  on the dark theme. The lock-up (mark + OHSHI) is the "wordmark". */
 
-import markUrl from "../assets/ohshi-mark.webp";
-import wordmarkUrl from "../assets/ohshi-wordmark.webp";
+import markOnDark from "../assets/mark-on-dark.webp";
+import markOnLight from "../assets/mark-on-light.webp";
+import wordmarkOnDark from "../assets/wordmark-on-dark.webp";
+import wordmarkOnLight from "../assets/wordmark-on-light.webp";
+import { useTheme } from "../lib/theme";
 
-/** The mark on its own. Height-driven — the art is taller than it is wide, so
- *  never pin both dimensions or it distorts. */
+export function useBrandArt() {
+  const { theme } = useTheme();
+  return theme === "dark"
+    ? { mark: markOnDark, wordmark: wordmarkOnDark }
+    : { mark: markOnLight, wordmark: wordmarkOnLight };
+}
+
+/** The compact spire mark. Height-driven — the art is taller than wide. */
 export function BrandMark(props: { className?: string; glow?: boolean }) {
+  const { mark } = useBrandArt();
   return (
     <img
-      src={markUrl}
+      src={mark}
       alt=""
       aria-hidden
       draggable={false}
@@ -17,34 +28,29 @@ export function BrandMark(props: { className?: string; glow?: boolean }) {
   );
 }
 
-/** The "OHSHI" wordmark. */
-export function Wordmark(props: { className?: string }) {
+/** The full lock-up: mark + OHSHI. */
+export function Wordmark(props: { className?: string; glow?: boolean }) {
+  const { wordmark } = useBrandArt();
   return (
     <img
-      src={wordmarkUrl}
+      src={wordmark}
       alt="Ohshi"
       draggable={false}
-      className={`w-auto select-none ${props.className ?? "h-6"}`}
+      className={`w-auto select-none ${props.glow ? "brand-glow" : ""} ${props.className ?? "h-8"}`}
     />
   );
 }
 
-/** Mark + wordmark, side by side (login, mobile header). */
-export function Brand(props: { dark?: boolean; className?: string }) {
-  return (
-    <div className={`flex items-center gap-2.5 ${props.className ?? ""}`}>
-      <BrandMark className="h-9" />
-      <Wordmark className="h-6" />
-    </div>
-  );
+/** Alias kept for older call sites. */
+export function Brand(props: { className?: string }) {
+  return <Wordmark className={props.className ?? "h-9"} />;
 }
 
-/** The big landing lock-up: a glowing mark over the wordmark. */
+/** The big landing lock-up for the chat's empty state. */
 export function BrandHero() {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <BrandMark className="brand-float h-20 md:h-24" glow />
-      <Wordmark className="h-11 md:h-14" />
+    <div className="flex flex-col items-center">
+      <Wordmark className="brand-float h-16 md:h-24" />
     </div>
   );
 }

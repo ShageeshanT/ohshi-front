@@ -1,49 +1,91 @@
 @import "tailwindcss";
+@import "lenis/dist/lenis.css";
 
-/* Ohshi design tokens — dark charcoal canvas with a honeycomb texture, one
-   lemon accent, cool near-black capsules. Colours sampled from the reference
-   portal: lemon #F1FF5C, canvas #343434, field #434343, capsule #22272D.
-   Type: Plus Jakarta Sans, with Instrument Serif for hero flourishes. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ── tokens ──────────────────────────────────────────────────────────────────
+   Light: porcelain surfaces, ink text, royal-blue accent (sampled from the
+   brand mockup: page #F7F7F9, nav #FCFCFD, ink #161B25, blue #2E6BD9).
+   Dark: near-black surfaces, ice-blue accent. Every component uses tokens only,
+   so the theme flips by swapping the variables on <html data-theme>. */
 @theme {
-  --color-surface: #343434;
-  --color-panel: #3b3b3b;
-  --color-panel-2: #434343;
-  --color-edge: #4d4d4d;
-  --color-ink: #f2f2f2;
-  --color-ink-dim: #a3a3a3;
-  --color-accent: #f1ff5c;
-  --color-accent-ink: #22272d; /* text/icons sitting ON the accent */
-  --color-accent-soft: #4a5220; /* muted lemon for soft chips */
-  --color-ok: #b7e26a;
-  --color-ok-soft: #3a441f;
-  --color-warn: #f4c04f;
-  --color-warn-soft: #4a3a17;
-  --color-danger: #f79a9a;
-  --color-danger-soft: #4d2a2a;
-  --color-violet: #c4b5fd;
-  --color-violet-soft: #383053;
-  --color-night: #22272d;
-  --color-bubble-me: #4a4a4a; /* your message */
-  --color-bubble-ai: #2a2f36; /* the reply */
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --color-surface: #f7f7f9;
+  --color-panel: #ffffff;
+  --color-panel-2: #f1f2f5;
+  --color-edge: #e4e6ec;
+  --color-ink: #161b25;
+  --color-ink-dim: #5f6675;
+  --color-accent: #1d4ed8;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: #dbe6ff;
+  --color-glow: #2b82db;
+  --color-ok: #15803d;
+  --color-ok-soft: #dcfce7;
+  --color-warn: #b45309;
+  --color-warn-soft: #fef3c7;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee2e2;
+  --color-violet: #6d28d9;
+  --color-violet-soft: #ede9fe;
+  --color-night: #0b1a3d;
+  --color-rail: #ffffff;
+  --color-bubble-me: #e6edfb;
+  --color-bubble-ai: #ffffff;
+  --color-code: #0f1420;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-app: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* Display face for the marketing pages, same as the CAGS front end: a high
+     contrast serif reserved for headlines. Body copy stays on Inter. */
+  --font-display: "Instrument Serif", "Playfair Display", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-html {
+[data-theme="dark"] {
+  --color-surface: #0a0c10;
+  --color-panel: #13161c;
+  --color-panel-2: #1a1e26;
+  --color-edge: #2a3040;
+  --color-ink: #eef1f6;
+  --color-ink-dim: #98a2b3;
+  --color-accent: #5aa9ff;
+  --color-accent-ink: #061733;
+  --color-accent-soft: #15305e;
+  --color-glow: #3b8fff;
+  --color-ok: #7ee2a0;
+  --color-ok-soft: #12351f;
+  --color-warn: #f5c451;
+  --color-warn-soft: #3d2e0f;
+  --color-danger: #ff8b8b;
+  --color-danger-soft: #46201f;
+  --color-violet: #c4b5fd;
+  --color-violet-soft: #2b2450;
+  --color-night: #0b1a3d;
+  --color-rail: #0d1016;
+  --color-bubble-me: #1f2735;
+  --color-bubble-ai: #12161d;
+  --color-code: #0b0f17;
   color-scheme: dark;
-  scroll-behavior: smooth;
 }
 
+html {
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Everything below lives in the components layer, under Tailwind's utilities,
+   so a `hidden` or `p-6` on an element always wins over these classes. */
+@layer components {
 body {
   @apply bg-surface text-ink antialiased;
   min-width: 320px;
-  font-feature-settings: "cv11";
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
 }
 
 ::selection {
-  background: rgb(241 255 92 / 0.25);
-  color: #fff;
+  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
 button,
@@ -65,12 +107,11 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid rgb(241 255 92 / 0.6);
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 60%, transparent);
   outline-offset: 2px;
 }
 
-/* The composer already shows focus by lighting its whole pill, so the default
-   ring would draw a second hard rectangle inside it. */
+/* The composer already shows focus by lighting its whole pill. */
 .chat-pill textarea:focus,
 .chat-pill textarea:focus-visible {
   outline: none;
@@ -82,17 +123,130 @@ pre,
   font-family: var(--font-mono);
 }
 
-/* Brand art: a lemon halo, and a slow drift for the hero mark. */
+/* The signed-in app keeps the clean GreatAgent face (Plus Jakarta Sans). */
+.app-shell {
+  font-family: var(--font-app);
+}
+.app-display {
+  letter-spacing: -0.02em;
+}
+
+/* ── brand art ─────────────────────────────────────────────────────────────── */
 .brand-glow {
-  filter: drop-shadow(0 0 26px rgb(241 255 92 / 0.32)) drop-shadow(0 0 60px rgb(241 255 92 / 0.16));
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--color-glow) 40%, transparent))
+    drop-shadow(0 0 54px color-mix(in srgb, var(--color-glow) 18%, transparent));
 }
 @keyframes brand-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
-.brand-float { animation: brand-float 6s ease-in-out infinite; }
+.brand-float {
+  animation: brand-float 6s ease-in-out infinite;
+}
+.hero-art {
+  position: absolute;
+  inset: 0;
+  z-index: -20;
+  overflow: hidden;
+}
+/* The painting fills the hero at every window ratio; `cover` decides what to
+   crop and the plate swap in Landing.tsx decides which cut is fetched. */
+.hero-art img {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  user-select: none;
+}
 
-/* A soft lemon bloom behind the landing lock-up. */
+/* The scrim. Two layers: a bloom of page colour rolling in from the copy side
+   so the headline holds its contrast over the blossom and the lantern, and a
+   thin wash at the top and bottom so the pill and the section below meet the
+   painting rather than butt against it. Both are mixed from --color-surface,
+   so the same geometry reads as haze at dawn and as dusk after sunset.
+
+   The strengths are variables because the two themes need different amounts:
+   near white ink on a night painting barely needs a veil, while dark ink on a
+   morning one does. Light keeps the lightest wash the headline can still hold
+   over, so the torii and the lanterns stay legible as picture. */
+.hero-art::after {
+  --scrim-near: 62%;
+  --scrim-mid: 44%;
+  --scrim-far: 18%;
+  --scrim-edge: 5%;
+  --scrim-top: 24%;
+  --scrim-top-fade: 4%;
+  --scrim-bottom: 40%;
+
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      115% 118% at -6% 52%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-near), transparent) 0%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-mid), transparent) 26%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-far), transparent) 46%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-edge), transparent) 62%,
+      transparent 76%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) var(--scrim-top), transparent) 0%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-top-fade), transparent) 22%,
+      transparent 46%,
+      transparent 72%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-bottom), transparent) 100%
+    );
+}
+[data-theme="dark"] .hero-art::after {
+  --scrim-near: 90%;
+  --scrim-mid: 74%;
+  --scrim-far: 40%;
+  --scrim-edge: 12%;
+  --scrim-top: 45%;
+  --scrim-top-fade: 10%;
+  --scrim-bottom: 55%;
+}
+
+/* On a phone the copy sits over the whole width, so the bloom becomes a wash
+   from the top instead of from the left. */
+@media (max-width: 767px) {
+  .hero-art::after {
+    --scrim-near: 66%;
+    --scrim-mid: 48%;
+    --scrim-far: 37%;
+    --scrim-edge: 39%;
+    --scrim-top: 47%;
+    --scrim-bottom: 55%;
+
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) var(--scrim-near), transparent) 0%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-mid), transparent) 30%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-far), transparent) 50%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-edge), transparent) 66%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-top), transparent) 84%,
+      color-mix(in srgb, var(--color-surface) var(--scrim-bottom), transparent) 100%
+    );
+  }
+  [data-theme="dark"] .hero-art::after {
+    --scrim-near: 88%;
+    --scrim-mid: 72%;
+    --scrim-far: 52%;
+    --scrim-edge: 50%;
+    --scrim-top: 58%;
+    --scrim-bottom: 70%;
+  }
+}
+
 .hero-bloom {
   position: relative;
 }
@@ -103,62 +257,59 @@ pre,
   top: 0;
   width: min(620px, 90vw);
   aspect-ratio: 1;
-  translate: -50% -28%;
+  translate: -50% -30%;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(circle, rgb(241 255 92 / 0.10), rgb(241 255 92 / 0.03) 42%, transparent 68%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-glow) 16%, transparent),
+    color-mix(in srgb, var(--color-glow) 5%, transparent) 42%,
+    transparent 68%
+  );
 }
 
-.serif-accent {
-  font-family: var(--font-serif);
-  font-weight: 400;
-  font-style: italic;
+/* ── backdrops ─────────────────────────────────────────────────────────────── */
+/* Veil over the tile photograph so cards and text keep their contrast. */
+.tiles-veil {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-surface) 62%, transparent),
+    color-mix(in srgb, var(--color-surface) 42%, transparent)
+  );
 }
 
-/* ── honeycomb canvas ──────────────────────────────────────────────────────
-   A seamless hexagon tile, scaled up and faded toward the middle so the
-   pattern reads at the edges (like the reference) without fighting content. */
-.honeycomb {
-  position: relative;
-  background-color: var(--color-surface);
-  isolation: isolate;
-}
-.honeycomb::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.045'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  background-size: 84px 147px;
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, transparent 32%, transparent 68%, #000 100%);
-  mask-image: linear-gradient(90deg, #000 0%, transparent 32%, transparent 68%, #000 100%);
-}
-
-/* ── surfaces ────────────────────────────────────────────────────────────── */
+/* ── surfaces ──────────────────────────────────────────────────────────────── */
 .glass,
 .panel {
-  @apply rounded-3xl bg-panel;
-  border: 1px solid rgb(255 255 255 / 0.06);
+  @apply rounded-3xl;
+  background: color-mix(in srgb, var(--color-panel) 84%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 7%, transparent);
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.25),
-    0 18px 40px -30px rgb(0 0 0 / 0.7);
+    inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 18px 40px -30px rgb(0 0 0 / 0.35);
   transition:
     box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
     transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 240ms ease;
 }
+[data-theme="dark"] .glass,
+[data-theme="dark"] .panel {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 1px 2px rgb(0 0 0 / 0.4),
+    0 18px 40px -30px rgb(0 0 0 / 0.8);
+}
 
 .lift {
-  /* z-index (not just position) — makes .lift a real stacking context so the
-     negative-z hit-area anchor below stays scoped to the card. */
   position: relative;
   z-index: 0;
 }
 @media (hover: hover) and (pointer: fine) {
-  /* The card lifts 3px on hover, which slides its bottom edge out from under a
-     cursor resting there — hover is lost, the card drops, hover re-fires, and
-     it vibrates forever. This anchor keeps the pre-lift edge hoverable. */
+  /* Hit-area anchor: the card lifts 3px on hover, which would slide its bottom
+     edge out from under a resting cursor and make it vibrate. */
   .lift::after {
     content: "";
     position: absolute;
@@ -167,40 +318,529 @@ pre,
   }
   .lift:hover {
     transform: translate3d(0, -3px, 0);
-    border-color: rgb(255 255 255 / 0.12);
-    box-shadow: 0 24px 46px -28px rgb(0 0 0 / 0.85);
+    border-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
+    box-shadow: 0 24px 46px -28px rgb(0 0 0 / 0.45);
   }
 }
 
-/* ── motion ───────────────────────────────────────────────────────────────── */
+/* ── marketing ─────────────────────────────────────────────────────────────── */
 
-/* fill-mode BACKWARDS (not both): after the animation the element must return
-   to transform:none — a lingering transform turns it into a containing block,
-   which re-anchors every fixed-position descendant (modals!) to it. */
-@keyframes rise-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* The pearly navigation pill: translucent white, heavy blur, a bright inset
+   top edge and a faint sheen — like a frosted glass tile. */
+.mk-nav {
+  background: color-mix(in srgb, var(--color-panel) 78%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.85),
+    inset 0 -1px 0 rgb(255 255 255 / 0.25),
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 18px 44px -22px rgb(11 26 61 / 0.28);
+  transition: box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.rise-in { animation: rise-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-.rise-in > * { animation: rise-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.mk-nav-scrolled {
+  background: color-mix(in srgb, var(--color-panel) 86%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 -1px 0 rgb(255 255 255 / 0.3),
+    0 0 0 1px color-mix(in srgb, var(--color-glow) 14%, transparent),
+    0 0 40px -6px color-mix(in srgb, var(--color-glow) 28%, transparent),
+    0 22px 50px -18px rgb(11 26 61 / 0.35);
+}
+[data-theme="dark"] .mk-nav {
+  background: rgb(19 22 28 / 0.66);
+  border-color: rgb(255 255 255 / 0.1);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    inset 0 -1px 0 rgb(255 255 255 / 0.03),
+    0 1px 2px rgb(0 0 0 / 0.4),
+    0 18px 44px -22px rgb(0 0 0 / 0.7);
+}
+[data-theme="dark"] .mk-nav-scrolled {
+  background: rgb(19 22 28 / 0.78);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    0 0 0 1px color-mix(in srgb, var(--color-glow) 22%, transparent),
+    0 0 44px -6px color-mix(in srgb, var(--color-glow) 32%, transparent),
+    0 22px 50px -18px rgb(0 0 0 / 0.8);
+}
+.mk-nav-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.55) 0%,
+    rgb(255 255 255 / 0.12) 40%,
+    rgb(255 255 255 / 0) 100%
+  );
+  mix-blend-mode: overlay;
+}
+[data-theme="dark"] .mk-nav-sheen {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0.03) 45%, transparent 100%);
+  mix-blend-mode: normal;
+}
+.mk-link {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--color-ink) 80%, transparent);
+  transition:
+    color 200ms ease,
+    font-size 300ms ease;
+}
+.mk-link-sm {
+  font-size: 13px;
+}
+.mk-link:hover {
+  color: var(--color-ink);
+}
+.mk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--color-ink) 80%, transparent);
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+.mk-chip:hover {
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  color: var(--color-ink);
+}
+
+/* Buttons that match the mockup: a navy gradient primary, a porcelain ghost. */
+.btn-primary,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.95rem 1.8rem;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    transform 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 200ms ease,
+    filter 200ms ease;
+}
+.btn-primary:hover,
+.btn-ghost:hover {
+  transform: translateY(-1px);
+}
+.btn-primary:active,
+.btn-ghost:active {
+  transform: translateY(0) scale(0.98);
+}
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(180deg, #123a8f 0%, #0b2a6f 55%, #071d52 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    0 10px 24px -12px rgb(11 42 111 / 0.7);
+}
+.btn-primary:hover {
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    0 16px 30px -12px rgb(11 42 111 / 0.75);
+}
+[data-theme="dark"] .btn-primary {
+  background: linear-gradient(180deg, #3f95ff 0%, #2b7fe6 55%, #1f66c4 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    0 12px 28px -12px rgb(59 143 255 / 0.7);
+}
+.btn-ghost {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-panel) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+}
+.btn-ghost:hover {
+  background: var(--color-panel);
+  border-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
+}
+[data-theme="dark"] .btn-ghost {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+.btn-sm {
+  padding: 0.58rem 1.25rem;
+  font-size: 14px;
+  border-radius: 999px;
+}
+.btn-lg {
+  padding: 1.05rem 2.4rem;
+  font-size: 16px;
+  border-radius: 999px;
+}
+/* A phone cannot hold the lock-up, the call to action and the menu chip at
+   full size on one row — the pill used to spill past the viewport. */
+@media (max-width: 480px) {
+  .btn-sm {
+    padding: 0.6rem 1.05rem;
+    font-size: 14px;
+  }
+}
+
+/* No pill behind it: the dot and the words sit straight on the artwork, flush
+   with the headline's left edge. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-ink) 90%, transparent);
+}
+.eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-glow);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-glow) 18%, transparent);
+}
+
+/* ── hero layout ───────────────────────────────────────────────────────────
+   The hero has to hold the whole stack — badge, headline, lede, buttons, trust
+   row and the scroll cue — inside one screen. A 1920x1080 panel at the Windows
+   150% scale is a 1280x640 viewport, so every vertical measure here is driven
+   by vh as well as vw: `min(vw, vh)` on the type, vh clamps on the gaps. Sized
+   by width alone the headline overflowed a short window and pushed the cue and
+   the trust row below the fold. */
+/* With the scrim thinned out so the painting reads, the copy has to carry its
+   own contrast. A tight halo in the page colour does that locally — it looks
+   like the haze already in the picture — instead of another wash over the
+   whole frame. The buttons paint their own ground, so they opt out. */
+.hero-copy {
+  text-shadow:
+    0 1px 1px color-mix(in srgb, var(--color-surface) 62%, transparent),
+    0 0 14px color-mix(in srgb, var(--color-surface) 52%, transparent),
+    0 0 34px color-mix(in srgb, var(--color-surface) 34%, transparent);
+}
+.hero-copy .btn-primary,
+.hero-copy .btn-ghost {
+  text-shadow: none;
+}
+
+.hero-shell {
+  padding-top: clamp(6.75rem, 15vh, 11rem);
+  padding-bottom: clamp(4.25rem, 11vh, 7.5rem);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, min(5.4vw, 10vh), 5rem);
+  letter-spacing: -0.005em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.hero-lede {
+  font-size: clamp(15px, min(1.35vw, 2.5vh), 19px);
+  line-height: 1.55;
+  /* Darker than the ink-dim used elsewhere: this paragraph sits on a painting,
+     not on a flat panel. */
+  color: color-mix(in srgb, var(--color-ink) 76%, transparent);
+}
+
+/* The gaps down the hero stack. Named rather than utility classes because each
+   one has to breathe with the window height, not just its width. */
+.hero-gap {
+  margin-top: clamp(0.9rem, 2.6vh, 1.75rem);
+}
+.hero-gap-lg {
+  margin-top: clamp(1.15rem, 3.4vh, 2.25rem);
+}
+.hero-cue {
+  bottom: clamp(1.1rem, 3vh, 2rem);
+}
+@media (max-height: 720px) {
+  .btn-lg {
+    padding: 0.85rem 2rem;
+    font-size: 15px;
+  }
+}
+
+/* Section titles on the marketing pages. */
+.mk-h2 {
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 3.6vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.04;
+}
+
+/* A display size one step down from .mk-h2, for a heading inside a section. */
+.mk-h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 2.6vw, 2.25rem);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.06;
+}
+
+/* ── landing diagrams ──────────────────────────────────────────────────────
+   Wires between nodes (Diagrams.tsx): a faint base line and a dashed accent
+   stroke that drifts along it. Both are non-scaling strokes inside an SVG
+   stretched to its grid cell, so the dash pattern is in screen pixels. */
+.wire {
+  stroke: color-mix(in srgb, var(--color-ink) 16%, transparent);
+}
+.wire-flow {
+  stroke: var(--color-accent);
+  stroke-linecap: round;
+  stroke-dasharray: 3 11;
+  animation: wire-flow 1.5s linear infinite;
+}
+@keyframes wire-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+.dg-node {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  width: 100%;
+  border-radius: 1rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--color-panel);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.05);
+}
+[data-theme="dark"] .dg-node {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 1px 2px rgb(0 0 0 / 0.35);
+}
+/* The hub: the mark in a lit ring, with a slow pulse rolling off it. */
+.dg-hub {
+  position: relative;
+  width: 4.5rem;
+  height: 4.5rem;
+  background: color-mix(in srgb, var(--color-panel) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-glow) 40%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 0 0 6px color-mix(in srgb, var(--color-glow) 10%, transparent),
+    0 0 44px -6px color-mix(in srgb, var(--color-glow) 50%, transparent);
+}
+[data-theme="dark"] .dg-hub {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    0 0 0 6px color-mix(in srgb, var(--color-glow) 14%, transparent),
+    0 0 44px -6px color-mix(in srgb, var(--color-glow) 60%, transparent);
+}
+.dg-hub::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, var(--color-glow) 45%, transparent);
+  animation: hub-pulse 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  pointer-events: none;
+}
+@keyframes hub-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+/* The live dot's heartbeat. Colour comes from the text colour it sits in. */
+.status-pulse {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+@keyframes status-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wire-flow,
+  .dg-hub::after,
+  .status-pulse {
+    animation: none;
+  }
+}
+
+/* ── auth ──────────────────────────────────────────────────────────────────
+   Sign in and sign up are locked to one screen: the page never scrolls and
+   every field stays inside the card. Like the hero, each measure is clamped
+   against the window height so the card still fits a 640px tall viewport. */
+.auth-shell {
+  height: 100svh;
+  overflow: hidden;
+}
+.auth-main {
+  padding-top: clamp(3.25rem, 7vh, 4.5rem);
+  padding-bottom: clamp(0.75rem, 3vh, 3.5rem);
+}
+/* The Back to Site chip is pinned top left. Only when the artwork takes the
+   left half does it sit over the art, and only then can the form column stop
+   leaving room for it. */
+@media (min-width: 1024px) {
+  .auth-main-free {
+    padding-top: clamp(0.75rem, 3vh, 3.5rem);
+  }
+}
+.auth-card {
+  padding: clamp(1.1rem, 2.7vh, 2.25rem);
+}
+.auth-title {
+  font-size: clamp(1.35rem, 3.5vh, 2rem);
+  line-height: 1.06;
+}
+.auth-gap {
+  margin-top: clamp(0.7rem, 2.2vh, 1.5rem);
+}
+.auth-gap-sm {
+  margin-top: clamp(0.3rem, 0.9vh, 0.55rem);
+}
+.auth-stack > * + * {
+  margin-top: clamp(0.55rem, 1.8vh, 1.25rem);
+}
+/* The inputs give up a little height too, so three fields plus the terms box
+   still land above the fold. */
+.auth-stack input:not([type="checkbox"]) {
+  padding-top: clamp(0.38rem, 1.1vh, 0.625rem);
+  padding-bottom: clamp(0.38rem, 1.1vh, 0.625rem);
+}
+
+/* Reveal on scroll — a soft rise once the element enters the viewport. */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes cue-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+}
+.scroll-cue {
+  animation: cue-bounce 1.8s ease-in-out infinite;
+}
+
+/* Legal prose. */
+.legal-prose h2 {
+  margin: 2.2rem 0 0.7rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.legal-prose h3 {
+  margin: 1.4rem 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.legal-prose p,
+.legal-prose li {
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: color-mix(in srgb, var(--color-ink) 82%, transparent);
+}
+.legal-prose p {
+  margin: 0.7rem 0;
+}
+.legal-prose ul {
+  margin: 0.6rem 0 0.9rem;
+  padding-left: 1.35rem;
+  list-style: disc;
+}
+.legal-prose li {
+  margin: 0.3rem 0;
+}
+.legal-prose li::marker {
+  color: var(--color-ink-dim);
+}
+.legal-prose a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.legal-prose strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* ── motion (shared) ──────────────────────────────────────────────────────── */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* fill-mode BACKWARDS so a settled transform never becomes a containing block
+   for fixed-position descendants (modals). */
+.rise-in {
+  animation: rise-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.rise-in > * {
+  animation: rise-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
 .rise-in > *:nth-child(2) { animation-delay: 60ms; }
 .rise-in > *:nth-child(3) { animation-delay: 120ms; }
 .rise-in > *:nth-child(4) { animation-delay: 180ms; }
 .rise-in > *:nth-child(5) { animation-delay: 240ms; }
-
-/* Routed pages animate at the route boundary — don't stack a second entrance
-   and child stagger on top of that transition. */
 .route-fade > .rise-in,
-.route-fade > .rise-in > * { animation: none; }
-
-@keyframes route-fade {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+.route-fade > .rise-in > * {
+  animation: none;
 }
-.route-fade { animation: route-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-
-/* No fractional scale() on text panels: a 0.97 → 1 scale re-rasterizes every
-   glyph, so letters visibly soften and snap on each open. */
+@keyframes route-fade {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.route-fade {
+  animation: route-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
 @keyframes modal-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -221,21 +861,11 @@ pre,
   to { opacity: 0; }
 }
 .backdrop-out { animation: backdrop-out 160ms ease-in forwards; }
-
-@keyframes drawer-in {
-  from { opacity: 0; transform: translate3d(-20px, 0, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-.drawer-in { animation: drawer-in 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-
-/* Popovers must not inherit the child stagger — filtering a list re-indexes
-   the rows and restarts delayed animations, so the menu jitters as you type. */
 @keyframes pop-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .pop-in { animation: pop-in 140ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-
 @keyframes pulse-ring {
   0% { opacity: 0.55; transform: scale(1); }
   75%, 100% { opacity: 0; transform: scale(2.5); }
@@ -252,7 +882,6 @@ pre,
   background: currentColor;
   animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
-
 @keyframes skeleton-shimmer {
   from { background-position: 120% 0; }
   to { background-position: -120% 0; }
@@ -260,9 +889,9 @@ pre,
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgb(255 255 255 / 0.05),
-    rgb(255 255 255 / 0.12),
-    rgb(255 255 255 / 0.05)
+    color-mix(in srgb, var(--color-ink) 6%, transparent),
+    color-mix(in srgb, var(--color-ink) 12%, transparent),
+    color-mix(in srgb, var(--color-ink) 6%, transparent)
   );
   background-size: 240% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
@@ -270,7 +899,6 @@ pre,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
   *,
   *::before,
   *::after {
@@ -278,47 +906,59 @@ pre,
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* ── scrollbars ────────────────────────────────────────────────────────────
-   scrollbar-gutter: stable is load-bearing. These are classic (space-taking)
-   scrollbars, so without a reserved gutter every content-height change that
-   crosses the container height adds/removes 8px of width — the column
-   re-lays out and every line re-wraps. Pages poll, so that flip fires
-   constantly and reads as the UI vibrating. */
+/* ── scrollbars ────────────────────────────────────────────────────────────── */
 #main-content,
 .gutter-stable {
   scrollbar-gutter: stable;
 }
-
 * {
   scrollbar-width: thin;
-  scrollbar-color: #5a5a5a transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 22%, transparent) transparent;
 }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #5a5a5a; border-radius: 8px; }
-*::-webkit-scrollbar-thumb:hover { background: #6e6e6e; }
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-ink) 34%, transparent);
+}
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* ── chat ─────────────────────────────────────────────────────────────────── */
-
 .chat-pill {
-  border: 1px solid rgb(255 255 255 / 0.09);
+  background: color-mix(in srgb, var(--color-panel) 88%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.3),
-    0 14px 34px -18px rgb(0 0 0 / 0.8);
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 14px 34px -18px rgb(0 0 0 / 0.4);
   transition:
     box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 240ms ease;
 }
 .chat-pill:focus-within {
-  border-color: rgb(241 255 92 / 0.45);
+  border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.35),
-    0 18px 44px -18px rgb(0 0 0 / 0.9);
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 0 0 4px color-mix(in srgb, var(--color-accent) 10%, transparent),
+    0 18px 44px -18px rgb(0 0 0 / 0.45);
+}
+[data-theme="dark"] .chat-pill {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 14px 34px -18px rgb(0 0 0 / 0.8);
 }
 
-/* Blinking caret at the end of a streaming reply. */
 .cursor-blink > .md > :last-child::after,
 .cursor-blink > .md:empty::after {
   content: "";
@@ -334,7 +974,6 @@ pre,
 @keyframes blink {
   to { visibility: hidden; }
 }
-
 .thinking-dots {
   display: inline-flex;
   gap: 4px;
@@ -354,13 +993,11 @@ pre,
   0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
   40% { transform: translateY(-4px); opacity: 1; }
 }
-
 .bar-fill {
   transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── markdown (assistant replies) ─────────────────────────────────────────── */
-
 .md {
   font-size: 15px;
   line-height: 1.75;
@@ -392,7 +1029,7 @@ pre,
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.md strong { font-weight: 700; color: #fff; }
+.md strong { font-weight: 700; }
 .md blockquote {
   margin: 0.8em 0;
   padding-left: 1em;
@@ -407,8 +1044,8 @@ pre,
 .md :not(pre) > code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: rgb(0 0 0 / 0.3);
-  border: 1px solid rgb(255 255 255 / 0.08);
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
   color: var(--color-accent);
   padding: 0.1em 0.4em;
   border-radius: 6px;
@@ -417,7 +1054,7 @@ pre,
   margin: 0;
   padding: 0.9rem 1rem;
   overflow-x: auto;
-  background: #1b1f24;
+  background: var(--color-code);
   color: #e6e8eb;
   font-size: 13px;
   line-height: 1.6;
@@ -435,15 +1072,15 @@ pre,
   margin: 0.9em 0;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.07);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
 }
 .md .codeblock-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.4rem 0.75rem 0.4rem 1rem;
-  background: #15181c;
-  color: #8b929c;
+  background: color-mix(in srgb, var(--color-code) 88%, white);
+  color: #a3aab6;
   font-size: 11px;
   font-family: var(--font-mono);
 }
@@ -453,14 +1090,16 @@ pre,
   gap: 0.35rem;
   padding: 0.25rem 0.5rem;
   border-radius: 999px;
-  color: #c9ced6;
-  font-family: var(--font-sans);
+  color: #d5dae3;
+  font-family: var(--font-app);
   font-weight: 600;
-  transition: background-color 200ms ease, color 200ms ease;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 .md .codeblock-bar button:hover {
-  background: rgb(255 255 255 / 0.1);
-  color: var(--color-accent);
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
 }
 .md table {
   display: block;
@@ -478,11 +1117,11 @@ pre,
   vertical-align: top;
 }
 .md th {
-  background: rgb(255 255 255 / 0.04);
+  background: color-mix(in srgb, var(--color-ink) 5%, transparent);
   font-weight: 600;
-  color: #fff;
 }
 .md img {
   max-width: 100%;
   border-radius: 14px;
+}
 }

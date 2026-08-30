@@ -1,5 +1,11 @@
 /**
- * API client for the dashboard. Cookie sessions (same origin), JSON in/out.
+ * API client for the dashboard. Same origin, JSON in/out.
+ *
+ * Two ways to prove who you are, decided at build time (see lib/clerk.ts):
+ * the cookie session the backend has always issued, or — when Clerk holds the
+ * credentials — a bearer token. The token source is injected by the provider
+ * in App.tsx rather than imported, so a build without Clerk never pulls the
+ * SDK in here.
  *
  * Every "/api" error is `{error: "message"}`; "/v1" errors are OpenAI-shaped
  * (`{error: {message, type, code}}`). Both are normalized into ApiError.
@@ -27,6 +33,30 @@ export function onAuthRequired(fn: AuthListener): () => void {
   };
 }
 
+type TokenSource = () => Promise<string | null>;
+let tokenSource: TokenSource | null = null;
+
+/**
+ * Hand the client a way to fetch the current bearer token. Called once by the
+ * Clerk bridge in App.tsx; with no Clerk, nothing calls it and every request
+ * goes out on the cookie alone.
+ */
+export function setTokenSource(fn: TokenSource | null): void {
+  tokenSource = fn;
+}
+
+async function authHeader(): Promise<Record<string, string>> {
+  if (!tokenSource) return {};
+  try {
+    const token = await tokenSource();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    // A token refresh can fail while offline — let the request 401 and take
+    // the normal signed-out path rather than throwing something else here.
+    return {};
+  }
+}
+
 interface RequestInitLite {
   method?: string;
   body?: unknown;
@@ -37,7 +67,10 @@ export async function api<T>(path: string, init: RequestInitLite = {}): Promise<
   const hasBody = init.body !== undefined;
   const resp = await fetch(path, {
     method: init.method ?? "GET",
-    headers: hasBody ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+      ...(await authHeader()),
+    },
     body: hasBody ? JSON.stringify(init.body) : undefined,
     credentials: "same-origin",
     signal: init.signal,
@@ -80,7 +113,11 @@ export const post = <T>(path: string, body?: unknown) =>
 export async function streamPost(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
   const resp = await fetch(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      ...(await authHeader()),
+    },
     body: JSON.stringify(body ?? {}),
     credentials: "same-origin",
     signal,
@@ -134,7 +171,7 @@ export async function readSSE(
 }
 
 /** Friendly error line for the UI. */
-export function friendly(e: unknown, fallback = "Something went wrong — please try again."): string {
+export function friendly(e: unknown, fallback = "Something went wrong. Please try again."): string {
   if (e instanceof ApiError) return e.message || fallback;
   if (e instanceof Error && e.name === "AbortError") return "";
   return fallback;

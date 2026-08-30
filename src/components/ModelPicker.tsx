@@ -94,7 +94,7 @@ export default function ModelPicker(props: {
         type="button"
         disabled={props.disabled}
         onClick={toggle}
-        className="flex max-w-[200px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium text-ink-dim transition-colors hover:bg-white/10 hover:text-ink disabled:opacity-50"
+        className="flex max-w-[200px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink disabled:opacity-50"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -106,7 +106,7 @@ export default function ModelPicker(props: {
 
       {open && (
         <div
-          className={`pop-in absolute z-30 flex w-[330px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-panel shadow-2xl ${
+          className={`pop-in absolute z-30 flex w-[330px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-edge bg-panel shadow-2xl ${
             placement.up ? "bottom-full mb-2" : "top-full mt-2"
           } ${
             // Mobile: the picker sits at the left of its row, so anchor left or
@@ -116,12 +116,12 @@ export default function ModelPicker(props: {
           style={{ maxHeight: placement.maxHeight }}
           role="listbox"
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/[0.07] px-3.5 py-2.5">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-edge px-3.5 py-2.5">
             <div className="min-w-0">
               <p className="truncate text-[11px] text-ink-dim">
                 {m?.connected
-                  ? `${m.email}${m.quotaAvailable && m.fetchedMs ? ` · quota ${timeAgo(m.fetchedMs)}` : ""}`
-                  : "Built-in catalog — connect Google for live quota"}
+                  ? `${m.email}${m.quotaAvailable && m.fetchedMs ? `, quota ${timeAgo(m.fetchedMs)}` : ""}`
+                  : "Fallback catalog. Connect Google for live quota"}
               </p>
               {m?.error && <p className="mt-0.5 text-[11px] text-warn">{m.error}</p>}
             </div>
@@ -129,7 +129,7 @@ export default function ModelPicker(props: {
               <button
                 type="button"
                 onClick={refresh}
-                className="shrink-0 rounded-full p-1.5 text-ink-dim transition-colors hover:bg-white/10 hover:text-ink"
+                className="shrink-0 rounded-full p-1.5 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
                 aria-label="Refresh models"
               >
                 {refreshing ? <Spinner size={13} /> : <RefreshCw className="h-3.5 w-3.5" />}
@@ -153,7 +153,7 @@ export default function ModelPicker(props: {
                     <button
                       type="button"
                       onClick={() => setShowOther((v) => !v)}
-                      className="mt-1 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim transition-colors hover:bg-white/[0.06] hover:text-ink"
+                      className="mt-1 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim transition-colors hover:bg-ink/[0.06] hover:text-ink"
                     >
                       {showOther || selectedInOther ? (
                         <ChevronDown className="h-3.5 w-3.5" />
@@ -185,7 +185,7 @@ function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: str
   const single = f.variants.length === 1;
 
   return (
-    <div className={`rounded-xl px-2.5 py-2 ${selectedHere ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"}`}>
+    <div className={`rounded-xl px-2.5 py-2 ${selectedHere ? "bg-ink/[0.06]" : "hover:bg-ink/[0.04]"}`}>
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
@@ -203,7 +203,7 @@ function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: str
           {f.remainingPercent === null
             ? ""
             : f.exhausted
-              ? `out${f.resetMs ? ` · ${countdown(f.resetMs)}` : ""}`
+              ? `out${f.resetMs ? `, ${countdown(f.resetMs)}` : ""}`
               : `${f.remainingPercent}%`}
         </span>
       </div>
@@ -223,7 +223,7 @@ function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: str
                     ? "bg-accent text-accent-ink"
                     : v.exhausted
                       ? "cursor-not-allowed bg-danger-soft text-danger/70 line-through"
-                      : "bg-white/[0.08] text-ink-dim hover:bg-white/15 hover:text-ink"
+                      : "bg-ink/[0.07] text-ink-dim hover:bg-ink/15 hover:text-ink"
                 }`}
               >
                 {active && <Check className="h-3 w-3" />}

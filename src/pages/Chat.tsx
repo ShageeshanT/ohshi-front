@@ -14,7 +14,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowUp, Check, ChevronDown, ChevronRight, Copy, Plug, RefreshCw, Square } from "lucide-react";
+import { ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, Copy, Plug, RefreshCw, Square } from "lucide-react";
 import { useChatList } from "../App";
 import { BrandHero, BrandMark } from "../components/brand";
 import Markdown from "../components/Markdown";
@@ -246,7 +246,7 @@ export default function Chat() {
           finishWithPartial("interrupted");
         } else {
           finishWithPartial("interrupted");
-          setTurnError(friendly(e, "Couldn't reach the server — please try again."));
+          setTurnError(friendly(e, "Couldn't reach the server. Please try again."));
         }
       } finally {
         abortRef.current = null;
@@ -280,10 +280,10 @@ export default function Chat() {
       try {
         const created = await post<{ chat: ChatSummary }>("/api/chats", { model: modelRef.current });
         upsert(created.chat);
-        navigate(`/c/${created.chat.id}`, { state: { pending: text } satisfies PendingState });
+        navigate(`/app/c/${created.chat.id}`, { state: { pending: text } satisfies PendingState });
       } catch (e) {
         setInput(text);
-        setTurnError(friendly(e, "Couldn't start a chat — please try again."));
+        setTurnError(friendly(e, "Couldn't start a chat. Please try again."));
       }
       return;
     }
@@ -338,7 +338,7 @@ export default function Chat() {
           without it, lines slide out from behind the title with a hard edge. */}
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-10 hidden items-start justify-between gap-4 px-5 pb-6 pt-4 md:flex ${
-          isLanding ? "" : "bg-gradient-to-b from-surface via-surface/85 to-transparent"
+          isLanding ? "" : "bg-gradient-to-b from-surface/90 via-surface/70 to-transparent"
         }`}
       >
         {!isLanding && (
@@ -347,38 +347,41 @@ export default function Chat() {
           </p>
         )}
         <div className="pointer-events-auto ml-auto">
-          <AccountChip models={models} />
+          <AccountsBar models={models} onAccountChange={() => void loadModels(true)} />
         </div>
       </div>
 
       {isLanding ? (
-        <div className="honeycomb flex flex-1 flex-col items-center justify-center px-4 pb-16">
-          <div className="rise-in hero-bloom flex w-full max-w-3xl flex-col items-center">
+        /* Empty state: the lock-up and the composer sit together in the middle
+           of the page. The moment a conversation starts the lock-up goes and the
+           composer drops to the bottom of the screen. */
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-10">
+          <div className="rise-in flex w-full max-w-3xl flex-col items-center">
             <BrandHero />
-            <p className="mt-4 text-center text-sm text-ink-dim">
-              Gemini, Claude and GPT-OSS — running on{" "}
-              <span className="serif-accent text-ink">your own</span> Google account.
-            </p>
-            <div className="mt-8 w-full">{composer}</div>
             {models && !models.connected && (
-              <div className="mt-6 w-full">
+              <div className="mt-8 w-full max-w-xl">
                 <Notice tone="warn">
                   <span className="normal-case">
-                    Connect a Google account first — every reply runs on your own Google plan.{" "}
-                    <Link to="/accounts" className="font-semibold underline underline-offset-2">
-                      Google accounts →
+                    Connect a Google account first. Every reply runs on your own Google plan.{" "}
+                    <Link
+                      to="/app/accounts"
+                      className="inline-flex items-center gap-1 font-semibold underline underline-offset-2"
+                    >
+                      Google accounts <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </span>
                 </Notice>
               </div>
             )}
             {turnError && (
-              <div className="mt-4 w-full">
+              <div className="mt-4 w-full max-w-xl">
                 <Notice tone="danger" onClose={() => setTurnError(null)}>
                   {turnError}
                 </Notice>
               </div>
             )}
+            <div className="mt-9 w-full">{composer}</div>
+            <p className="mt-2 text-center text-[11px] text-ink-dim">Ohshi can make mistakes.</p>
           </div>
         </div>
       ) : (
@@ -393,7 +396,7 @@ export default function Chat() {
               {loadError && (
                 <Notice tone="danger">
                   {loadError}{" "}
-                  <Link to="/" className="font-semibold underline underline-offset-2">
+                  <Link to="/app" className="font-semibold underline underline-offset-2">
                     Start a new chat
                   </Link>
                 </Notice>
@@ -429,7 +432,7 @@ export default function Chat() {
               {!loading && !stream && !turnError && canRegenerate && (
                 <div className="flex justify-start">
                   <Button size="sm" tone="ghost" onClick={regenerate}>
-                    <RefreshCw className="h-3.5 w-3.5" /> No reply yet — generate one
+                    <RefreshCw className="h-3.5 w-3.5" /> No reply yet, generate one
                   </Button>
                 </div>
               )}
@@ -438,9 +441,7 @@ export default function Chat() {
           <div className="px-4 pb-4 pt-2">
             <div className="mx-auto w-full max-w-3xl">
               {composer}
-              <p className="mt-2 text-center text-[11px] text-ink-dim">
-                Ohshi can make mistakes. Replies run on {models?.email ?? "your Google account"}.
-              </p>
+              <p className="mt-2 text-center text-[11px] text-ink-dim">Ohshi can make mistakes.</p>
             </div>
           </div>
         </>
@@ -565,7 +566,7 @@ function AssistantMessage(props: {
     <div className="flex gap-3">
       <BrandMark className="mt-0.5 h-7" />
       <div className="min-w-0 flex-1">
-       <div className="rounded-2xl rounded-tl-md border border-white/[0.06] bg-bubble-ai px-4 py-3 shadow-[0_1px_2px_rgb(0_0_0/0.25)] sm:px-5">
+       <div className="rounded-2xl rounded-tl-md border border-edge bg-bubble-ai px-4 py-3 shadow-[0_1px_2px_rgb(0_0_0/0.25)] sm:px-5">
         {reasoning && (
           <div className="mb-2">
             <button
@@ -604,7 +605,7 @@ function AssistantMessage(props: {
                   window.setTimeout(() => setCopied(false), 1500);
                 });
               }}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-white/10 hover:text-ink"
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink/10 hover:text-ink"
               aria-label="Copy reply"
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -614,7 +615,7 @@ function AssistantMessage(props: {
               <button
                 type="button"
                 onClick={props.onRegenerate}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-white/10 hover:text-ink"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink/10 hover:text-ink"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Regenerate
               </button>
@@ -631,27 +632,144 @@ function AssistantMessage(props: {
   );
 }
 
-function AccountChip(props: { models: ChatModelsPayload | null }) {
+interface AccountRow {
+  id: string;
+  email: string;
+  isDefault: boolean;
+  status: "active" | "needs_reconnect" | "revoked";
+}
+
+/** Compact "accounts" pill: no email on the bar itself — click it to see and
+ *  switch between connected Google accounts. */
+function AccountsBar(props: { models: ChatModelsPayload | null; onAccountChange?: () => void }) {
   const m = props.models;
+  const [open, setOpen] = useState(false);
+  const [accounts, setAccounts] = useState<AccountRow[] | null>(null);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey as unknown as EventListener);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey as unknown as EventListener);
+    };
+  }, [open]);
+
+  const load = useCallback(() => {
+    get<{ connections: AccountRow[] }>("/api/google/connections")
+      .then((d) => setAccounts(d.connections))
+      .catch((e) => setError(friendly(e)));
+  }, []);
+
+  const toggle = () => {
+    setOpen((v) => {
+      if (!v) {
+        setError(null);
+        load();
+      }
+      return !v;
+    });
+  };
+
+  const makeDefault = (row: AccountRow) => {
+    if (row.isDefault || switchingId) return;
+    setSwitchingId(row.id);
+    setError(null);
+    post(`/api/google/connections/${row.id}/default`)
+      .then(() => {
+        load();
+        props.onAccountChange?.();
+      })
+      .catch((e) => setError(friendly(e)))
+      .finally(() => setSwitchingId(null));
+  };
+
   if (!m) return null;
   if (!m.connected) {
     return (
       <Link
-        to="/accounts"
+        to="/app/accounts"
         className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink shadow-sm hover:brightness-105"
       >
         <Plug className="h-4 w-4" /> Connect Google
       </Link>
     );
   }
+
   return (
-    <Link
-      to="/accounts"
-      className="inline-flex items-center gap-2 rounded-full border border-edge bg-panel-2 px-3.5 py-1.5 text-sm font-medium text-ink-dim hover:text-ink"
-      title="Google accounts & remaining usage"
-    >
-      <span className={`h-2 w-2 rounded-full ${m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
-      <span className="max-w-[220px] truncate">{m.email}</span>
-    </Link>
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={toggle}
+        className="inline-flex items-center gap-2 rounded-full border border-edge bg-panel-2 px-3 py-1.5 text-sm font-medium text-ink-dim hover:text-ink"
+        title="Google accounts"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className={`h-2 w-2 rounded-full ${m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
+        <Plug className="h-4 w-4" />
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div
+          className="pop-in absolute right-0 top-full z-30 mt-2 w-[21rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-edge bg-panel shadow-2xl"
+          role="listbox"
+        >
+          <p className="border-b border-edge px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim">
+            Google accounts
+          </p>
+          <div className="max-h-72 overflow-y-auto p-1.5">
+            {accounts === null ? (
+              <div className="flex justify-center py-6 text-ink-dim">
+                <Spinner size={16} />
+              </div>
+            ) : (
+              accounts.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  disabled={row.isDefault || switchingId !== null}
+                  onClick={() => makeDefault(row)}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] ${
+                    row.isDefault ? "bg-accent-soft" : "hover:bg-ink/[0.04] disabled:opacity-60"
+                  }`}
+                >
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      row.status === "active" ? "bg-ok" : row.status === "needs_reconnect" ? "bg-warn" : "bg-danger"
+                    }`}
+                  />
+                  <span className="min-w-0 flex-1 truncate font-medium text-ink">{row.email}</span>
+                  {switchingId === row.id ? (
+                    <Spinner size={13} />
+                  ) : row.isDefault ? (
+                    <span className="shrink-0 text-[11px] font-semibold text-accent">Default</span>
+                  ) : null}
+                </button>
+              ))
+            )}
+          </div>
+          {error && <p className="border-t border-edge px-3.5 py-2 text-[11px] text-danger">{error}</p>}
+          <Link
+            to="/app/accounts"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 border-t border-edge px-3.5 py-2.5 text-[13px] font-medium text-ink-dim hover:text-ink"
+          >
+            <Plug className="h-3.5 w-3.5" /> Manage accounts
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }
