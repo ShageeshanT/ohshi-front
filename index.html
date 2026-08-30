@@ -3,19 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ohshi — your Google account, every frontier model</title>
+    <title>OHSHI</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#f7f7f9" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0c10" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f7f9" />
     <meta
       name="description"
-      content="Chat with Gemini, Claude and GPT-OSS and give your agents an OpenAI-compatible API — on the Google account you already have, with live remaining quota."
+      content="Turn the AI subscriptions you already pay for into a chat workspace and an OpenAI compatible API. Connect an account and every call runs on that plan, with live remaining quota."
     />
-    <meta property="og:title" content="Ohshi — your Google account, every frontier model" />
+    <meta property="og:title" content="Ohshi — one subscription, chat and API" />
     <meta
       property="og:description"
-      content="Chat with Gemini, Claude and GPT-OSS, and give your agents an OpenAI-compatible API — all on the Google account you already have."
+      content="Chat and an OpenAI compatible API on the AI subscriptions you already pay for. No API credits to buy."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.ohshi.space/" />
@@ -23,10 +22,10 @@
       // Paint the right theme before React mounts — no flash of the wrong one.
       (function () {
         try {
+          // Light is the default; dark is opt-in through the toggle, so the
+          // OS preference is deliberately not consulted.
           var t = localStorage.getItem("ohshi.theme");
-          if (t !== "light" && t !== "dark") {
-            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-          }
+          if (t !== "light" && t !== "dark") t = "light";
           document.documentElement.setAttribute("data-theme", t);
         } catch (e) {
           document.documentElement.setAttribute("data-theme", "light");
