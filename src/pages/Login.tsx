@@ -9,6 +9,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { AuthShell } from "../components/auth/AuthShell";
 import { CLERK_ENABLED } from "../lib/clerk";
 import { ClerkLoginForm } from "./auth/ClerkLoginForm";
+import { ClerkSessionGuard } from "./auth/ClerkSessionGuard";
 import { PasswordLoginForm } from "./auth/PasswordLoginForm";
 
 export default function Login() {
@@ -38,7 +39,9 @@ export default function Login() {
       }
     >
       {CLERK_ENABLED ? (
-        <ClerkLoginForm initialError={initialError} />
+        <ClerkSessionGuard>
+          <ClerkLoginForm initialError={initialError} />
+        </ClerkSessionGuard>
       ) : (
         <PasswordLoginForm initialError={initialError} />
       )}
