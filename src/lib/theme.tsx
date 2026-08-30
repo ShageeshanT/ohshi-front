@@ -2,6 +2,12 @@
  * Light / dark theme. The choice lives in localStorage and on
  * `<html data-theme>`; index.html applies it before React mounts so the first
  * paint is already the right colour. Tokens for both themes are in index.css.
+ *
+ * Light is the default and the OS preference is deliberately ignored: the
+ * brand art, the hero painting and the auth pages are all cut light-first, so
+ * a visitor arriving on a dark-mode machine should still meet the site the way
+ * it was designed. Dark is opt-in through the toggle, and once chosen it
+ * sticks. Keep this in step with the inline script in index.html.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -19,7 +25,7 @@ function initialTheme(): Theme {
   }
   const attr = document.documentElement.getAttribute("data-theme");
   if (attr === "light" || attr === "dark") return attr;
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "light";
 }
 
 interface ThemeState {
