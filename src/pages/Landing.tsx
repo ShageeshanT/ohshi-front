@@ -1,7 +1,8 @@
 /**
- * The public landing page at ohshi.space. Hero on the brand artwork, then
- * features, how it works, the model line-up, a developer snippet, FAQ, CTA
- * and the footer. Smooth-scrolled with Lenis, sections reveal on entry.
+ * The public landing page at ohshi.space. Hero laid out like the brand
+ * mockup on the full-bleed artwork, then features, how it works, the model
+ * line-up, a developer snippet, FAQ, CTA and the footer. Smooth-scrolled with
+ * Lenis; sections reveal on entry. All words come from content/landing.ts.
  */
 
 import { motion } from "framer-motion";
@@ -11,13 +12,13 @@ import {
   ChevronDown,
   Code2,
   KeyRound,
-  Lock,
   MessagesSquare,
   Plug,
   ShieldCheck,
   Sparkles,
   Waypoints,
 } from "lucide-react";
+import { useLenis } from "lenis/react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import heroDark from "../assets/hero-dark.webp";
@@ -27,12 +28,12 @@ import { MarketingFooter } from "../components/marketing/MarketingFooter";
 import { MarketingNav } from "../components/marketing/MarketingNav";
 import { Reveal } from "../components/marketing/Reveal";
 import { SmoothScroll } from "../components/marketing/SmoothScroll";
+import { COPY } from "../content/landing";
 import { useTheme } from "../lib/theme";
-import { useLenis } from "lenis/react";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const rise = (delay: number) => ({
-  initial: { opacity: 0, y: 18 },
+  initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.7, ease, delay },
 });
@@ -56,18 +57,20 @@ export default function Landing() {
   );
 }
 
+function scrollToHash(lenis: ReturnType<typeof useLenis>, hash: string) {
+  const el = document.querySelector<HTMLElement>(hash);
+  if (!el) return;
+  if (lenis) lenis.scrollTo(el, { offset: -110 });
+  else el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /** `/#features` from another page lands here after mount — scroll to it. */
 function HashScroller() {
   const { hash } = useLocation();
   const lenis = useLenis();
   useEffect(() => {
     if (!hash) return;
-    const el = document.querySelector<HTMLElement>(hash);
-    if (!el) return;
-    const t = window.setTimeout(() => {
-      if (lenis) lenis.scrollTo(el, { offset: -96 });
-      else el.scrollIntoView({ behavior: "smooth" });
-    }, 250);
+    const t = window.setTimeout(() => scrollToHash(lenis, hash), 250);
     return () => window.clearTimeout(t);
   }, [hash, lenis]);
   return null;
@@ -75,88 +78,94 @@ function HashScroller() {
 
 // --- hero --------------------------------------------------------------------------
 
+/** Split line2 around the accent word so it can be coloured. */
+function AccentLine(props: { text: string; accent: string }) {
+  const i = props.accent ? props.text.indexOf(props.accent) : -1;
+  if (i < 0) return <>{props.text}</>;
+  return (
+    <>
+      {props.text.slice(0, i)}
+      <span className="hero-accent">{props.accent}</span>
+      {props.text.slice(i + props.accent.length)}
+    </>
+  );
+}
+
 function Hero() {
   const { theme } = useTheme();
   const lenis = useLenis();
   const [loaded, setLoaded] = useState(false);
-
-  const explore = () => {
-    const el = document.querySelector<HTMLElement>("#features");
-    if (!el) return;
-    if (lenis) lenis.scrollTo(el, { offset: -96 });
-    else el.scrollIntoView({ behavior: "smooth" });
-  };
+  const h = COPY.hero;
 
   return (
     <section className="relative isolate min-h-[100svh] overflow-hidden">
-      {/* Brand artwork — anchored to the right so the spire stays clear of the copy. */}
+      {/* Full-bleed brand artwork, anchored to the top so the spire and its
+          ring are always in frame; the lake at the bottom is what gets cropped. */}
       <img
         key={theme}
         src={theme === "dark" ? heroDark : heroLight}
         alt=""
         aria-hidden
         onLoad={() => setLoaded(true)}
-        className={`absolute inset-0 -z-20 h-full w-full object-cover object-[72%_center] transition-opacity duration-700 md:object-right ${
+        className={`absolute inset-0 -z-20 h-full w-full object-cover object-[70%_top] transition-opacity duration-700 md:object-[center_top] ${
           loaded ? "opacity-100" : "opacity-0"
         }`}
       />
-      {/* Fade the left side into the page colour so the headline stays crisp. */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-surface via-surface/85 to-surface/10 md:via-surface/60 md:to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-surface to-transparent" />
+      {/* A light veil behind the copy only; the artwork's own hex field does the rest. */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-surface/90 via-surface/60 to-surface/20 md:from-surface/45 md:via-surface/10 md:to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-surface to-transparent" />
 
-      <div className="mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-6 pb-24 pt-36 sm:px-10 md:pt-40">
-        <div className="max-w-2xl">
+      <div className="mx-auto flex min-h-[100svh] max-w-[1460px] flex-col px-6 pb-28 pt-[26vh] sm:px-10 lg:px-[5.5%]">
+        <div className="max-w-[800px]">
           <motion.div {...rise(0.05)}>
             <span className="eyebrow">
               <span className="eyebrow-dot" />
-              Bring your own Google account
+              {h.badge}
             </span>
           </motion.div>
           <motion.h1
             {...rise(0.15)}
-            className="hero-title mt-7 text-[2.9rem] sm:text-[4rem] md:text-[4.75rem] lg:text-[5.4rem]"
+            className="hero-title mt-7 text-[2.6rem] sm:text-[3.8rem] lg:text-[4.6vw] xl:text-[5rem]"
           >
-            Your Google account.
+            {h.line1}
             <br />
-            <span className="hero-accent">Every frontier model.</span>
+            <AccentLine text={h.line2} accent={h.accentWord} />
           </motion.h1>
-          <motion.p {...rise(0.28)} className="mt-7 max-w-xl text-lg leading-relaxed text-ink-dim sm:text-xl">
-            Ohshi turns the Google AI plan you already pay for into a chat workspace and an OpenAI-compatible API.
-            Gemini, Claude and GPT-OSS — on your own quota, with live remaining usage.
+          <motion.p
+            {...rise(0.28)}
+            className="mt-7 max-w-[30rem] text-[17px] leading-[1.55] text-ink-dim lg:text-[19px]"
+          >
+            {h.paragraph}
           </motion.p>
           <motion.div {...rise(0.4)} className="mt-9 flex flex-wrap items-center gap-3">
             <Link to="/signup" className="btn-primary btn-lg">
-              Get Started <ArrowRight className="h-4 w-4" />
+              {h.primaryCta} <ArrowRight className="h-4 w-4" />
             </Link>
-            <button type="button" onClick={explore} className="btn-ghost btn-lg">
-              See how it works
+            <button type="button" onClick={() => scrollToHash(lenis, "#developers")} className="btn-ghost btn-lg">
+              {h.secondaryCta}
             </button>
           </motion.div>
           <motion.ul
             {...rise(0.52)}
-            className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-ink/80"
+            className="mt-9 flex flex-wrap items-center gap-y-1 text-[13px] font-medium text-ink/80"
           >
-            {[
-              ["Runs on your quota", ShieldCheck],
-              ["Tokens encrypted at rest", Lock],
-              ["OpenAI-compatible API", Code2],
-            ].map(([label, Icon]) => {
-              const I = Icon as typeof ShieldCheck;
-              return (
-                <li key={label as string} className="flex items-center gap-2">
-                  <I className="h-4 w-4 text-accent" />
-                  {label as string}
-                </li>
-              );
-            })}
+            {h.trust.map((label, i) => (
+              <li
+                key={label}
+                className={`flex items-center gap-2 py-1 pr-5 ${i === 0 ? "" : "sm:border-l sm:border-ink/15 sm:pl-5"}`}
+              >
+                <ShieldCheck className="h-4 w-4 text-accent" />
+                {label}
+              </li>
+            ))}
           </motion.ul>
         </div>
       </div>
 
       <button
         type="button"
-        onClick={explore}
-        className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink/70 transition-colors hover:text-ink"
+        onClick={() => scrollToHash(lenis, "#features")}
+        className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.14em] text-ink/70 transition-colors hover:text-ink"
       >
         Scroll to explore
         <ChevronDown className="scroll-cue h-5 w-5" />
@@ -170,99 +179,66 @@ function Hero() {
 function SectionHeader(props: { eyebrow: string; title: string; text?: string }) {
   return (
     <Reveal className="mx-auto max-w-2xl text-center">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">{props.eyebrow}</p>
+      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{props.eyebrow}</p>
       <h2 className="mk-h2 mt-3">{props.title}</h2>
-      {props.text && <p className="mt-4 text-base leading-relaxed text-ink-dim sm:text-lg">{props.text}</p>}
+      {props.text && <p className="mt-4 text-[17px] leading-relaxed text-ink-dim">{props.text}</p>}
     </Reveal>
   );
 }
 
-const FEATURES = [
-  {
-    icon: MessagesSquare,
-    title: "A chat that feels like the big ones",
-    text: "Streaming replies, rendered Markdown with copyable code, thinking traces, stop and regenerate — with the model picker showing how much quota each one has left.",
-  },
-  {
-    icon: Code2,
-    title: "An API your agents already speak",
-    text: "Point any OpenAI SDK at /v1 with an ohs_ key. Chat completions, streaming and tool calling work unchanged; reasoning_effort picks the model variant.",
-  },
-  {
-    icon: BarChart3,
-    title: "Live remaining usage",
-    text: "The exact per-model quota straight from Google, refreshed as you go, with reset countdowns — so you're never surprised by an exhausted model mid-task.",
-  },
-  {
-    icon: Waypoints,
-    title: "Failover built in",
-    text: "Quota is enforced per Google endpoint. Ohshi tries the next one automatically, remembers what worked, and lets you connect several accounts with a default.",
-  },
-];
+const FEATURE_ICONS = [MessagesSquare, Code2, BarChart3, Waypoints];
 
 function Features() {
+  const f = COPY.features;
   return (
     <section id="features" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
-      <SectionHeader
-        eyebrow="Features"
-        title="Everything the plan gives you, in one place."
-        text="You already pay Google for the models. Ohshi is the workspace and the API that make that plan usable everywhere."
-      />
+      <SectionHeader eyebrow={f.eyebrow} title={f.title} text={f.intro} />
       <div className="mt-14 grid gap-4 sm:grid-cols-2">
-        {FEATURES.map((f, i) => (
-          <Reveal key={f.title} delay={i * 70}>
-            <div className="glass lift h-full p-6 sm:p-7">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent-soft text-accent">
-                <f.icon className="h-5 w-5" />
-              </span>
-              <h3 className="mt-5 text-lg font-bold tracking-tight">{f.title}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-ink-dim">{f.text}</p>
-            </div>
-          </Reveal>
-        ))}
+        {f.cards.map((card, i) => {
+          const Icon = FEATURE_ICONS[i % FEATURE_ICONS.length];
+          return (
+            <Reveal key={card.title} delay={i * 70}>
+              <div className="glass lift h-full p-6 sm:p-7">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent-soft text-accent">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-5 text-lg font-semibold tracking-tight">{card.title}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-ink-dim">{card.text}</p>
+              </div>
+            </Reveal>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-const STEPS = [
-  {
-    icon: Plug,
-    title: "Connect your Google account",
-    text: "Sign in with Google, paste the code it shows you, done. Tokens are encrypted at rest and never leave the server.",
-  },
-  {
-    icon: Sparkles,
-    title: "Pick a model",
-    text: "Gemini 3.6 Flash, Gemini 3.1 Pro, Claude Sonnet and Opus 4.6, GPT-OSS 120B — each with its live remaining quota beside it.",
-  },
-  {
-    icon: KeyRound,
-    title: "Chat, or hand your agents a key",
-    text: "Use the chat workspace, or create an API key and drop the base URL into any OpenAI-compatible client.",
-  },
-];
+const STEP_ICONS = [Plug, Sparkles, KeyRound];
 
 function HowItWorks() {
+  const h = COPY.how;
   return (
     <section id="how" className="relative z-10 border-y border-edge/70 bg-panel-2/40 py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <SectionHeader eyebrow="How it works" title="Three steps. About two minutes." />
+        <SectionHeader eyebrow={h.eyebrow} title={h.title} />
         <ol className="mt-14 grid gap-4 md:grid-cols-3">
-          {STEPS.map((s, i) => (
-            <Reveal key={s.title} delay={i * 90}>
-              <li className="glass relative h-full p-6 sm:p-7">
-                <span className="absolute right-6 top-6 text-4xl font-extrabold tracking-tight text-ink/[0.08]">
-                  0{i + 1}
-                </span>
-                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-night text-white">
-                  <s.icon className="h-5 w-5" />
-                </span>
-                <h3 className="mt-5 text-lg font-bold tracking-tight">{s.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-ink-dim">{s.text}</p>
-              </li>
-            </Reveal>
-          ))}
+          {h.steps.map((s, i) => {
+            const Icon = STEP_ICONS[i % STEP_ICONS.length];
+            return (
+              <Reveal key={s.title} delay={i * 90}>
+                <li className="glass relative h-full p-6 sm:p-7">
+                  <span className="absolute right-6 top-6 text-4xl font-semibold tracking-tight text-ink/[0.08]">
+                    0{i + 1}
+                  </span>
+                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-night text-white">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-5 text-lg font-semibold tracking-tight">{s.title}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-ink-dim">{s.text}</p>
+                </li>
+              </Reveal>
+            );
+          })}
         </ol>
       </div>
     </section>
@@ -279,24 +255,21 @@ const MODELS = [
 ];
 
 function Models() {
+  const m = COPY.models;
   return (
     <section id="models" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
-      <SectionHeader
-        eyebrow="Models"
-        title="One login, three vendors."
-        text="Whatever your Google plan lists is what you get — and anything new Google adds shows up by its own name."
-      />
+      <SectionHeader eyebrow={m.eyebrow} title={m.title} text={m.intro} />
       <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {MODELS.map((m, i) => (
-          <Reveal key={m.name} delay={i * 60}>
+        {MODELS.map((model, i) => (
+          <Reveal key={model.name} delay={i * 60}>
             <div className="glass lift flex items-center gap-4 p-5">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-edge bg-panel text-ink">
-                <m.Logo className="h-5 w-5" />
+                <model.Logo className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-bold tracking-tight">{m.name}</p>
+                <p className="truncate text-[15px] font-semibold tracking-tight">{model.name}</p>
                 <p className="truncate text-xs text-ink-dim">
-                  {m.vendor} · {m.note}
+                  {model.vendor} · {model.note}
                 </p>
               </div>
             </div>
@@ -322,23 +295,16 @@ resp = client.chat.completions.create(
 )`;
 
 function Developers() {
+  const d = COPY.developers;
   return (
     <section id="developers" className="relative z-10 border-y border-edge/70 bg-panel-2/40 py-24 md:py-32">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 md:grid-cols-2">
         <Reveal>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">Developers</p>
-          <h2 className="mk-h2 mt-3">Drop-in for anything that speaks OpenAI.</h2>
-          <p className="mt-4 text-base leading-relaxed text-ink-dim sm:text-lg">
-            Change two lines — the base URL and the key — and your existing agents, notebooks and frameworks run on your
-            Google plan. Errors come back in the OpenAI shape, so your retry logic keeps working.
-          </p>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{d.eyebrow}</p>
+          <h2 className="mk-h2 mt-3">{d.title}</h2>
+          <p className="mt-4 text-[17px] leading-relaxed text-ink-dim">{d.paragraph}</p>
           <ul className="mt-6 space-y-3 text-[15px] text-ink/85">
-            {[
-              "Chat completions, streaming and tool calling",
-              "reasoning_effort maps to the model variant Google actually serves",
-              "Per-key usage in the dashboard; revoke a key in one click",
-              "429s only when every endpoint is truly out of quota",
-            ].map((t) => (
+            {d.bullets.map((t) => (
               <li key={t} className="flex items-start gap-2.5">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                 {t}
@@ -362,36 +328,14 @@ function Developers() {
   );
 }
 
-const FAQ = [
-  {
-    q: "Does Ohshi see my Google password?",
-    a: "No. You sign in on Google's own page and Ohshi receives OAuth tokens scoped to the models. They are encrypted at rest and you can disconnect at any time.",
-  },
-  {
-    q: "Whose quota do the models use?",
-    a: "Yours. Every request runs on the Google account you connected, with that plan's limits. Ohshi shows the remaining amount per model so you always know where you stand.",
-  },
-  {
-    q: "Which clients work with the API?",
-    a: "Anything OpenAI-compatible — the official openai SDKs, LangChain, LlamaIndex, Vercel AI SDK, cURL. Set the base URL to /v1 and use an Ohshi key.",
-  },
-  {
-    q: "Can I connect more than one Google account?",
-    a: "Yes. Connect several, pick a default, and switch when one runs low. Each account's quota is tracked separately.",
-  },
-  {
-    q: "What does it cost?",
-    a: "Ohshi is free while in beta. The models are covered by the Google plan you already have — there is nothing to buy from us.",
-  },
-];
-
 function Faq() {
+  const f = COPY.faq;
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section id="faq" className="relative z-10 mx-auto max-w-3xl px-5 py-24 sm:px-8 md:py-32">
-      <SectionHeader eyebrow="FAQ" title="Questions, answered." />
+      <SectionHeader eyebrow={f.eyebrow} title={f.title} />
       <div className="mt-12 space-y-3">
-        {FAQ.map((item, i) => {
+        {f.items.map((item, i) => {
           const isOpen = open === i;
           return (
             <Reveal key={item.q} delay={i * 50}>
@@ -402,7 +346,7 @@ function Faq() {
                   className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
                   aria-expanded={isOpen}
                 >
-                  <span className="text-[15px] font-bold tracking-tight sm:text-base">{item.q}</span>
+                  <span className="text-[15px] font-semibold tracking-tight sm:text-base">{item.q}</span>
                   <ChevronDown
                     className={`h-5 w-5 shrink-0 text-ink-dim transition-transform duration-300 ${
                       isOpen ? "rotate-180" : ""
@@ -427,21 +371,19 @@ function Faq() {
 }
 
 function CallToAction() {
+  const c = COPY.cta;
   return (
     <section className="relative z-10 mx-auto max-w-6xl px-5 pb-24 sm:px-8 md:pb-32">
       <Reveal>
         <div className="glass hero-bloom relative overflow-hidden px-6 py-16 text-center sm:px-12 sm:py-20">
-          <h2 className="mk-h2">Ready when you are.</h2>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-ink-dim sm:text-lg">
-            Create an account, connect Google, and start chatting — or hand your agents a key. Two minutes, nothing to
-            install.
-          </p>
+          <h2 className="mk-h2">{c.title}</h2>
+          <p className="mx-auto mt-4 max-w-xl text-[17px] leading-relaxed text-ink-dim">{c.text}</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link to="/signup" className="btn-primary btn-lg">
-              Get Started <ArrowRight className="h-4 w-4" />
+              {c.primary} <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/login" className="btn-ghost btn-lg">
-              Sign In
+            <Link to="/app/docs" className="btn-ghost btn-lg">
+              {c.secondary}
             </Link>
           </div>
         </div>

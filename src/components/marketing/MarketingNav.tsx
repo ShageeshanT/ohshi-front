@@ -1,8 +1,8 @@
 /**
- * The floating glass navigation bar. Full-width pearly tile at the top of the
- * page; once you scroll it springs into a compact pill and the lock-up
- * crossfades to the bare mark. Ported from the AlcaNest navbar: framer-motion
- * spring on `scrollY > 40`, animated margin / width / radius / padding.
+ * The floating glass navigation pill. Full-width pearly pill at the top of the
+ * page (lock-up left, links centered, theme chip + Sign In + Get Started on
+ * the right); once you scroll it springs into a compact pill and the lock-up
+ * crossfades to the bare mark. Spring values from the AlcaNest navbar.
  */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -11,23 +11,14 @@ import { useLenis } from "lenis/react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../App";
+import { COPY } from "../../content/landing";
 import { useBrandArt } from "../brand";
 import { ThemeToggle } from "./ThemeToggle";
 
-const spring = {
-  type: "spring" as const,
-  stiffness: 260,
-  damping: 32,
-  mass: 0.8,
-};
+const spring = { type: "spring" as const, stiffness: 260, damping: 32, mass: 0.8 };
 
-export const NAV_LINKS = [
-  { label: "Features", hash: "#features" },
-  { label: "How it works", hash: "#how" },
-  { label: "Models", hash: "#models" },
-  { label: "Developers", hash: "#developers" },
-  { label: "FAQ", hash: "#faq" },
-];
+const HASHES = ["#features", "#how", "#models", "#developers", "#faq"];
+export const NAV_LINKS = HASHES.map((hash, i) => ({ hash, label: COPY.nav[i] ?? hash.slice(1) }));
 
 export function MarketingNav(props: { minimal?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
@@ -66,7 +57,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
     }
     const el = document.querySelector<HTMLElement>(hash);
     if (!el) return;
-    if (lenis) lenis.scrollTo(el, { offset: -96 });
+    if (lenis) lenis.scrollTo(el, { offset: -110 });
     else el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -86,20 +77,19 @@ export function MarketingNav(props: { minimal?: boolean }) {
   );
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-3 sm:px-5">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-4 sm:px-7 lg:px-9">
       <motion.div
         initial={false}
         animate={{
-          marginTop: scrolled ? 10 : 18,
-          maxWidth: scrolled ? 1000 : 1380,
-          borderRadius: scrolled ? 999 : 22,
-          paddingTop: scrolled ? 6 : 12,
-          paddingBottom: scrolled ? 6 : 12,
-          paddingLeft: scrolled ? 16 : 22,
-          paddingRight: scrolled ? 8 : 12,
+          marginTop: scrolled ? 10 : 22,
+          maxWidth: scrolled ? 1000 : 1460,
+          paddingTop: scrolled ? 6 : 11,
+          paddingBottom: scrolled ? 6 : 11,
+          paddingLeft: scrolled ? 18 : 30,
+          paddingRight: scrolled ? 8 : 14,
         }}
         transition={spring}
-        className={`mk-nav pointer-events-auto relative mx-auto flex items-center justify-between gap-3 ${
+        className={`mk-nav pointer-events-auto relative mx-auto flex items-center rounded-full ${
           scrolled ? "mk-nav-scrolled" : ""
         }`}
       >
@@ -108,17 +98,10 @@ export function MarketingNav(props: { minimal?: boolean }) {
         {/* Logo: lock-up when expanded, bare mark once scrolled. Both stay
             mounted so the crossfade never causes a layout jump. */}
         <div className="flex flex-1 items-center">
-          <Link
-            to="/"
-            aria-label="Ohshi home"
-            className="relative block shrink-0"
-          >
+          <Link to="/" aria-label="Ohshi home" className="relative block shrink-0">
             <motion.span
               initial={false}
-              animate={{
-                width: scrolled ? 34 : 112,
-                height: scrolled ? 36 : 44,
-              }}
+              animate={{ width: scrolled ? 34 : 128, height: scrolled ? 36 : 50 }}
               transition={spring}
               className="relative block"
             >
@@ -127,12 +110,9 @@ export function MarketingNav(props: { minimal?: boolean }) {
                 alt="Ohshi"
                 draggable={false}
                 initial={false}
-                animate={{
-                  opacity: scrolled ? 0 : 1,
-                  scale: scrolled ? 0.85 : 1,
-                }}
+                animate={{ opacity: scrolled ? 0 : 1, scale: scrolled ? 0.85 : 1 }}
                 transition={{ duration: 0.22 }}
-                className="absolute left-0 top-0 h-11 w-auto select-none"
+                className="absolute left-0 top-0 h-[50px] w-auto select-none"
                 style={{ transformOrigin: "left center" }}
               />
               <motion.img
@@ -141,10 +121,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
                 aria-hidden
                 draggable={false}
                 initial={false}
-                animate={{
-                  opacity: scrolled ? 1 : 0,
-                  scale: scrolled ? 1 : 0.8,
-                }}
+                animate={{ opacity: scrolled ? 1 : 0, scale: scrolled ? 1 : 0.8 }}
                 transition={{ duration: 0.22 }}
                 className="absolute left-0 top-0 h-9 w-auto select-none"
                 style={{ transformOrigin: "left center" }}
@@ -154,9 +131,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
         </div>
 
         {!props.minimal && (
-          <nav
-            className={`hidden shrink-0 items-center lg:flex ${scrolled ? "gap-5" : "gap-7"}`}
-          >
+          <nav className={`mx-6 hidden shrink-0 items-center lg:flex ${scrolled ? "gap-6" : "gap-9"}`}>
             {NAV_LINKS.map((l) => (
               <button
                 key={l.hash}
@@ -170,7 +145,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
           </nav>
         )}
 
-        <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-2">
+        <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-2.5">
           <ThemeToggle compact={scrolled} className="hidden sm:inline-flex" />
           {actions}
           {!props.minimal && (
@@ -194,7 +169,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
-            className="mk-nav pointer-events-auto mx-auto mt-2 max-w-[1380px] rounded-3xl p-3 lg:hidden"
+            className="mk-nav pointer-events-auto mx-auto mt-2 max-w-[1460px] rounded-3xl p-3 lg:hidden"
           >
             <div className="grid gap-1">
               {NAV_LINKS.map((l) => (

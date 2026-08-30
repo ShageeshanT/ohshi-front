@@ -15,6 +15,7 @@ import { get, onAuthRequired, post } from "./lib/api";
 import type { ChatSummary } from "./lib/chat";
 import { Wordmark } from "./components/brand";
 import { TilesBackdrop } from "./components/marketing/Backdrop";
+import { ThemeToggle } from "./components/marketing/ThemeToggle";
 import SearchDialog from "./components/SearchDialog";
 import Sidebar from "./components/Sidebar";
 import { Spinner } from "./components/ui";
@@ -281,7 +282,7 @@ function Shell(props: { children: ReactNode }) {
         onSignOut={() => void signOut()}
       />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-edge bg-rail/85 px-3 py-2 backdrop-blur-lg md:hidden">
+        <header className="flex items-center justify-between border-b border-edge/70 bg-rail/60 px-3 py-2 backdrop-blur-2xl md:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -293,13 +294,16 @@ function Shell(props: { children: ReactNode }) {
           <Link to="/app" aria-label="Ohshi">
             <Wordmark className="h-8" />
           </Link>
-          <Link
-            to="/app"
-            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
-            aria-label="New chat"
-          >
-            <SquarePen className="h-5 w-5" />
-          </Link>
+          <div className="flex items-center gap-0.5">
+            <ThemeToggle compact />
+            <Link
+              to="/app"
+              className="rounded-full p-2 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
+              aria-label="New chat"
+            >
+              <SquarePen className="h-5 w-5" />
+            </Link>
+          </div>
         </header>
         <main key={routeKey} className="route-fade flex min-h-0 flex-1 flex-col">
           {props.children}

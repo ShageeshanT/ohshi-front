@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { COPY } from "../../content/landing";
 import { Wordmark } from "../brand";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -10,10 +11,7 @@ export function MarketingFooter() {
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <Wordmark className="h-9" />
-          <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-dim">
-            Your Google account, every frontier model. Chat with Gemini, Claude and GPT-OSS, and give your agents an
-            OpenAI-compatible API — on the plan you already have.
-          </p>
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-dim">{COPY.footer.tagline}</p>
           <div className="mt-5">
             <ThemeToggle />
           </div>
@@ -46,7 +44,7 @@ export function MarketingFooter() {
       <div className="border-t border-edge/70">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-5 text-xs text-ink-dim sm:px-8">
           <span>© {YEAR} Ohshi · ohshi.space</span>
-          <span>Not affiliated with Google. Model quota belongs to the Google account you connect.</span>
+          <span>{COPY.footer.disclaimer}</span>
         </div>
       </div>
     </footer>

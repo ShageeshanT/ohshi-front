@@ -59,7 +59,7 @@ export default function Docs() {
     <div className="rise-in space-y-6">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight">
-          Using the <span className="serif-accent">gateway</span>
+          Using the gateway
         </h1>
         <p className="mt-1 text-sm text-ink-dim">
           Any OpenAI-compatible client works. Base URL <code className="mono text-accent">{base}</code>, key from

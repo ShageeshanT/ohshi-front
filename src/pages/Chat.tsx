@@ -352,35 +352,46 @@ export default function Chat() {
       </div>
 
       {isLanding ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 pb-16">
-          <div className="rise-in hero-bloom flex w-full max-w-3xl flex-col items-center">
-            <BrandHero />
-            <p className="mt-4 text-center text-sm text-ink-dim">
-              Gemini, Claude and GPT-OSS — running on{" "}
-              <span className="serif-accent text-ink">your own</span> Google account.
-            </p>
-            <div className="mt-8 w-full">{composer}</div>
-            {models && !models.connected && (
-              <div className="mt-6 w-full">
-                <Notice tone="warn">
-                  <span className="normal-case">
-                    Connect a Google account first — every reply runs on your own Google plan.{" "}
-                    <Link to="/app/accounts" className="font-semibold underline underline-offset-2">
-                      Google accounts →
-                    </Link>
-                  </span>
-                </Notice>
-              </div>
-            )}
-            {turnError && (
-              <div className="mt-4 w-full">
-                <Notice tone="danger" onClose={() => setTurnError(null)}>
-                  {turnError}
-                </Notice>
-              </div>
-            )}
+        <>
+          {/* Brand sits in the upper third; the composer is pinned to the bottom
+              exactly where it lives once a conversation starts. */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="rise-in hero-bloom mx-auto flex w-full max-w-3xl flex-col items-center px-4 pt-[16vh] md:pt-[20vh]">
+              <BrandHero />
+              <p className="mt-6 text-center text-[15px] text-ink-dim">
+                Gemini, Claude and GPT-OSS, running on <span className="font-semibold text-ink">your own</span> Google
+                account.
+              </p>
+              {models && !models.connected && (
+                <div className="mt-8 w-full max-w-xl">
+                  <Notice tone="warn">
+                    <span className="normal-case">
+                      Connect a Google account first — every reply runs on your own Google plan.{" "}
+                      <Link to="/app/accounts" className="font-semibold underline underline-offset-2">
+                        Google accounts →
+                      </Link>
+                    </span>
+                  </Notice>
+                </div>
+              )}
+              {turnError && (
+                <div className="mt-4 w-full max-w-xl">
+                  <Notice tone="danger" onClose={() => setTurnError(null)}>
+                    {turnError}
+                  </Notice>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+          <div className="px-4 pb-4 pt-2">
+            <div className="mx-auto w-full max-w-3xl">
+              {composer}
+              <p className="mt-2 text-center text-[11px] text-ink-dim">
+                Ohshi can make mistakes. Replies run on {models?.email ?? "your Google account"}.
+              </p>
+            </div>
+          </div>
+        </>
       ) : (
         <>
           <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto">

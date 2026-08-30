@@ -21,6 +21,7 @@ import {
 import type { ChatSummary } from "../lib/chat";
 import { groupChatsByDate } from "../lib/chat";
 import { BrandMark, Wordmark } from "./brand";
+import { ThemeToggle } from "./marketing/ThemeToggle";
 import { Avatar } from "./ui";
 
 export interface SidebarProps {
@@ -54,7 +55,7 @@ export default function Sidebar(p: SidebarProps) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-edge bg-rail/85 backdrop-blur-lg transition-[transform,width] duration-200 md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-edge/70 bg-rail/60 backdrop-blur-2xl transition-[transform,width] duration-200 md:static md:translate-x-0 ${
           p.collapsed ? "md:w-[64px]" : "md:w-[264px]"
         } ${p.mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
@@ -133,7 +134,12 @@ export default function Sidebar(p: SidebarProps) {
           </div>
         )}
 
-        <div className={`border-t border-edge p-3 ${p.collapsed ? "flex justify-center" : "flex items-center gap-3"}`}>
+        <div
+          className={`border-t border-edge/70 p-3 ${
+            p.collapsed ? "flex flex-col items-center gap-2" : "flex items-center gap-2.5"
+          }`}
+        >
+          {p.collapsed && <ThemeToggle compact />}
           <span title={p.user.email}>
             <Avatar name={name} size="sm" />
           </span>
@@ -143,6 +149,7 @@ export default function Sidebar(p: SidebarProps) {
                 <p className="truncate text-[13px] font-semibold">{name}</p>
                 <p className="truncate text-[11px] text-ink-dim">{p.user.email}</p>
               </div>
+              <ThemeToggle compact />
               <button
                 type="button"
                 onClick={p.onSignOut}
