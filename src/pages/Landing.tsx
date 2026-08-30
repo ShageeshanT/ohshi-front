@@ -23,6 +23,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import heroDark from "../assets/hero-dark.webp";
 import heroLight from "../assets/hero-light.webp";
+import heroMobileDark from "../assets/hero-mobile-dark.webp";
+import heroMobileLight from "../assets/hero-mobile-light.webp";
 import { ClaudeLogo, GeminiLogo, OpenAILogo } from "../components/logos";
 import { MarketingFooter } from "../components/marketing/MarketingFooter";
 import { MarketingNav } from "../components/marketing/MarketingNav";
@@ -86,20 +88,26 @@ function Hero() {
 
   return (
     <section className="relative isolate min-h-[100svh] overflow-hidden">
-      {/* The artwork keeps its own aspect ratio and is anchored right, so the
-          whole spire and its ring stay in frame at every window size instead of
-          being cropped by a full-bleed cover. Its inner edge feathers into the
-          page colour, which is the same tone as the art's own field. */}
+      {/* The painting fills the frame. It is cut two ways: a 16:9 plate for
+          landscape windows and a portrait plate below md, so a phone downloads
+          the one that fits it rather than a wide crop of the other. The scrim
+          that keeps the copy legible lives on .hero-art::after. */}
       <div className="hero-art">
-        <img
-          key={theme}
-          src={theme === "dark" ? heroDark : heroLight}
-          alt=""
-          aria-hidden
-          draggable={false}
-          onLoad={() => setLoaded(true)}
-          className={`transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
-        />
+        <picture key={theme}>
+          <source
+            media="(max-width: 767px)"
+            srcSet={theme === "dark" ? heroMobileDark : heroMobileLight}
+          />
+          <img
+            src={theme === "dark" ? heroDark : heroLight}
+            alt=""
+            aria-hidden
+            draggable={false}
+            fetchPriority="high"
+            onLoad={() => setLoaded(true)}
+            className={`transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
+          />
+        </picture>
       </div>
       <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-surface to-transparent" />
 

@@ -10,7 +10,8 @@
  *     toggle in its header rather than floating over its corner.
  *
  * Sign in carries the art on the right, sign up on the left, so moving between
- * the two pages reads as a flip rather than a reload.
+ * the two pages reads as a flip rather than a reload. Each page has its own
+ * painting in each theme, so the flip changes the view as well as the side.
  *
  * The artwork is not rendered below lg, so phones never fetch it.
  */
@@ -19,8 +20,10 @@ import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import heroDark from "../../assets/hero-dark.webp";
-import heroLight from "../../assets/hero-light.webp";
+import loginDark from "../../assets/auth-login-dark.webp";
+import loginLight from "../../assets/auth-login-light.webp";
+import signupDark from "../../assets/auth-signup-dark.webp";
+import signupLight from "../../assets/auth-signup-light.webp";
 import { useTheme } from "../../lib/theme";
 import { Wordmark } from "../brand";
 import { TilesBackdrop } from "../marketing/Backdrop";
@@ -39,9 +42,15 @@ function useIsDesktop() {
   return wide;
 }
 
+/** The four paintings, keyed by page and theme. */
+const ART = {
+  login: { light: loginLight, dark: loginDark },
+  signup: { light: signupLight, dark: signupDark },
+};
+
 export function AuthShell(props: {
-  /** Which half the artwork takes. */
-  side: "left" | "right";
+  /** Picks the painting and, with it, the half the artwork takes. */
+  page: "login" | "signup";
   caption: string;
   captionSub: string;
   eyebrow: string;
@@ -52,7 +61,8 @@ export function AuthShell(props: {
 }) {
   const { theme } = useTheme();
   const showArt = useIsDesktop();
-  const artOnLeft = props.side === "left";
+  const artOnLeft = props.page === "signup";
+  const art = ART[props.page][theme === "dark" ? "dark" : "light"];
 
   return (
     <div className="auth-shell relative">
@@ -82,11 +92,11 @@ export function AuthShell(props: {
               }}
             >
               <img
-                src={theme === "dark" ? heroDark : heroLight}
+                src={art}
                 alt=""
                 aria-hidden
                 draggable={false}
-                className="absolute inset-0 h-full w-full object-cover object-[62%_top]"
+                className="absolute inset-0 h-full w-full object-cover object-center"
               />
               {/* Reading scrim for the caption. A gradient, not a backdrop
                   filter, so it costs nothing per frame. */}

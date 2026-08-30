@@ -30,7 +30,7 @@ export default function Login() {
 
   return (
     <AuthShell
-      side="right"
+      page="login"
       caption="Every model on your plan, one login."
       captionSub="Your Google accounts, chats and API keys are where you left them."
       eyebrow="Welcome Back"

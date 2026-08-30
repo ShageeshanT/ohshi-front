@@ -36,7 +36,7 @@ export default function Signup() {
 
   return (
     <AuthShell
-      side="left"
+      page="signup"
       caption="Start with the plan you have."
       captionSub="Connect a Google account and every model on it is yours, from chat and from the API."
       eyebrow="Get Started"

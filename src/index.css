@@ -154,59 +154,59 @@ pre,
   z-index: -20;
   overflow: hidden;
 }
-/* The painting is 3:2. Sized by height it keeps its own ratio, which is what
-   we want on the usual 16:9 and 16:10 windows. Two things break that:
-   an ultra wide window leaves a bare slab of surface on the left, and a tall
-   one pushes the art wider than the page. So the box is clamped to at least
-   62% of the viewport and at most all of it, and `cover` absorbs the
-   difference — cropping the water first, never the spire or its ring. */
+/* The painting fills the hero at every window ratio; `cover` decides what to
+   crop and the plate swap in Landing.tsx decides which cut is fetched. */
 .hero-art img {
   position: absolute;
-  top: 0;
-  right: 0;
+  inset: 0;
   height: 100%;
-  width: auto;
-  aspect-ratio: 3 / 2;
-  min-width: 62%;
-  max-width: 100%;
+  width: 100%;
   object-fit: cover;
-  /* Only an ultra wide, short window crops vertically; hold the ring and the
-     ridge rather than the empty sky above them. */
-  object-position: 55% 30%;
+  object-position: 50% 50%;
   user-select: none;
 }
-/* Below md the art is too wide to fit by height, so cover and hold the spire. */
-@media (max-width: 767px) {
-  .hero-art img {
-    width: 100%;
-    min-width: 0;
-    height: 100%;
-    object-position: 68% top;
-  }
-}
-/* Feather the artwork's left edge into the page colour. The source art's own
-   left edge is #F7F7F9 / #0A1018, i.e. the surface token, so the join reads as
-   one continuous field rather than a pasted photograph. */
+
+/* The scrim. Two layers: a bloom of page colour rolling in from the copy side
+   so the headline holds its contrast over the blossom and the lantern, and a
+   thin wash at the top and bottom so the pill and the section below meet the
+   painting rather than butt against it. Both are mixed from --color-surface,
+   so the same rule reads as haze at dawn and as dusk in the dark theme. */
 .hero-art::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to right,
-    var(--color-surface) 0%,
-    var(--color-surface) 12%,
-    color-mix(in srgb, var(--color-surface) 55%, transparent) 32%,
-    transparent 52%
-  );
+  background:
+    radial-gradient(
+      115% 118% at -6% 52%,
+      color-mix(in srgb, var(--color-surface) 90%, transparent) 0%,
+      color-mix(in srgb, var(--color-surface) 74%, transparent) 26%,
+      color-mix(in srgb, var(--color-surface) 40%, transparent) 46%,
+      color-mix(in srgb, var(--color-surface) 12%, transparent) 62%,
+      transparent 76%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) 45%, transparent) 0%,
+      color-mix(in srgb, var(--color-surface) 10%, transparent) 22%,
+      transparent 46%,
+      transparent 72%,
+      color-mix(in srgb, var(--color-surface) 55%, transparent) 100%
+    );
 }
+/* On a phone the copy sits over the whole width, so the bloom becomes a wash
+   from the top instead of from the left. */
 @media (max-width: 767px) {
   .hero-art::after {
-    background: linear-gradient(
-      to right,
-      var(--color-surface) 0%,
-      color-mix(in srgb, var(--color-surface) 78%, transparent) 52%,
-      color-mix(in srgb, var(--color-surface) 34%, transparent) 100%
-    );
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-surface) 88%, transparent) 0%,
+        color-mix(in srgb, var(--color-surface) 72%, transparent) 30%,
+        color-mix(in srgb, var(--color-surface) 52%, transparent) 50%,
+        color-mix(in srgb, var(--color-surface) 50%, transparent) 66%,
+        color-mix(in srgb, var(--color-surface) 58%, transparent) 84%,
+        color-mix(in srgb, var(--color-surface) 70%, transparent) 100%
+      );
   }
 }
 
