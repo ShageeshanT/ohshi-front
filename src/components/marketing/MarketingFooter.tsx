@@ -19,9 +19,10 @@ export function MarketingFooter() {
         <FooterColumn
           title="Product"
           links={[
-            { label: "Features", to: "/#features" },
+            { label: "Why Ohshi", to: "/#features" },
             { label: "How It Works", to: "/#how" },
-            { label: "Models", to: "/#models" },
+            { label: "Providers", to: "/#models" },
+            { label: "Live Quota", to: "/#quota" },
             { label: "Developers", to: "/#developers" },
           ]}
         />

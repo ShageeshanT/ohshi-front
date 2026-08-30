@@ -1,8 +1,12 @@
 /**
  * The public landing page at ohshi.space. Hero laid out like the brand
- * mockup on the full-bleed artwork, then features, how it works, the model
- * line-up, a developer snippet, FAQ, CTA and the footer. Smooth-scrolled with
- * Lenis; sections reveal on entry. All words come from content/landing.ts.
+ * mockup on the full-bleed artwork, then the pitch: why one subscription
+ * beats a subscription plus API credits (a before and after wiring diagram),
+ * how it works with a mock of each step, the providers and their plans (a hub
+ * diagram) with the model line-up, a live quota board, a developer snippet,
+ * FAQ, CTA and the footer. Smooth-scrolled with Lenis; sections reveal on
+ * entry. All words come from content/landing.ts; the diagrams and mocks from
+ * components/marketing/Diagrams.tsx.
  */
 
 import { motion } from "framer-motion";
@@ -16,7 +20,6 @@ import {
   Plug,
   ShieldCheck,
   Sparkles,
-  Waypoints,
 } from "lucide-react";
 import { useLenis } from "lenis/react";
 import { useEffect, useState } from "react";
@@ -26,11 +29,18 @@ import heroLight from "../assets/hero-light.webp";
 import heroMobileDark from "../assets/hero-mobile-dark.webp";
 import heroMobileLight from "../assets/hero-mobile-light.webp";
 import { ClaudeLogo, GeminiLogo, OpenAILogo } from "../components/logos";
+import {
+  PayTwiceDiagram,
+  ProviderCard,
+  ProviderHub,
+  QuotaBoard,
+  StepMock,
+} from "../components/marketing/Diagrams";
 import { MarketingFooter } from "../components/marketing/MarketingFooter";
 import { MarketingNav } from "../components/marketing/MarketingNav";
 import { Reveal } from "../components/marketing/Reveal";
 import { SmoothScroll } from "../components/marketing/SmoothScroll";
-import { COPY } from "../content/landing";
+import { COPY, PROVIDERS } from "../content/landing";
 import { useTheme } from "../lib/theme";
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -47,9 +57,10 @@ export default function Landing() {
         <MarketingNav />
         <HashScroller />
         <Hero />
-        <Features />
+        <Why />
         <HowItWorks />
-        <Models />
+        <Providers />
+        <Quota />
         <Developers />
         <Faq />
         <CallToAction />
@@ -176,24 +187,28 @@ function SectionHeader(props: { eyebrow: string; title: string; text?: string })
   );
 }
 
-const FEATURE_ICONS = [MessagesSquare, Code2, BarChart3, Waypoints];
+const FEATURE_ICONS = [MessagesSquare, Code2, BarChart3, KeyRound];
 
-function Features() {
-  const f = COPY.features;
+/** The pitch: the before and after wiring, then the four things you get. */
+function Why() {
+  const f = COPY.why;
   return (
     <section id="features" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
       <SectionHeader eyebrow={f.eyebrow} title={f.title} text={f.intro} />
-      <div className="mt-14 grid gap-4 sm:grid-cols-2">
+      <Reveal className="mt-14">
+        <PayTwiceDiagram />
+      </Reveal>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {f.cards.map((card, i) => {
           const Icon = FEATURE_ICONS[i % FEATURE_ICONS.length];
           return (
             <Reveal key={card.title} delay={i * 70}>
-              <div className="glass lift h-full p-6 sm:p-7">
+              <div className="glass lift h-full p-6">
                 <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent-soft text-accent">
                   <Icon className="h-5 w-5" />
                 </span>
                 <h3 className="mt-5 text-lg font-semibold tracking-tight">{card.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-ink-dim">{card.text}</p>
+                <p className="mt-2 text-[14.5px] leading-relaxed text-ink-dim">{card.text}</p>
               </div>
             </Reveal>
           );
@@ -210,19 +225,24 @@ function HowItWorks() {
   return (
     <section id="how" className="relative z-10 border-y border-edge/70 bg-panel-2/40 py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <SectionHeader eyebrow={h.eyebrow} title={h.title} />
+        <SectionHeader eyebrow={h.eyebrow} title={h.title} text={h.intro} />
         <ol className="mt-14 grid gap-4 md:grid-cols-3">
           {h.steps.map((s, i) => {
             const Icon = STEP_ICONS[i % STEP_ICONS.length];
             return (
               <Reveal key={s.title} delay={i * 90}>
-                <li className="glass relative h-full p-6 sm:p-7">
-                  <span className="absolute right-6 top-6 text-4xl font-semibold tracking-tight text-ink/[0.08]">
-                    0{i + 1}
-                  </span>
-                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-night text-white">
-                    <Icon className="h-5 w-5" />
-                  </span>
+                <li className="glass flex h-full flex-col p-5 sm:p-6">
+                  <div className="flex items-center justify-between">
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-night text-white">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
+                      Step 0{i + 1}
+                    </span>
+                  </div>
+                  <div className="mt-5">
+                    <StepMock step={i} />
+                  </div>
                   <h3 className="mt-5 text-lg font-semibold tracking-tight">{s.title}</h3>
                   <p className="mt-2 text-[15px] leading-relaxed text-ink-dim">{s.text}</p>
                 </li>
@@ -244,12 +264,32 @@ const MODELS = [
   { name: "Gemini 3.5 Flash", vendor: "Google", note: "Three effort levels", Logo: GeminiLogo },
 ];
 
-function Models() {
+/** The hub diagram, a card per provider, then what a plan lists today. */
+function Providers() {
+  const p = COPY.providers;
   const m = COPY.models;
   return (
     <section id="models" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
-      <SectionHeader eyebrow={m.eyebrow} title={m.title} text={m.intro} />
-      <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <SectionHeader eyebrow={p.eyebrow} title={p.title} text={p.intro} />
+      <Reveal className="mt-14">
+        <div className="glass p-5 sm:p-8">
+          <ProviderHub />
+        </div>
+      </Reveal>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {PROVIDERS.map((pr, i) => (
+          <Reveal key={pr.id} delay={i * 70}>
+            <ProviderCard provider={pr} />
+          </Reveal>
+        ))}
+      </div>
+
+      <Reveal className="mx-auto mt-24 max-w-2xl text-center">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{m.eyebrow}</p>
+        <h3 className="mk-h3 mt-3">{m.title}</h3>
+        <p className="mt-4 text-[16px] leading-relaxed text-ink-dim">{m.intro}</p>
+      </Reveal>
+      <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {/* min-w-0 on each card: the model name and note never wrap, so without
             it the single column on a phone widens to fit them and the page
             slides sideways. */}
@@ -275,6 +315,32 @@ function Models() {
   );
 }
 
+function Quota() {
+  const q = COPY.quota;
+  return (
+    <section id="quota" className="relative z-10 border-y border-edge/70 bg-panel-2/40 py-24 md:py-32">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 md:grid-cols-2">
+        <Reveal className="min-w-0 md:order-2">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{q.eyebrow}</p>
+          <h2 className="mk-h2 mt-3">{q.title}</h2>
+          <p className="mt-4 text-[17px] leading-relaxed text-ink-dim">{q.paragraph}</p>
+          <ul className="mt-6 space-y-3 text-[15px] text-ink/85">
+            {q.bullets.map((t) => (
+              <li key={t} className="flex items-start gap-2.5">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                {t}
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+        <Reveal delay={120} className="min-w-0 md:order-1">
+          <QuotaBoard />
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 const SNIPPET = `from openai import OpenAI
 
 client = OpenAI(
@@ -292,8 +358,8 @@ resp = client.chat.completions.create(
 function Developers() {
   const d = COPY.developers;
   return (
-    <section id="developers" className="relative z-10 border-y border-edge/70 bg-panel-2/40 py-24 md:py-32">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 md:grid-cols-2">
+    <section id="developers" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
+      <div className="grid items-center gap-12 md:grid-cols-2">
         <Reveal>
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{d.eyebrow}</p>
           <h2 className="mk-h2 mt-3">{d.title}</h2>
@@ -303,6 +369,16 @@ function Developers() {
               <li key={t} className="flex items-start gap-2.5">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                 {t}
+              </li>
+            ))}
+          </ul>
+          <ul className="mt-7 flex flex-wrap gap-2">
+            {d.integrations.map((name) => (
+              <li
+                key={name}
+                className="rounded-full border border-edge bg-panel px-3 py-1.5 text-[12.5px] font-medium text-ink/85"
+              >
+                {name}
               </li>
             ))}
           </ul>
