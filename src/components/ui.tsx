@@ -3,7 +3,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { ArrowUpRight, Loader2, X } from "lucide-react";
+import { ArrowUpRight, Loader2, User, X } from "lucide-react";
 
 export type Tone = "accent" | "ok" | "warn" | "danger" | "violet" | "dim";
 
@@ -314,7 +314,6 @@ export function Avatar(props: { name: string; size?: "sm" | "md" }) {
   let initials = "";
   if (parts.length >= 2) initials = (parts[0][0] + parts[1][0]).toUpperCase();
   else if (parts.length === 1) initials = parts[0].slice(0, 2).toUpperCase();
-  if (!initials) initials = "·";
 
   const palette = [
     "bg-accent text-accent-ink",
@@ -332,7 +331,7 @@ export function Avatar(props: { name: string; size?: "sm" | "md" }) {
       aria-hidden
       className={`flex shrink-0 items-center justify-center rounded-full font-bold tracking-tight ${dims} ${cls}`}
     >
-      {initials}
+      {initials || <User className={props.size === "sm" ? "h-4 w-4" : "h-5 w-5"} />}
     </span>
   );
 }

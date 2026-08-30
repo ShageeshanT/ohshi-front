@@ -136,32 +136,32 @@ interface UsageSummary {
 
 function endpointNote(endpoint?: string | null): string {
   if (!endpoint) return "";
-  if (endpoint.includes("daily-")) return " · via Google's daily endpoint";
-  if (endpoint.includes("autopush-")) return " · via Google's autopush endpoint";
+  if (endpoint.includes("daily-")) return ", via Google's daily endpoint";
+  if (endpoint.includes("autopush-")) return ", via Google's autopush endpoint";
   return "";
 }
 
-/** One plain-language line per account: working / failing / untested. */
+/** One plain language line per account: working, failing or untested. */
 function healthLine(c: Connection, testing: boolean): { tone: Tone; text: string } {
-  if (testing) return { tone: "dim", text: "Testing — sending a tiny message…" };
+  if (testing) return { tone: "dim", text: "Testing, sending a tiny message…" };
   if (c.status === "needs_reconnect") {
-    return { tone: "danger", text: "Google no longer accepts this sign-in — reconnect the account." };
+    return { tone: "danger", text: "Google no longer accepts this sign in. Reconnect the account." };
   }
   const h = c.health;
   if (!h || h.status === "unknown") {
-    return { tone: "dim", text: "Not tested yet — hit Test to check it actually answers." };
+    return { tone: "dim", text: "Not tested yet. Hit Test to check it actually answers." };
   }
   if (h.status === "ok") {
     const latency = h.lastLatencyMs != null ? ` in ${(h.lastLatencyMs / 1000).toFixed(1)}s` : "";
     return {
       tone: "ok",
-      text: `Working — ${h.lastModel ?? "it"} replied${latency} · ${timeAgo(h.lastOkMs)}${endpointNote(h.lastEndpoint)}`,
+      text: `Working, ${h.lastModel ?? "it"} replied${latency}, ${timeAgo(h.lastOkMs)}${endpointNote(h.lastEndpoint)}`,
     };
   }
-  const status = h.lastErrorStatus ? `HTTP ${h.lastErrorStatus} — ` : "";
+  const status = h.lastErrorStatus ? `HTTP ${h.lastErrorStatus}, ` : "";
   return {
     tone: h.lastErrorStatus === 429 ? "warn" : "danger",
-    text: `Failing — ${status}${h.lastError ?? "unknown error"} · ${timeAgo(h.lastErrorMs)}`,
+    text: `Failing, ${status}${h.lastError ?? "unknown error"}, ${timeAgo(h.lastErrorMs)}`,
   };
 }
 
@@ -276,7 +276,7 @@ export default function Dashboard() {
             Your Google accounts
           </h1>
           <p className="mt-1 text-sm text-ink-dim">
-            Connect once — every model call from your agents and from chat runs on your own Google plan.
+            Connect once. Every model call from your agents and from chat runs on your own Google plan.
           </p>
         </div>
         <Button onClick={() => setConnectOpen(true)} arrow>
@@ -299,7 +299,7 @@ export default function Dashboard() {
         <Card>
           <EmptyState
             title="No Google account connected yet"
-            hint="Sign in with Google, paste the code it shows you, and your agents get Gemini, Claude and GPT-OSS on that plan — with live remaining quota right here."
+            hint="Sign in with Google, paste the code it shows you, and your agents get Gemini, Claude and GPT-OSS on that plan, with live remaining quota right here."
             action={
               <Button onClick={() => setConnectOpen(true)} arrow>
                 <Plug className="h-4 w-4" /> Connect account
@@ -388,7 +388,7 @@ function ConnectionCard(props: {
               )}
               {connected ? (
                 c.health?.status === "error" ? (
-                  <Badge tone="danger">Connected · not answering</Badge>
+                  <Badge tone="danger">Connected, not answering</Badge>
                 ) : (
                   <Badge tone="ok">Connected</Badge>
                 )
@@ -401,12 +401,12 @@ function ConnectionCard(props: {
             {test && !testing && (
               <p className={`mt-1 text-xs ${test.ok ? "text-ok" : "text-danger"}`}>
                 {test.ok
-                  ? `Test passed — “${test.reply}” from ${test.model} via ${test.endpointLabel} in ${(test.latencyMs / 1000).toFixed(1)}s`
-                  : `Test failed — ${test.error}${test.tried?.length ? ` (tried ${test.tried.join(", ")})` : ""}`}
+                  ? `Test passed, “${test.reply}” from ${test.model} via ${test.endpointLabel} in ${(test.latencyMs / 1000).toFixed(1)}s`
+                  : `Test failed, ${test.error}${test.tried?.length ? ` (tried ${test.tried.join(", ")})` : ""}`}
               </p>
             )}
             <p className="mt-1 text-xs text-ink-dim">
-              Connected {timeAgo(c.connectedMs)} · project {c.projectId || "pending"}
+              Connected {timeAgo(c.connectedMs)}, project {c.projectId || "pending"}
             </p>
           </div>
         </div>
@@ -459,9 +459,9 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
           <h3 className="text-[13px] font-bold tracking-tight">Remaining usage</h3>
           <p className="text-[11px] text-ink-dim">
             {snapshot
-              ? `Live from Google · ${snapshot.endpointLabel} endpoint · ${timeAgo(snapshot.fetchedMs)}${
-                  snapshot.cached ? " · cached" : ""
-                }${exhaustedCount ? ` · ${exhaustedCount} model${exhaustedCount > 1 ? "s" : ""} out of quota` : ""}`
+              ? `Live from Google, ${snapshot.endpointLabel} endpoint, ${timeAgo(snapshot.fetchedMs)}${
+                  snapshot.cached ? ", cached" : ""
+                }${exhaustedCount ? `, ${exhaustedCount} model${exhaustedCount > 1 ? "s" : ""} out of quota` : ""}`
               : loading
                 ? "Reading your quota from Google…"
                 : "Quota unavailable"}
@@ -534,8 +534,8 @@ function FamilyRow(props: { family: FamilyQuota; now: number }) {
           </span>
         </span>
         <span className={`shrink-0 text-[11px] font-semibold ${toneCls}`}>
-          {f.remainingPercent === null ? "—" : f.exhausted ? "out of quota" : `${f.remainingPercent}%`}
-          {reset && <span className="ml-1 font-medium text-ink-dim">· {reset}</span>}
+          {f.remainingPercent === null ? "Unknown" : f.exhausted ? "out of quota" : `${f.remainingPercent}%`}
+          {reset && <span className="ml-1 font-medium text-ink-dim">{reset}</span>}
         </span>
       </div>
       <div className="mt-1.5">
@@ -546,7 +546,7 @@ function FamilyRow(props: { family: FamilyQuota; now: number }) {
           {f.variants.map((v) => (
             <span
               key={v.id}
-              title={`${v.id}${v.resetMs ? ` · resets ${countdown(v.resetMs, props.now)}` : ""}`}
+              title={`${v.id}${v.resetMs ? `, resets ${countdown(v.resetMs, props.now)}` : ""}`}
               className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                 v.exhausted ? "bg-danger-soft text-danger line-through" : "bg-ink/[0.06] text-ink-dim"
               }`}
@@ -583,7 +583,7 @@ function UsageSection(props: { usage: UsageSummary | null }) {
             <StatChip
               label="Tokens"
               value={formatNumber(u.totals.totalTokens)}
-              sub={`${formatNumber(u.totals.promptTokens)} in · ${formatNumber(u.totals.completionTokens)} out`}
+              sub={`${formatNumber(u.totals.promptTokens)} in, ${formatNumber(u.totals.completionTokens)} out`}
             />
             <StatChip
               label="Errors"
@@ -596,7 +596,7 @@ function UsageSection(props: { usage: UsageSummary | null }) {
             <Card>
               <EmptyState
                 title="No calls yet"
-                hint="Start a chat, or create an API key and point your agent at /v1 — requests show up here as they happen."
+                hint="Start a chat, or create an API key and point your agent at /v1. Requests show up here as they happen."
                 action={
                   <Link to="/app">
                     <Button tone="ghost">Open chat</Button>
@@ -640,9 +640,9 @@ function UsageSection(props: { usage: UsageSummary | null }) {
                       <div className="min-w-0">
                         <p className="mono truncate">{r.apiModel}</p>
                         <p className="text-ink-dim">
-                          {timeAgo(r.createdMs)} · {(r.latencyMs / 1000).toFixed(1)}s
-                          {r.streamed ? " · streamed" : ""}
-                          {r.status !== "ok" && r.error ? ` · ${r.error}` : ""}
+                          {timeAgo(r.createdMs)}, {(r.latencyMs / 1000).toFixed(1)}s
+                          {r.streamed ? ", streamed" : ""}
+                          {r.status !== "ok" && r.error ? `, ${r.error}` : ""}
                         </p>
                       </div>
                       <div className="shrink-0 text-right">

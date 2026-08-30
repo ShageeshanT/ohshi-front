@@ -14,7 +14,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowUp, Check, ChevronDown, ChevronRight, Copy, Plug, RefreshCw, Square } from "lucide-react";
+import { ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, Copy, Plug, RefreshCw, Square } from "lucide-react";
 import { useChatList } from "../App";
 import { BrandHero, BrandMark } from "../components/brand";
 import Markdown from "../components/Markdown";
@@ -246,7 +246,7 @@ export default function Chat() {
           finishWithPartial("interrupted");
         } else {
           finishWithPartial("interrupted");
-          setTurnError(friendly(e, "Couldn't reach the server — please try again."));
+          setTurnError(friendly(e, "Couldn't reach the server. Please try again."));
         }
       } finally {
         abortRef.current = null;
@@ -283,7 +283,7 @@ export default function Chat() {
         navigate(`/app/c/${created.chat.id}`, { state: { pending: text } satisfies PendingState });
       } catch (e) {
         setInput(text);
-        setTurnError(friendly(e, "Couldn't start a chat — please try again."));
+        setTurnError(friendly(e, "Couldn't start a chat. Please try again."));
       }
       return;
     }
@@ -352,40 +352,38 @@ export default function Chat() {
       </div>
 
       {isLanding ? (
-        <>
-          {/* Brand sits in the upper third; the composer is pinned to the bottom
-              exactly where it lives once a conversation starts. */}
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="rise-in mx-auto flex w-full max-w-3xl flex-col items-center px-4 pt-[16vh] md:pt-[20vh]">
-              <BrandHero />
-              {models && !models.connected && (
-                <div className="mt-8 w-full max-w-xl">
-                  <Notice tone="warn">
-                    <span className="normal-case">
-                      Connect a Google account first — every reply runs on your own Google plan.{" "}
-                      <Link to="/app/accounts" className="font-semibold underline underline-offset-2">
-                        Google accounts →
-                      </Link>
-                    </span>
-                  </Notice>
-                </div>
-              )}
-              {turnError && (
-                <div className="mt-4 w-full max-w-xl">
-                  <Notice tone="danger" onClose={() => setTurnError(null)}>
-                    {turnError}
-                  </Notice>
-                </div>
-              )}
-            </div>
+        /* Empty state: the lock-up and the composer sit together in the middle
+           of the page. The moment a conversation starts the lock-up goes and the
+           composer drops to the bottom of the screen. */
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-10">
+          <div className="rise-in flex w-full max-w-3xl flex-col items-center">
+            <BrandHero />
+            {models && !models.connected && (
+              <div className="mt-8 w-full max-w-xl">
+                <Notice tone="warn">
+                  <span className="normal-case">
+                    Connect a Google account first. Every reply runs on your own Google plan.{" "}
+                    <Link
+                      to="/app/accounts"
+                      className="inline-flex items-center gap-1 font-semibold underline underline-offset-2"
+                    >
+                      Google accounts <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </span>
+                </Notice>
+              </div>
+            )}
+            {turnError && (
+              <div className="mt-4 w-full max-w-xl">
+                <Notice tone="danger" onClose={() => setTurnError(null)}>
+                  {turnError}
+                </Notice>
+              </div>
+            )}
+            <div className="mt-9 w-full">{composer}</div>
+            <p className="mt-2 text-center text-[11px] text-ink-dim">Ohshi can make mistakes.</p>
           </div>
-          <div className="px-4 pb-4 pt-2">
-            <div className="mx-auto w-full max-w-3xl">
-              {composer}
-              <p className="mt-2 text-center text-[11px] text-ink-dim">Ohshi can make mistakes.</p>
-            </div>
-          </div>
-        </>
+        </div>
       ) : (
         <>
           <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto">
@@ -434,7 +432,7 @@ export default function Chat() {
               {!loading && !stream && !turnError && canRegenerate && (
                 <div className="flex justify-start">
                   <Button size="sm" tone="ghost" onClick={regenerate}>
-                    <RefreshCw className="h-3.5 w-3.5" /> No reply yet — generate one
+                    <RefreshCw className="h-3.5 w-3.5" /> No reply yet, generate one
                   </Button>
                 </div>
               )}

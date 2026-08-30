@@ -101,7 +101,7 @@ export default function SearchDialog(props: { open: boolean; onClose: () => void
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{r.chat.title || "New chat"}</span>
                     <span className="block truncate text-xs text-ink-dim">
-                      {r.snippet || `${r.chat.messageCount} messages · ${timeAgo(r.chat.updatedMs)}`}
+                      {r.snippet || `${r.chat.messageCount} messages, ${timeAgo(r.chat.updatedMs)}`}
                     </span>
                   </span>
                 </button>
@@ -110,7 +110,7 @@ export default function SearchDialog(props: { open: boolean; onClose: () => void
           )}
         </ul>
         {!q.trim() && rows.length > 0 && (
-          <p className="border-t border-edge px-4 py-2 text-[11px] text-ink-dim">Recent chats — type to search everything.</p>
+          <p className="border-t border-edge px-4 py-2 text-[11px] text-ink-dim">Recent chats. Type to search everything.</p>
         )}
       </div>
     </div>

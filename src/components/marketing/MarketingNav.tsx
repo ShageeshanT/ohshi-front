@@ -83,8 +83,8 @@ export function MarketingNav(props: { minimal?: boolean }) {
         animate={{
           marginTop: scrolled ? 10 : 22,
           maxWidth: scrolled ? 1000 : 1460,
-          paddingTop: scrolled ? 6 : 11,
-          paddingBottom: scrolled ? 6 : 11,
+          paddingTop: scrolled ? 7 : 12,
+          paddingBottom: scrolled ? 7 : 12,
           paddingLeft: scrolled ? 18 : 30,
           paddingRight: scrolled ? 8 : 14,
         }}
@@ -101,7 +101,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
           <Link to="/" aria-label="Ohshi home" className="relative block shrink-0">
             <motion.span
               initial={false}
-              animate={{ width: scrolled ? 34 : 128, height: scrolled ? 36 : 50 }}
+              animate={{ width: scrolled ? 40 : 152, height: scrolled ? 42 : 60 }}
               transition={spring}
               className="relative block"
             >
@@ -112,7 +112,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
                 initial={false}
                 animate={{ opacity: scrolled ? 0 : 1, scale: scrolled ? 0.85 : 1 }}
                 transition={{ duration: 0.22 }}
-                className="absolute left-0 top-0 h-[50px] w-auto select-none"
+                className="absolute left-0 top-0 h-[60px] w-auto select-none"
                 style={{ transformOrigin: "left center" }}
               />
               <motion.img
@@ -123,7 +123,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
                 initial={false}
                 animate={{ opacity: scrolled ? 1 : 0, scale: scrolled ? 1 : 0.8 }}
                 transition={{ duration: 0.22 }}
-                className="absolute left-0 top-0 h-9 w-auto select-none"
+                className="absolute left-0 top-0 h-[42px] w-auto select-none"
                 style={{ transformOrigin: "left center" }}
               />
             </motion.span>

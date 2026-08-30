@@ -134,7 +134,7 @@ export async function readSSE(
 }
 
 /** Friendly error line for the UI. */
-export function friendly(e: unknown, fallback = "Something went wrong — please try again."): string {
+export function friendly(e: unknown, fallback = "Something went wrong. Please try again."): string {
   if (e instanceof ApiError) return e.message || fallback;
   if (e instanceof Error && e.name === "AbortError") return "";
   return fallback;

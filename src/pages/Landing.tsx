@@ -78,19 +78,6 @@ function HashScroller() {
 
 // --- hero --------------------------------------------------------------------------
 
-/** Split line2 around the accent word so it can be coloured. */
-function AccentLine(props: { text: string; accent: string }) {
-  const i = props.accent ? props.text.indexOf(props.accent) : -1;
-  if (i < 0) return <>{props.text}</>;
-  return (
-    <>
-      {props.text.slice(0, i)}
-      <span className="hero-accent">{props.accent}</span>
-      {props.text.slice(i + props.accent.length)}
-    </>
-  );
-}
-
 function Hero() {
   const { theme } = useTheme();
   const lenis = useLenis();
@@ -99,20 +86,21 @@ function Hero() {
 
   return (
     <section className="relative isolate min-h-[100svh] overflow-hidden">
-      {/* Full-bleed brand artwork, anchored to the top so the spire and its
-          ring are always in frame; the lake at the bottom is what gets cropped. */}
-      <img
-        key={theme}
-        src={theme === "dark" ? heroDark : heroLight}
-        alt=""
-        aria-hidden
-        onLoad={() => setLoaded(true)}
-        className={`absolute inset-0 -z-20 h-full w-full object-cover object-[70%_top] transition-opacity duration-700 md:object-[center_top] ${
-          loaded ? "opacity-100" : "opacity-0"
-        }`}
-      />
-      {/* A light veil behind the copy only; the artwork's own hex field does the rest. */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-surface/90 via-surface/60 to-surface/20 md:from-surface/45 md:via-surface/10 md:to-transparent" />
+      {/* The artwork keeps its own aspect ratio and is anchored right, so the
+          whole spire and its ring stay in frame at every window size instead of
+          being cropped by a full-bleed cover. Its inner edge feathers into the
+          page colour, which is the same tone as the art's own field. */}
+      <div className="hero-art">
+        <img
+          key={theme}
+          src={theme === "dark" ? heroDark : heroLight}
+          alt=""
+          aria-hidden
+          draggable={false}
+          onLoad={() => setLoaded(true)}
+          className={`transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
+        />
+      </div>
       <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-surface to-transparent" />
 
       <div className="mx-auto flex min-h-[100svh] max-w-[1460px] flex-col px-6 pb-28 pt-[26vh] sm:px-10 lg:px-[5.5%]">
@@ -129,7 +117,7 @@ function Hero() {
           >
             {h.line1}
             <br />
-            <AccentLine text={h.line2} accent={h.accentWord} />
+            {h.line2}
           </motion.h1>
           <motion.p
             {...rise(0.28)}
@@ -246,12 +234,12 @@ function HowItWorks() {
 }
 
 const MODELS = [
-  { name: "Gemini 3.6 Flash", vendor: "Google", note: "Fast default · low / medium / high", Logo: GeminiLogo },
-  { name: "Gemini 3.1 Pro", vendor: "Google", note: "Deepest Gemini · low / high", Logo: GeminiLogo },
-  { name: "Claude Sonnet 4.6", vendor: "Anthropic", note: "Thinking · 250k context", Logo: ClaudeLogo },
-  { name: "Claude Opus 4.6", vendor: "Anthropic", note: "Thinking · 250k context", Logo: ClaudeLogo },
-  { name: "GPT-OSS 120B", vendor: "OpenAI", note: "Open weights · medium reasoning", Logo: OpenAILogo },
-  { name: "Gemini 3.5 Flash", vendor: "Google", note: "low / medium / high", Logo: GeminiLogo },
+  { name: "Gemini 3.6 Flash", vendor: "Google", note: "Fast default, three effort levels", Logo: GeminiLogo },
+  { name: "Gemini 3.1 Pro", vendor: "Google", note: "Deepest Gemini, two effort levels", Logo: GeminiLogo },
+  { name: "Claude Sonnet 4.6", vendor: "Anthropic", note: "Thinking, 250k context", Logo: ClaudeLogo },
+  { name: "Claude Opus 4.6", vendor: "Anthropic", note: "Thinking, 250k context", Logo: ClaudeLogo },
+  { name: "GPT-OSS 120B", vendor: "OpenAI", note: "Open weights, medium reasoning", Logo: OpenAILogo },
+  { name: "Gemini 3.5 Flash", vendor: "Google", note: "Three effort levels", Logo: GeminiLogo },
 ];
 
 function Models() {
@@ -268,8 +256,10 @@ function Models() {
               </span>
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-semibold tracking-tight">{model.name}</p>
-                <p className="truncate text-xs text-ink-dim">
-                  {model.vendor} · {model.note}
+                <p className="flex items-center gap-1.5 text-xs text-ink-dim">
+                  <span className="shrink-0">{model.vendor}</span>
+                  <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-current opacity-50" />
+                  <span className="truncate">{model.note}</span>
                 </p>
               </div>
             </div>
@@ -316,7 +306,11 @@ function Developers() {
           <div className="glass overflow-hidden p-2">
             <div className="flex items-center justify-between px-3 py-2 text-[11px] text-ink-dim">
               <span className="mono">agent.py</span>
-              <span>Python · openai</span>
+              <span className="flex items-center gap-1.5">
+                Python
+                <span aria-hidden className="h-1 w-1 rounded-full bg-current opacity-50" />
+                openai
+              </span>
             </div>
             <pre className="mono overflow-x-auto rounded-2xl bg-code p-5 text-[13px] leading-relaxed text-[#e6e8eb]">
               <code>{SNIPPET}</code>

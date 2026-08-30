@@ -107,7 +107,7 @@ export default function Keys() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{k.name || "Untitled key"}</p>
                     <p className="text-xs text-ink-dim">
-                      <span className="mono">{k.prefix}…</span> · created {timeAgo(k.createdMs)} · last used{" "}
+                      <span className="mono">{k.prefix}…</span>, created {timeAgo(k.createdMs)}, last used{" "}
                       {timeAgo(k.lastUsedMs)}
                     </p>
                   </div>
@@ -175,7 +175,7 @@ export default function Keys() {
           </div>
         ) : (
           <div className="space-y-4">
-            <Field label="Name" hint="Something you'll recognise, like “support-bot (prod)”.">
+            <Field label="Name" hint="Something you'll recognise, like “support bot (prod)”.">
               <Input value={name} onChange={setName} placeholder="my agent" autoFocus onEnter={create} />
             </Field>
             <Button onClick={create} busy={creating}>

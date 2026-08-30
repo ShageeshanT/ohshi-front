@@ -22,7 +22,7 @@ export default function Privacy() {
       <h2 id="collect">1. What we collect</h2>
       <h3>Account</h3>
       <ul>
-        <li>Your email address and a password hash (Argon2id — we never store the password itself).</li>
+        <li>Your email address and a password hash (Argon2id, we never store the password itself).</li>
         <li>An optional display name.</li>
         <li>The date you accepted the Terms, and which version.</li>
       </ul>
@@ -40,14 +40,14 @@ export default function Privacy() {
       <ul>
         <li>Chats you create in the workspace: your messages and the model's replies, including any reasoning trace.</li>
         <li>
-          For API requests (<code>/v1</code>) we store <strong>metadata only</strong> — model, token counts, timing,
-          status and any error — <strong>not</strong> the prompts or responses themselves.
+          For API requests (<code>/v1</code>) we store <strong>metadata only</strong>: model, token counts, timing,
+          status and any error. We do <strong>not</strong> store the prompts or responses themselves.
         </li>
       </ul>
       <h3>Keys and sessions</h3>
       <ul>
         <li>API keys are stored as SHA-256 hashes plus a short display prefix; the full key is shown to you once.</li>
-        <li>For sign-in sessions: a random session token (hashed), the IP address and browser user agent, and timestamps.</li>
+        <li>For sign in sessions: a random session token (hashed), the IP address and browser user agent, and timestamps.</li>
       </ul>
       <h3>Cookies and local storage</h3>
       <ul>
@@ -79,7 +79,7 @@ export default function Privacy() {
           Railway-managed volumes or databases in the region of our deployment.
         </li>
         <li>
-          <strong>Authentication provider.</strong> If we adopt a third-party sign-in provider, your email and sign-in
+          <strong>Authentication provider.</strong> If we adopt a third party sign in provider, your email and sign in
           events will be processed by that provider under its own policy; we will update this page when that happens.
         </li>
         <li>
@@ -92,7 +92,7 @@ export default function Privacy() {
       <h2 id="retention">4. How long we keep it</h2>
       <ul>
         <li>Sign-in sessions: 30 days of inactivity, then deleted.</li>
-        <li>Pending Google sign-in state: 15 minutes.</li>
+        <li>Pending Google sign in state: 15 minutes.</li>
         <li>API usage metadata: 90 days, then pruned automatically.</li>
         <li>Chats: until you delete them.</li>
         <li>Google tokens: until you disconnect the account, delete your account, or Google invalidates them.</li>
@@ -103,14 +103,14 @@ export default function Privacy() {
       <p>
         Google tokens are encrypted at rest; passwords are hashed with Argon2id; traffic is encrypted in transit with
         TLS; API keys are hashed; sessions are HttpOnly cookies protected against cross-site requests. No system is
-        perfectly secure — if we learn of a breach affecting you, we will tell you without undue delay.
+        perfectly secure. If we learn of a breach affecting you, we will tell you without undue delay.
       </p>
 
       <h2 id="rights">6. Your choices and rights</h2>
       <ul>
         <li>Disconnect a Google account at any time from the accounts page; this deletes the tokens we hold.</li>
         <li>
-          To revoke Ohshi on Google's side too, remove it under your Google account's third-party access settings.
+          To revoke Ohshi on Google's side too, remove it under your Google account's third party access settings.
         </li>
         <li>Delete individual chats from the sidebar. Revoke API keys from the keys page.</li>
         <li>
@@ -118,7 +118,7 @@ export default function Privacy() {
         </li>
         <li>
           Depending on where you live you may have further rights (access, correction, portability, objection,
-          complaint to a supervisory authority). We honour them regardless of location — just ask.
+          complaint to a supervisory authority). We honour them regardless of location. Just ask.
         </li>
       </ul>
 

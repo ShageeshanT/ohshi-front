@@ -128,12 +128,12 @@ export function familyName(family: ModelFamily): string {
   return family.known ? family.label : (family.variants[0]?.displayName ?? family.id);
 }
 
-/** "Gemini 3.6 Flash · High" for the picker button / message footer. */
+/** "Gemini 3.6 Flash, High" for the picker button and message footer. */
 export function modelLabel(models: ChatModelsPayload | null, id: string): string {
   if (!id) return "Model";
   const hit = models ? findVariant(models, id) : null;
   if (!hit) return id;
-  const effort = hit.variant.effort ? ` · ${effortLabel(hit.variant.effort)}` : "";
+  const effort = hit.variant.effort ? `, ${effortLabel(hit.variant.effort)}` : "";
   return `${familyName(hit.family)}${effort}`;
 }
 

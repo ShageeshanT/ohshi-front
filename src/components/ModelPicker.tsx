@@ -120,8 +120,8 @@ export default function ModelPicker(props: {
             <div className="min-w-0">
               <p className="truncate text-[11px] text-ink-dim">
                 {m?.connected
-                  ? `${m.email}${m.quotaAvailable && m.fetchedMs ? ` · quota ${timeAgo(m.fetchedMs)}` : ""}`
-                  : "Built-in catalog — connect Google for live quota"}
+                  ? `${m.email}${m.quotaAvailable && m.fetchedMs ? `, quota ${timeAgo(m.fetchedMs)}` : ""}`
+                  : "Fallback catalog. Connect Google for live quota"}
               </p>
               {m?.error && <p className="mt-0.5 text-[11px] text-warn">{m.error}</p>}
             </div>
@@ -203,7 +203,7 @@ function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: str
           {f.remainingPercent === null
             ? ""
             : f.exhausted
-              ? `out${f.resetMs ? ` · ${countdown(f.resetMs)}` : ""}`
+              ? `out${f.resetMs ? `, ${countdown(f.resetMs)}` : ""}`
               : `${f.remainingPercent}%`}
         </span>
       </div>

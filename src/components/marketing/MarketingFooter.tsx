@@ -20,7 +20,7 @@ export function MarketingFooter() {
           title="Product"
           links={[
             { label: "Features", to: "/#features" },
-            { label: "How it works", to: "/#how" },
+            { label: "How It Works", to: "/#how" },
             { label: "Models", to: "/#models" },
             { label: "Developers", to: "/#developers" },
           ]}
@@ -28,9 +28,9 @@ export function MarketingFooter() {
         <FooterColumn
           title="Account"
           links={[
-            { label: "Sign in", to: "/login" },
-            { label: "Create account", to: "/signup" },
-            { label: "Open the app", to: "/app" },
+            { label: "Sign In", to: "/login" },
+            { label: "Create Account", to: "/signup" },
+            { label: "Open the App", to: "/app" },
           ]}
         />
         <FooterColumn
@@ -43,7 +43,11 @@ export function MarketingFooter() {
       </div>
       <div className="border-t border-edge/70">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-5 text-xs text-ink-dim sm:px-8">
-          <span>© {YEAR} Ohshi · ohshi.space</span>
+          <span className="flex items-center gap-1.5">
+            © {YEAR} Ohshi
+            <span aria-hidden className="h-1 w-1 rounded-full bg-current opacity-50" />
+            ohshi.space
+          </span>
           <span>{COPY.footer.disclaimer}</span>
         </div>
       </div>

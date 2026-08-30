@@ -62,12 +62,12 @@ export default function Docs() {
           Using the gateway
         </h1>
         <p className="mt-1 text-sm text-ink-dim">
-          Any OpenAI-compatible client works. Base URL <code className="mono text-accent">{base}</code>, key from
+          Any OpenAI compatible client works. Base URL <code className="mono text-accent">{base}</code>, key from
           the API keys page. Calls run on your default connected Google account.
         </p>
       </header>
 
-      <Card title="1 · Pick a model">
+      <Card title="Step 1. Pick a model">
         {families === null ? (
           <Spinner label="Loading the catalog…" />
         ) : (
@@ -94,7 +94,7 @@ export default function Docs() {
                   <span className="mono truncate text-[11px] text-ink-dim">{f.id}</span>
                   <span className="text-[11px] text-ink-dim">
                     {VENDOR_LABEL[f.vendor] ?? f.vendor}
-                    {f.efforts.length > 0 && ` · ${f.efforts.length} effort levels`}
+                    {f.efforts.length > 0 && `, ${f.efforts.length} effort levels`}
                   </span>
                 </button>
               );
@@ -120,7 +120,7 @@ export default function Docs() {
                   }`}
                 >
                   {effortLabel(e)}
-                  {e === family.defaultEffort && " ·"}
+                  {e === family.defaultEffort && <Check className="ml-1 inline h-3 w-3 align-[-1px]" />}
                 </button>
               ))}
             </div>
@@ -136,7 +136,7 @@ export default function Docs() {
 
       {family && (
         <Card
-          title="2 · Send the request"
+          title="Step 2. Send the request"
           aside={<Tabs tabs={LANGS} active={lang} onChange={setLang} />}
         >
           <Snippet code={snippetFor(lang, base, family, effort)} />
@@ -181,28 +181,28 @@ export default function Docs() {
           <li className="flex gap-2">
             <Badge tone="danger">401</Badge>
             <span>
-              <code className="mono text-ink">authentication_error</code> — missing, wrong or revoked API key.
+              <code className="mono text-ink">authentication_error</code>: missing, wrong or revoked API key.
             </span>
           </li>
           <li className="flex gap-2">
             <Badge tone="warn">409/403</Badge>
             <span>
-              <code className="mono text-ink">google_account_error</code> — no Google account connected, or it
+              <code className="mono text-ink">google_account_error</code>: no Google account connected, or it
               needs reconnecting. The accounts page shows which.
             </span>
           </li>
           <li className="flex gap-2">
             <Badge tone="warn">429</Badge>
             <span>
-              <code className="mono text-ink">rate_limit_error</code> — quota exhausted on every Code Assist
-              endpoint. The message lists what was tried, and <code className="mono text-ink">Retry-After</code>{" "}
+              <code className="mono text-ink">rate_limit_error</code>: quota exhausted on every Code Assist
+              endpoint. The message lists what was tried, and <code className="mono">Retry-After</code>{" "}
               is set when Google gives one.
             </span>
           </li>
           <li className="flex gap-2">
             <Badge tone="dim">404</Badge>
             <span>
-              <code className="mono text-ink">invalid_request_error</code> — that model isn't on this Google plan.
+              <code className="mono text-ink">invalid_request_error</code>: that model isn't on this Google plan.
             </span>
           </li>
         </ul>
