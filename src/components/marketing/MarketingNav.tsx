@@ -79,8 +79,9 @@ export function MarketingNav(props: { minimal?: boolean }) {
     else el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  /* The lock-up is 152x60 at rest; a tight window gets the same art, smaller. */
-  const lockupH = narrow ? 40 : dense ? 46 : 60;
+  /* The lock-up art is 152x60; the pill wears it at 46 high at rest and smaller
+     still on a tight window, which is what sets the whole bar's height. */
+  const lockupH = narrow ? 36 : dense ? 40 : 46;
   const lockupW = Math.round((lockupH * 152) / 60);
 
   const actions = me ? (
@@ -103,12 +104,12 @@ export function MarketingNav(props: { minimal?: boolean }) {
       <motion.div
         initial={false}
         animate={{
-          marginTop: scrolled ? 10 : dense ? 12 : 22,
-          maxWidth: scrolled ? 1000 : 1460,
-          paddingTop: scrolled ? 7 : dense ? 8 : 12,
-          paddingBottom: scrolled ? 7 : dense ? 8 : 12,
-          paddingLeft: scrolled ? 18 : narrow ? 18 : dense ? 22 : 30,
-          paddingRight: scrolled ? 8 : narrow ? 8 : dense ? 10 : 14,
+          marginTop: scrolled ? 9 : dense ? 12 : 16,
+          maxWidth: scrolled ? 960 : 1380,
+          paddingTop: scrolled ? 6 : dense ? 7 : 9,
+          paddingBottom: scrolled ? 6 : dense ? 7 : 9,
+          paddingLeft: scrolled ? 15 : narrow ? 15 : dense ? 18 : 24,
+          paddingRight: scrolled ? 7 : narrow ? 7 : dense ? 9 : 12,
         }}
         transition={spring}
         className={`mk-nav pointer-events-auto relative mx-auto flex items-center rounded-full ${
@@ -123,7 +124,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
           <Link to="/" aria-label="Ohshi home" className="relative block shrink-0">
             <motion.span
               initial={false}
-              animate={{ width: scrolled ? 40 : lockupW, height: scrolled ? 42 : lockupH }}
+              animate={{ width: scrolled ? 34 : lockupW, height: scrolled ? 36 : lockupH }}
               transition={spring}
               className="relative block"
             >
@@ -145,7 +146,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
                 initial={false}
                 animate={{ opacity: scrolled ? 1 : 0, scale: scrolled ? 1 : 0.8 }}
                 transition={{ duration: 0.22 }}
-                className="absolute left-0 top-0 h-[42px] w-auto select-none"
+                className="absolute left-0 top-0 h-[36px] w-auto select-none"
                 style={{ transformOrigin: "left center" }}
               />
             </motion.span>
@@ -153,7 +154,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
         </div>
 
         {!props.minimal && (
-          <nav className={`mx-6 hidden shrink-0 items-center lg:flex ${scrolled ? "gap-6" : "gap-9"}`}>
+          <nav className={`mx-5 hidden shrink-0 items-center lg:flex ${scrolled ? "gap-5" : "gap-7"}`}>
             {NAV_LINKS.map((l) => (
               <button
                 key={l.hash}

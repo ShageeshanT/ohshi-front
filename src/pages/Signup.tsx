@@ -41,7 +41,7 @@ export default function Signup() {
       captionSub="Connect a Google account and every model on it is yours, from chat and from the API."
       eyebrow="Get Started"
       title="Create Your Account"
-      subtitle="Then connect a Google account and every model on that plan is yours to use."
+      subtitle="Connect a Google account next to use its models."
       footer={
         <>
           Already have an account?{" "}
@@ -51,7 +51,7 @@ export default function Signup() {
         </>
       }
     >
-      <form onSubmit={submit} className="space-y-5">
+      <form onSubmit={submit} className="auth-stack">
         {!registrationOpen && (
           <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
             Sign ups are closed at the moment. If you already have an account,{" "}
@@ -71,13 +71,13 @@ export default function Signup() {
             placeholder="you@example.com"
           />
         </Field>
-        <Field label="Password" hint="At least 8 characters.">
+        <Field label="Password">
           <Input
             value={password}
             onChange={setPassword}
             type="password"
             autoComplete="new-password"
-            placeholder="••••••••••"
+            placeholder="At least 8 characters"
           />
         </Field>
         <Field label="Confirm Password" hint={mismatch ? "Passwords don't match yet." : undefined}>
@@ -91,7 +91,7 @@ export default function Signup() {
           />
         </Field>
 
-        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-edge bg-panel-2/60 px-4 py-3.5 text-sm leading-relaxed">
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-2xl border border-edge bg-panel-2/60 px-3.5 py-[clamp(0.5rem,1.6vh,0.875rem)] text-[13px] leading-snug">
           <input
             type="checkbox"
             checked={accepted}
@@ -105,7 +105,7 @@ export default function Signup() {
             <Check className={`h-3.5 w-3.5 text-accent-ink transition-opacity ${accepted ? "opacity-100" : "opacity-0"}`} />
           </span>
           <span className="text-ink/85">
-            I have read and agree to the{" "}
+            I agree to the{" "}
             <Link to="/terms" target="_blank" rel="noreferrer" className="font-semibold text-accent hover:underline">
               Terms and Conditions
             </Link>{" "}
@@ -113,7 +113,7 @@ export default function Signup() {
             <Link to="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-accent hover:underline">
               Privacy Policy
             </Link>
-            , including that model usage runs on the Google account I connect and is subject to Google's terms.
+            , and that usage runs on the Google account I connect.
           </span>
         </label>
 

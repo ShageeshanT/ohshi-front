@@ -45,7 +45,7 @@ export default function Login() {
         </>
       }
     >
-      <form onSubmit={submit} className="space-y-5">
+      <form onSubmit={submit} className="auth-stack">
         <Field label="Email">
           <Input
             value={email}
