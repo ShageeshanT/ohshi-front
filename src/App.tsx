@@ -59,9 +59,17 @@ interface AuthState {
   me: Me | null;
   setMe: (me: Me | null) => void;
   signOut: () => Promise<void>;
+  /** Set when Clerk vouched for the visitor but the API refused the session —
+   *  the server's own words, shown by ClerkSessionGuard on the auth pages. */
+  authError: string | null;
 }
 
-const AuthContext = createContext<AuthState>({ me: null, setMe: () => {}, signOut: async () => {} });
+const AuthContext = createContext<AuthState>({
+  me: null,
+  setMe: () => {},
+  signOut: async () => {},
+  authError: null,
+});
 export const useAuth = () => useContext(AuthContext);
 
 // --- chat list (sidebar history) ---------------------------------------------------
@@ -174,7 +182,7 @@ function SessionAuthGate() {
   }, [navigate, setMe]);
 
   if (me === undefined) return <PageFallback />;
-  return <AuthedRoutes me={me} setMe={setMe} signOut={signOut} />;
+  return <AuthedRoutes me={me} setMe={setMe} signOut={signOut} authError={null} />;
 }
 
 /**
@@ -186,6 +194,7 @@ function ClerkAuthGate() {
   const { isLoaded, isSignedIn, getToken, signOut: clerkSignOut } = useClerkAuth();
   const { failed: clerkFailed } = useClerkReady();
   const [me, setMeState] = useState<Me | null | undefined>(undefined);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const setMe = useCallback((value: Me | null) => setMeState(value), []);
@@ -216,6 +225,7 @@ function ClerkAuthGate() {
     if (!isLoaded) return;
     if (!isSignedIn) {
       setMe(null);
+      setAuthError(null);
       return;
     }
     let cancelled = false;
@@ -227,10 +237,18 @@ function ClerkAuthGate() {
             "This build signs in with Clerk but the backend does not — set OHSHI_CLERK_PUBLISHABLE_KEY on the API.",
           );
         }
+        setAuthError(null);
         setMe(value);
       })
-      .catch(() => {
-        if (!cancelled) setMe(null);
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        // Clerk vouched for the visitor but our API said no. Losing the
+        // reason here is how "You're already signed in." dead ends happen —
+        // keep the server's words for the auth pages to show.
+        const reason = err instanceof Error ? err.message : String(err);
+        console.error("The API refused the Clerk session:", reason);
+        setAuthError(reason);
+        setMe(null);
       });
     return () => {
       cancelled = true;
@@ -260,7 +278,7 @@ function ClerkAuthGate() {
   // must never depend on an auth vendor's script arriving.
   // `me` stays undefined until Clerk has loaded and /api/auth/me answered,
   // or until the watchdog above decides Clerk is not coming.
-  return <AuthedRoutes me={me} setMe={setMe} signOut={signOut} />;
+  return <AuthedRoutes me={me} setMe={setMe} signOut={signOut} authError={authError} />;
 }
 
 /**
@@ -273,12 +291,13 @@ function AuthedRoutes(props: {
   me: Me | null | undefined;
   setMe: (me: Me | null) => void;
   signOut: () => Promise<void>;
+  authError: string | null;
 }) {
-  const { me, setMe, signOut } = props;
+  const { me, setMe, signOut, authError } = props;
   const lazyPage = (node: ReactNode) => <Suspense fallback={<PageFallback />}>{node}</Suspense>;
 
   return (
-    <AuthContext.Provider value={{ me: me ?? null, setMe, signOut }}>
+    <AuthContext.Provider value={{ me: me ?? null, setMe, signOut, authError }}>
       <Routes>
         <Route path="/" element={lazyPage(<Landing />)} />
         <Route path="/terms" element={lazyPage(<Terms />)} />

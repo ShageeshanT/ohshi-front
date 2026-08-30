@@ -8,6 +8,7 @@ import { useAuth } from "../App";
 import { AuthShell } from "../components/auth/AuthShell";
 import { CLERK_ENABLED } from "../lib/clerk";
 import { ClerkSignupForm } from "./auth/ClerkSignupForm";
+import { ClerkSessionGuard } from "./auth/ClerkSessionGuard";
 import { PasswordSignupForm } from "./auth/PasswordSignupForm";
 
 export default function Signup() {
@@ -32,7 +33,9 @@ export default function Signup() {
       }
     >
       {CLERK_ENABLED ? (
-        <ClerkSignupForm registrationOpen={registrationOpen} />
+        <ClerkSessionGuard>
+          <ClerkSignupForm registrationOpen={registrationOpen} />
+        </ClerkSessionGuard>
       ) : (
         <PasswordSignupForm registrationOpen={registrationOpen} />
       )}
