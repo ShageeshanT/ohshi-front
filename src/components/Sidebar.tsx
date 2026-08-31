@@ -10,9 +10,9 @@ import {
   ChevronsLeft,
   ChevronsRight,
   KeyRound,
+  LayoutDashboard,
   LogOut,
   Pencil,
-  Plug,
   Search,
   SquarePen,
   Trash2,
@@ -102,7 +102,7 @@ export default function Sidebar(p: SidebarProps) {
 
         <div className="mt-5 space-y-1 px-3">
           {!p.collapsed && <SectionLabel>Workspace</SectionLabel>}
-          <SideLink icon={Plug} label="Google accounts" to="/app/accounts" collapsed={p.collapsed} onClick={p.onMobileClose} />
+          <SideLink icon={LayoutDashboard} label="Dashboard" to="/app/accounts" collapsed={p.collapsed} onClick={p.onMobileClose} />
           <SideLink icon={KeyRound} label="API keys" to="/app/keys" collapsed={p.collapsed} onClick={p.onMobileClose} />
           <SideLink icon={BookOpen} label="Docs" to="/app/docs" collapsed={p.collapsed} onClick={p.onMobileClose} />
         </div>
@@ -140,15 +140,25 @@ export default function Sidebar(p: SidebarProps) {
           }`}
         >
           {p.collapsed && <ThemeToggle compact />}
-          <span title={p.user.email}>
+          <Link
+            to="/app/profile"
+            title="Open profile and settings"
+            aria-label="Open profile and settings"
+            onClick={p.onMobileClose}
+            className="rounded-full transition-transform hover:scale-105 focus-visible:outline-none"
+          >
             <Avatar name={name} size="sm" />
-          </span>
+          </Link>
           {!p.collapsed && (
             <>
-              <div className="min-w-0 flex-1">
+              <Link
+                to="/app/profile"
+                onClick={p.onMobileClose}
+                className="min-w-0 flex-1 rounded-md outline-none hover:text-accent focus-visible:ring-2 focus-visible:ring-accent/40"
+              >
                 <p className="truncate text-[13px] font-semibold">{name}</p>
                 <p className="truncate text-[11px] text-ink-dim">{p.user.email}</p>
-              </div>
+              </Link>
               <ThemeToggle compact />
               <button
                 type="button"

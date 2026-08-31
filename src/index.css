@@ -889,6 +889,123 @@ pre,
 .route-fade {
   animation: route-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
+
+/* ── signed-in workspace ─────────────────────────────────────────────────── */
+/* Page routes own a Lenis instance instead of borrowing the document-level
+   marketing scroller. This keeps the app's fixed rail fixed while the content
+   pane has the same soft, deliberate momentum. */
+.app-smooth-scroll {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.app-smooth-scroll.lenis {
+  height: 100%;
+}
+
+.dashboard-hero,
+.profile-hero {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  background:
+    radial-gradient(circle at 86% 12%, color-mix(in srgb, var(--color-glow) 22%, transparent), transparent 29%),
+    radial-gradient(circle at 8% 105%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 42%),
+    color-mix(in srgb, var(--color-panel) 86%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 65%, transparent),
+    0 22px 48px -36px rgb(0 0 0 / 0.55);
+}
+.dashboard-hero::after,
+.profile-hero::after {
+  content: "";
+  position: absolute;
+  right: -4rem;
+  top: -6rem;
+  width: 17rem;
+  height: 17rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 16%, transparent);
+  box-shadow:
+    0 0 0 1.25rem color-mix(in srgb, var(--color-accent) 5%, transparent),
+    0 0 0 3.5rem color-mix(in srgb, var(--color-accent) 3%, transparent);
+  pointer-events: none;
+}
+.dashboard-title {
+  max-width: 20ch;
+  line-height: 1.04;
+}
+.dashboard-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.64rem 1rem;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--color-glow) 70%, transparent);
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 200ms ease;
+}
+.dashboard-primary-action:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 13px 27px -10px color-mix(in srgb, var(--color-glow) 74%, transparent);
+}
+.dashboard-stat {
+  min-height: 10.5rem;
+}
+.dashboard-focus-card {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-panel) 94%, transparent), color-mix(in srgb, var(--color-accent) 5%, transparent)),
+    var(--color-panel);
+}
+.dashboard-next-move {
+  border: 1px solid color-mix(in srgb, var(--color-accent) 17%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 220ms ease,
+    background-color 220ms ease;
+}
+.dashboard-next-move:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-accent) 36%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.dashboard-action-row {
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--color-ink) 3%, transparent);
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+.dashboard-action-row:hover {
+  transform: translateX(2px);
+  border-color: color-mix(in srgb, var(--color-ink) 11%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}
+[data-theme="dark"] .dashboard-hero,
+[data-theme="dark"] .profile-hero {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 22px 48px -36px rgb(0 0 0 / 0.9);
+}
+@media (max-width: 639px) {
+  .dashboard-stat {
+    min-height: 9.5rem;
+  }
+  .dashboard-hero::after,
+  .profile-hero::after {
+    right: -8rem;
+    top: -8rem;
+  }
+}
+
 @keyframes modal-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -958,6 +1075,15 @@ pre,
     opacity: 1;
     transform: none;
   }
+}
+
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
 
 /* ── scrollbars ────────────────────────────────────────────────────────────── */

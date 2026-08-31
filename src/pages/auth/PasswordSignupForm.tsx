@@ -11,7 +11,7 @@ import { Button, Field, Input } from "../../components/ui";
 import { friendly, post } from "../../lib/api";
 import { buildMismatch } from "../../lib/clerk";
 
-export function PasswordSignupForm(props: { registrationOpen: boolean }) {
+export function PasswordSignupForm(props: { registrationOpen: boolean; afterAuth: string }) {
   const { setMe } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -33,7 +33,7 @@ export function PasswordSignupForm(props: { registrationOpen: boolean }) {
     post<Me>("/api/auth/register", { email: email.trim(), password, acceptTerms: true })
       .then((me) => {
         setMe(me);
-        navigate("/app", { replace: true });
+        navigate(props.afterAuth, { replace: true });
       })
       .catch((err) => setError(buildMismatch(err) ?? friendly(err)))
       .finally(() => setBusy(false));

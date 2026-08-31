@@ -3,17 +3,20 @@
  * the form inside depends on which engine holds the credential.
  */
 
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../App";
 import { AuthShell } from "../components/auth/AuthShell";
-import { CLERK_ENABLED } from "../lib/clerk";
+import { afterAuthPath, CLERK_ENABLED } from "../lib/clerk";
 import { ClerkSignupForm } from "./auth/ClerkSignupForm";
 import { ClerkSessionGuard } from "./auth/ClerkSessionGuard";
 import { PasswordSignupForm } from "./auth/PasswordSignupForm";
 
 export default function Signup() {
   const { me } = useAuth();
+  const [params] = useSearchParams();
   const registrationOpen = me?.config.allowRegistration ?? true;
+  const next = afterAuthPath(params.get("next"));
+  const loginLink = next === "/app" ? "/login" : `/login?next=${encodeURIComponent(next)}`;
 
   return (
     <AuthShell
@@ -26,7 +29,7 @@ export default function Signup() {
       footer={
         <>
           Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-accent hover:underline">
+          <Link to={loginLink} className="font-semibold text-accent hover:underline">
             Sign In
           </Link>
         </>
@@ -34,10 +37,10 @@ export default function Signup() {
     >
       {CLERK_ENABLED ? (
         <ClerkSessionGuard>
-          <ClerkSignupForm registrationOpen={registrationOpen} />
+          <ClerkSignupForm registrationOpen={registrationOpen} afterAuth={next} />
         </ClerkSessionGuard>
       ) : (
-        <PasswordSignupForm registrationOpen={registrationOpen} />
+        <PasswordSignupForm registrationOpen={registrationOpen} afterAuth={next} />
       )}
     </AuthShell>
   );
