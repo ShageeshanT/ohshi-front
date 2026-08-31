@@ -137,6 +137,14 @@ interface UsageSummary {
     totalTokens: number;
     errors: number;
   };
+  entitlement: {
+    plan: string;
+    label: string;
+    period: string;
+    requestLimit: number;
+    requestsUsed: number;
+    requestsRemaining: number;
+  };
   byModel: { model: string; requests: number; totalTokens: number; errors: number }[];
   recent: {
     id: number;
@@ -297,6 +305,7 @@ export default function Dashboard() {
   const displayName = me?.user.displayName || me?.user.email.split("@")[0] || "there";
   const firstName = displayName.split(/\s+/)[0];
   const requestCount = usage?.totals.requests ?? 0;
+  const planUsage = usage?.entitlement;
   const errorRate = usage && usage.totals.requests ? Math.round((usage.totals.errors / usage.totals.requests) * 100) : 0;
 
   const refreshWorkspace = async () => {
@@ -361,9 +370,9 @@ export default function Dashboard() {
         />
         <OverviewStat
           icon={Activity}
-          label="Gateway requests"
-          value={usage ? formatNumber(requestCount) : "…"}
-          detail={`Last ${usage?.windowDays ?? 30} days`}
+          label="Plan requests"
+          value={planUsage ? `${formatNumber(planUsage.requestsUsed)}/${formatNumber(planUsage.requestLimit)}` : "…"}
+          detail={planUsage ? `${planUsage.label} plan · monthly` : "Checking your plan"}
           tone="violet"
         />
         <OverviewStat
