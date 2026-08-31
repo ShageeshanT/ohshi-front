@@ -26,7 +26,6 @@ import {
   Star,
   Trash2,
   TriangleAlert,
-  WandSparkles,
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -308,24 +307,19 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="dashboard-page rise-in space-y-5 sm:space-y-6">
-      <section className="dashboard-hero overflow-hidden rounded-[2rem] p-5 sm:p-7 lg:p-8">
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent-soft/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-accent">
-              <span className="live-dot h-1.5 w-1.5" /> Ohshi command center
-            </div>
-            <p className="mt-4 text-sm font-semibold text-ink-dim">Good to see you, {firstName}.</p>
-            <h1 className="dashboard-title mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Build, test and ship with your AI stack.
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-dim sm:text-[15px]">
-              Your models, conversations and gateway controls in one focused workspace — always on the plans you already own.
+    <div className="workspace-page rise-in space-y-8">
+      <section className="workspace-header">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="workspace-overline">Workspace</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Welcome back, {firstName}.</h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-dim">
+              Manage your model connections, usage and API access.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to="/app" className="dashboard-primary-action">
-              <MessageSquare className="h-4 w-4" /> New chat <ArrowRight className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4" /> New chat
             </Link>
             <Button tone="ghost" onClick={() => setConnectOpen(true)}>
               <Plug className="h-4 w-4" /> Connect
@@ -344,7 +338,7 @@ export default function Dashboard() {
       )}
       {loadError && <Notice tone="danger">{loadError}</Notice>}
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="workspace-stats grid grid-cols-2 gap-px overflow-hidden border-y border-edge bg-edge lg:grid-cols-4">
         <OverviewStat
           icon={Plug}
           label="Model connections"
@@ -375,15 +369,12 @@ export default function Dashboard() {
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
-        <div className="glass dashboard-focus-card p-4 sm:p-5">
+      <section className="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
+        <div className="workspace-panel p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <WandSparkles className="h-4 w-4 text-accent" />
-                <h2 className="text-base font-bold tracking-tight">Pick up where you left off</h2>
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-ink-dim">The next useful move, based on the state of your workspace.</p>
+              <h2 className="text-base font-semibold tracking-tight">Next step</h2>
+              <p className="mt-1 text-xs leading-relaxed text-ink-dim">One useful place to continue.</p>
             </div>
             {needsAttention.length > 0 && <Badge tone="warn">Needs attention</Badge>}
           </div>
@@ -428,11 +419,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="glass p-4 sm:p-5">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-accent" />
-            <h2 className="text-base font-bold tracking-tight">Quick actions</h2>
-          </div>
+        <div className="workspace-panel p-5 sm:p-6">
+          <h2 className="text-base font-semibold tracking-tight">Shortcuts</h2>
           <div className="mt-3 grid gap-2">
             <ActionLink to="/app" icon={MessageSquare} title="Start a chat" copy="Explore with the default model" />
             <ActionLink to="/app/keys" icon={KeyRound} title="Create an API key" copy="Use Ohshi from your own agent" />
@@ -518,8 +506,8 @@ function OverviewStat(props: {
   }[props.tone];
 
   return (
-    <div className="glass dashboard-stat min-w-0 p-3.5 sm:p-4">
-      <span className={`grid h-8 w-8 place-items-center rounded-xl ${iconTone}`}>
+    <div className="dashboard-stat min-w-0 bg-surface p-4 sm:p-5">
+      <span className={`grid h-8 w-8 place-items-center rounded-lg ${iconTone}`}>
         <Icon className="h-4 w-4" />
       </span>
       <p className="mt-3 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-ink-dim">{props.label}</p>
@@ -539,8 +527,8 @@ function NextMove(props: {
 }) {
   const Icon = props.icon;
   return (
-    <Link to={props.to} onClick={props.onClick} className="dashboard-next-move mt-5 flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-center">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent text-accent-ink shadow-sm">
+    <Link to={props.to} onClick={props.onClick} className="workspace-next-step mt-5 flex flex-col gap-4 rounded-xl p-4 sm:flex-row sm:items-center">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-accent text-accent-ink">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
@@ -557,8 +545,8 @@ function NextMove(props: {
 function ActionLink(props: { to: string; icon: LucideIcon; title: string; copy: string }) {
   const Icon = props.icon;
   return (
-    <Link to={props.to} className="dashboard-action-row flex items-center gap-3 rounded-2xl p-3">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ink/[0.06] text-ink-dim">
+    <Link to={props.to} className="workspace-action-row flex items-center gap-3 rounded-xl p-3">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink/[0.05] text-ink-dim">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
