@@ -55,7 +55,7 @@ export default function Sidebar(p: SidebarProps) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-edge/70 bg-rail/60 backdrop-blur-2xl transition-[transform,width] duration-200 md:static md:translate-x-0 ${
+        className={`sidebar-rail fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-edge/70 bg-rail/60 backdrop-blur-2xl transition-[transform,width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:static md:translate-x-0 ${
           p.collapsed ? "md:w-[64px]" : "md:w-[264px]"
         } ${p.mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
@@ -107,32 +107,33 @@ export default function Sidebar(p: SidebarProps) {
           <SideLink icon={BookOpen} label="Docs" to="/app/docs" collapsed={p.collapsed} onClick={p.onMobileClose} />
         </div>
 
-        {p.collapsed ? (
-          <div className="flex-1" />
-        ) : (
-          <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-3 pb-2">
-            <SectionLabel>History</SectionLabel>
-            {groups.length === 0 ? (
-              <p className="px-3 py-2 text-[12px] text-ink-dim">Your chats will show up here.</p>
-            ) : (
-              groups.map((g) => (
-                <div key={g.label} className="mb-3">
-                  <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-dim/60">{g.label}</p>
-                  {g.chats.map((chat) => (
-                    <HistoryRow
-                      key={chat.id}
-                      chat={chat}
-                      active={chat.id === p.activeChatId}
-                      onRename={(title) => p.onRename(chat.id, title)}
-                      onDelete={() => p.onDelete(chat.id)}
-                      onNavigate={p.onMobileClose}
-                    />
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
-        )}
+        <div
+          className={`sidebar-history mt-5 min-h-0 flex-1 overflow-y-auto px-3 pb-2 transition-[opacity,transform] duration-300 ease-out ${
+            p.collapsed ? "pointer-events-none -translate-x-1 opacity-0" : "translate-x-0 opacity-100"
+          }`}
+          aria-hidden={p.collapsed}
+        >
+          <SectionLabel>History</SectionLabel>
+          {groups.length === 0 ? (
+            <p className="px-3 py-2 text-[12px] text-ink-dim">Your chats will show up here.</p>
+          ) : (
+            groups.map((g) => (
+              <div key={g.label} className="mb-3">
+                <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-dim/60">{g.label}</p>
+                {g.chats.map((chat) => (
+                  <HistoryRow
+                    key={chat.id}
+                    chat={chat}
+                    active={chat.id === p.activeChatId}
+                    onRename={(title) => p.onRename(chat.id, title)}
+                    onDelete={() => p.onDelete(chat.id)}
+                    onNavigate={p.onMobileClose}
+                  />
+                ))}
+              </div>
+            ))
+          )}
+        </div>
 
         <div
           className={`border-t border-edge/70 p-3 ${
@@ -192,8 +193,8 @@ function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed
       className={`${itemBase} text-ink-dim hover:bg-ink/[0.06] hover:text-ink ${props.collapsed ? "justify-center px-0" : ""}`}
     >
       <props.icon className="h-[17px] w-[17px] shrink-0" />
-      {!props.collapsed && <span className="flex-1 text-left">{props.label}</span>}
-      {!props.collapsed && props.hint && <kbd className="text-[10px] font-medium text-ink-dim/70">{props.hint}</kbd>}
+      <span className={`sidebar-label text-left ${props.collapsed ? "sidebar-label-hidden" : "flex-1"}`}>{props.label}</span>
+      {props.hint && <kbd className={`sidebar-label text-[10px] font-medium text-ink-dim/70 ${props.collapsed ? "sidebar-label-hidden" : ""}`}>{props.hint}</kbd>}
     </button>
   );
 }
@@ -220,7 +221,7 @@ function SideLink(props: {
       }}
     >
       <props.icon className="h-[17px] w-[17px] shrink-0" />
-      {!props.collapsed && <span>{props.label}</span>}
+      <span className={`sidebar-label ${props.collapsed ? "sidebar-label-hidden" : ""}`}>{props.label}</span>
     </NavLink>
   );
 }

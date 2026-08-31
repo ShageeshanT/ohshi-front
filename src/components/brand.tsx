@@ -50,7 +50,7 @@ export function Brand(props: { className?: string }) {
 export function BrandHero() {
   return (
     <div className="flex flex-col items-center">
-      <Wordmark className="brand-float h-16 md:h-24" />
+      <Wordmark className="h-16 md:h-24" />
     </div>
   );
 }

@@ -902,107 +902,146 @@ pre,
   height: 100%;
 }
 
-.dashboard-hero,
-.profile-hero {
-  position: relative;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
-  background:
-    radial-gradient(circle at 86% 12%, color-mix(in srgb, var(--color-glow) 22%, transparent), transparent 29%),
-    radial-gradient(circle at 8% 105%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 42%),
-    color-mix(in srgb, var(--color-panel) 86%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 65%, transparent),
-    0 22px 48px -36px rgb(0 0 0 / 0.55);
+.sidebar-rail {
+  will-change: width, transform;
 }
-.dashboard-hero::after,
-.profile-hero::after {
-  content: "";
-  position: absolute;
-  right: -4rem;
-  top: -6rem;
-  width: 17rem;
-  height: 17rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--color-accent) 16%, transparent);
-  box-shadow:
-    0 0 0 1.25rem color-mix(in srgb, var(--color-accent) 5%, transparent),
-    0 0 0 3.5rem color-mix(in srgb, var(--color-accent) 3%, transparent);
-  pointer-events: none;
+.sidebar-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    width 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 160ms ease,
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.dashboard-title {
-  max-width: 20ch;
-  line-height: 1.04;
+.sidebar-label-hidden {
+  width: 0;
+  opacity: 0;
+  transform: translateX(-4px);
+}
+.workspace-header {
+  display: flex;
+  align-items: end;
+  min-height: 9rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-edge);
+}
+.workspace-overline {
+  color: var(--color-ink-dim);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 .dashboard-primary-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  border-radius: 999px;
-  padding: 0.64rem 1rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem;
   background: var(--color-accent);
   color: var(--color-accent-ink);
   font-size: 0.875rem;
-  font-weight: 700;
-  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--color-glow) 70%, transparent);
+  font-weight: 600;
   transition:
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    filter 200ms ease;
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 180ms ease;
 }
 .dashboard-primary-action:hover {
   transform: translateY(-1px);
   filter: brightness(1.08);
-  box-shadow: 0 13px 27px -10px color-mix(in srgb, var(--color-glow) 74%, transparent);
 }
 .dashboard-stat {
-  min-height: 10.5rem;
+  min-height: 9.25rem;
 }
-.dashboard-focus-card {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--color-panel) 94%, transparent), color-mix(in srgb, var(--color-accent) 5%, transparent)),
-    var(--color-panel);
+.workspace-panel {
+  border: 1px solid var(--color-edge);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-panel) 92%, transparent);
+  box-shadow: 0 10px 26px -24px rgb(0 0 0 / 0.55);
 }
-.dashboard-next-move {
-  border: 1px solid color-mix(in srgb, var(--color-accent) 17%, transparent);
-  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+.workspace-next-step {
+  border: 1px solid var(--color-edge);
+  background: color-mix(in srgb, var(--color-ink) 2.5%, transparent);
   transition:
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 220ms ease,
-    background-color 220ms ease;
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms ease,
+    background-color 180ms ease;
 }
-.dashboard-next-move:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--color-accent) 36%, transparent);
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+.workspace-next-step:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-ink) 18%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
 }
-.dashboard-action-row {
+.workspace-action-row,
+.settings-link {
   border: 1px solid transparent;
-  background: color-mix(in srgb, var(--color-ink) 3%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 2.5%, transparent);
   transition:
-    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 200ms ease,
-    background-color 200ms ease;
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms ease,
+    background-color 180ms ease;
 }
-.dashboard-action-row:hover {
+.workspace-action-row:hover,
+.settings-link:hover {
   transform: translateX(2px);
-  border-color: color-mix(in srgb, var(--color-ink) 11%, transparent);
-  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  border-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 4.5%, transparent);
 }
-[data-theme="dark"] .dashboard-hero,
-[data-theme="dark"] .profile-hero {
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.07),
-    0 22px 48px -36px rgb(0 0 0 / 0.9);
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--color-edge);
+}
+.settings-meta {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-ink-dim);
+  font-size: 0.75rem;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.settings-theme-choice {
+  border: 1px solid var(--color-edge);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  color: var(--color-ink-dim);
+  text-align: left;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+.settings-theme-choice:hover {
+  border-color: color-mix(in srgb, var(--color-ink) 18%, transparent);
+  color: var(--color-ink);
+}
+.settings-theme-choice-active {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  color: var(--color-ink);
 }
 @media (max-width: 639px) {
-  .dashboard-stat {
-    min-height: 9.5rem;
+  .workspace-header {
+    min-height: 0;
+    padding-bottom: 1.5rem;
   }
-  .dashboard-hero::after,
-  .profile-hero::after {
-    right: -8rem;
-    top: -8rem;
+  .dashboard-stat {
+    min-height: 8.75rem;
+  }
+  .settings-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
