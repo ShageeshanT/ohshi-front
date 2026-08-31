@@ -41,6 +41,15 @@ export const SSO_CALLBACK_PATH = "/sso-callback";
 export const AFTER_AUTH_PATH = "/app";
 
 /**
+ * A protected deep-link should survive the sign-in screen. Only accept a
+ * same-site path here: authentication redirects are a common place for open
+ * redirect bugs to slip in.
+ */
+export function afterAuthPath(next?: string | null): string {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : AFTER_AUTH_PATH;
+}
+
+/**
  * The social providers enabled in the Clerk dashboard. Keep this list in step
  * with **SSO Connections** there — a button here for a provider Clerk has
  * switched off renders fine but errors on click. Adding one means adding its

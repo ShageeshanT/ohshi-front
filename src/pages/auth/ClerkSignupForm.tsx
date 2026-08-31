@@ -15,13 +15,13 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CodeField, ErrorLine, OrRule, SocialButton, TermsCheckbox } from "../../components/auth/AuthBits";
 import { Button, Field, Input } from "../../components/ui";
-import { AFTER_AUTH_PATH, SOCIAL_PROVIDERS, SSO_CALLBACK_PATH, clerkMessage } from "../../lib/clerk";
+import { SOCIAL_PROVIDERS, SSO_CALLBACK_PATH, clerkMessage } from "../../lib/clerk";
 import { useTheme } from "../../lib/theme";
 import { useClerkReady } from "./useClerkReady";
 
 type Step = "details" | "code";
 
-export function ClerkSignupForm(props: { registrationOpen: boolean }) {
+export function ClerkSignupForm(props: { registrationOpen: boolean; afterAuth: string }) {
   const { signUp, fetchStatus } = useSignUp();
   const { ready, failed } = useClerkReady();
   const { theme } = useTheme();
@@ -50,7 +50,7 @@ export function ClerkSignupForm(props: { registrationOpen: boolean }) {
       setError(clerkMessage(finalizeError));
       return;
     }
-    navigate(AFTER_AUTH_PATH, { replace: true });
+    navigate(props.afterAuth, { replace: true });
   };
 
   const submit = async (e?: FormEvent) => {
@@ -109,7 +109,7 @@ export function ClerkSignupForm(props: { registrationOpen: boolean }) {
     setError(null);
     const { error: ssoError } = await signUp.sso({
       strategy: strategy as Parameters<typeof signUp.sso>[0]["strategy"],
-      redirectUrl: AFTER_AUTH_PATH,
+      redirectUrl: props.afterAuth,
       redirectCallbackUrl: SSO_CALLBACK_PATH,
       legalAccepted: true,
     });

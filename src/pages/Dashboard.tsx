@@ -12,7 +12,25 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Activity, Plug, RefreshCw, Star, Trash2, Zap } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  CircleGauge,
+  KeyRound,
+  MessageSquare,
+  Plug,
+  RefreshCw,
+  Sparkles,
+  Star,
+  Trash2,
+  TriangleAlert,
+  WandSparkles,
+  Zap,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useAuth } from "../App";
 import ConnectGoogleModal from "../components/ConnectGoogleModal";
 import { GoogleLogo, vendorLogo } from "../components/logos";
 import {
@@ -168,6 +186,7 @@ function healthLine(c: Connection, testing: boolean): { tone: Tone; text: string
 // --- page ---------------------------------------------------------------------
 
 export default function Dashboard() {
+  const { me } = useAuth();
   const [params, setParams] = useSearchParams();
   const [connections, setConnections] = useState<Connection[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -268,21 +287,55 @@ export default function Dashboard() {
     }
   };
 
+  const activeConnections = (connections ?? []).filter((connection) => connection.status === "active");
+  const needsAttention = (connections ?? []).filter(
+    (connection) => connection.status !== "active" || connection.health?.status === "error",
+  );
+  const availableFamilies = new Set(
+    Object.values(quotas).flatMap((quota) => quota.snapshot?.families.map((family) => family.id) ?? []),
+  ).size;
+  const displayName = me?.user.displayName || me?.user.email.split("@")[0] || "there";
+  const firstName = displayName.split(/\s+/)[0];
+  const requestCount = usage?.totals.requests ?? 0;
+  const errorRate = usage && usage.totals.requests ? Math.round((usage.totals.errors / usage.totals.requests) * 100) : 0;
+
+  const refreshWorkspace = async () => {
+    await Promise.all([
+      loadConnections(),
+      loadUsage(),
+      ...activeConnections.map((connection) => loadQuota(connection.id, true)),
+    ]);
+  };
+
   return (
-    <div className="rise-in space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">
-            Your Google accounts
-          </h1>
-          <p className="mt-1 text-sm text-ink-dim">
-            Connect once. Every model call from your agents and from chat runs on your own Google plan.
-          </p>
+    <div className="dashboard-page rise-in space-y-5 sm:space-y-6">
+      <section className="dashboard-hero overflow-hidden rounded-[2rem] p-5 sm:p-7 lg:p-8">
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent-soft/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-accent">
+              <span className="live-dot h-1.5 w-1.5" /> Ohshi command center
+            </div>
+            <p className="mt-4 text-sm font-semibold text-ink-dim">Good to see you, {firstName}.</p>
+            <h1 className="dashboard-title mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
+              Build, test and ship with your AI stack.
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-dim sm:text-[15px]">
+              Your models, conversations and gateway controls in one focused workspace — always on the plans you already own.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/app" className="dashboard-primary-action">
+              <MessageSquare className="h-4 w-4" /> New chat <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Button tone="ghost" onClick={() => setConnectOpen(true)}>
+              <Plug className="h-4 w-4" /> Connect
+            </Button>
+            <Button tone="ghost" onClick={() => void refreshWorkspace()}>
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => setConnectOpen(true)} arrow>
-          <Plug className="h-4 w-4" /> Connect account
-        </Button>
-      </header>
+      </section>
 
       {flash && (
         <Notice tone={flash.tone} onClose={() => setFlash(null)}>
@@ -291,45 +344,229 @@ export default function Dashboard() {
       )}
       {loadError && <Notice tone="danger">{loadError}</Notice>}
 
-      {connections === null ? (
-        <Card>
-          <Spinner label="Checking your accounts…" />
-        </Card>
-      ) : connections.length === 0 ? (
-        <Card>
-          <EmptyState
-            title="No Google account connected yet"
-            hint="Sign in with Google, paste the code it shows you, and your agents get Gemini, Claude and GPT-OSS on that plan, with live remaining quota right here."
-            action={
-              <Button onClick={() => setConnectOpen(true)} arrow>
-                <Plug className="h-4 w-4" /> Connect account
-              </Button>
-            }
-          />
-        </Card>
-      ) : (
-        connections.map((c) => (
-          <ConnectionCard
-            key={c.id}
-            connection={c}
-            quota={quotas[c.id] ?? { snapshot: null, error: null, loading: true }}
-            soloAccount={connections.length === 1}
-            onRefreshQuota={() => loadQuota(c.id, true)}
-            onDisconnect={() => disconnect(c)}
-            onMakeDefault={() => makeDefault(c)}
-            onReconnect={() => setConnectOpen(true)}
-            onTested={() => {
-              void loadConnections();
-              void loadQuota(c.id, true);
-            }}
-          />
-        ))
-      )}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <OverviewStat
+          icon={Plug}
+          label="Model connections"
+          value={connections === null ? "—" : `${activeConnections.length}/${connections.length}`}
+          detail={connections === null ? "Checking status" : activeConnections.length ? "Ready to use" : "Connect an account"}
+          tone={activeConnections.length ? "ok" : "accent"}
+        />
+        <OverviewStat
+          icon={CircleGauge}
+          label="Available families"
+          value={availableFamilies || (activeConnections.length ? "…" : "0")}
+          detail={availableFamilies ? "Across your plan" : activeConnections.length ? "Reading quota" : "After you connect"}
+          tone="accent"
+        />
+        <OverviewStat
+          icon={Activity}
+          label="Gateway requests"
+          value={usage ? formatNumber(requestCount) : "…"}
+          detail={`Last ${usage?.windowDays ?? 30} days`}
+          tone="violet"
+        />
+        <OverviewStat
+          icon={needsAttention.length ? TriangleAlert : CheckCircle2}
+          label="Workspace health"
+          value={needsAttention.length ? `${needsAttention.length} issue${needsAttention.length > 1 ? "s" : ""}` : "Healthy"}
+          detail={needsAttention.length ? "Action recommended" : usage && requestCount ? `${errorRate}% gateway errors` : "Ready for your first run"}
+          tone={needsAttention.length ? "warn" : "ok"}
+        />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
+        <div className="glass dashboard-focus-card p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <WandSparkles className="h-4 w-4 text-accent" />
+                <h2 className="text-base font-bold tracking-tight">Pick up where you left off</h2>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-ink-dim">The next useful move, based on the state of your workspace.</p>
+            </div>
+            {needsAttention.length > 0 && <Badge tone="warn">Needs attention</Badge>}
+          </div>
+          {connections === null ? (
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              <Skeleton className="h-20 w-full rounded-2xl" />
+              <Skeleton className="h-20 w-full rounded-2xl" />
+            </div>
+          ) : activeConnections.length === 0 ? (
+            <NextMove
+              to="/app/accounts"
+              icon={Plug}
+              title="Connect the plan that powers your models"
+              copy="Add a Google account once, then access its supported models from chat and the API gateway."
+              action="Connect a model account"
+              onClick={() => setConnectOpen(true)}
+            />
+          ) : needsAttention.length > 0 ? (
+            <NextMove
+              to="#connections"
+              icon={TriangleAlert}
+              title="A connection needs a quick check"
+              copy="Run a health test or reconnect it before your agents hit a failed request."
+              action="Review connections"
+            />
+          ) : requestCount === 0 ? (
+            <NextMove
+              to="/app"
+              icon={Sparkles}
+              title="Start your first AI session"
+              copy="Open chat to explore the models on your default connection, then keep the useful threads in history."
+              action="Open new chat"
+            />
+          ) : (
+            <NextMove
+              to="/app/keys"
+              icon={KeyRound}
+              title="Put Ohshi to work outside this tab"
+              copy="Create an API key and point your agent or application at the OpenAI-compatible gateway."
+              action="Manage API keys"
+            />
+          )}
+        </div>
+
+        <div className="glass p-4 sm:p-5">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent" />
+            <h2 className="text-base font-bold tracking-tight">Quick actions</h2>
+          </div>
+          <div className="mt-3 grid gap-2">
+            <ActionLink to="/app" icon={MessageSquare} title="Start a chat" copy="Explore with the default model" />
+            <ActionLink to="/app/keys" icon={KeyRound} title="Create an API key" copy="Use Ohshi from your own agent" />
+            <ActionLink to="/app/docs" icon={BookOpen} title="View API recipes" copy="Copy a working integration" />
+          </div>
+        </div>
+      </section>
+
+      <section id="connections" className="scroll-mt-4 space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Plug className="h-4 w-4 text-ink-dim" />
+              <h2 className="text-lg font-bold tracking-tight">Model connections</h2>
+            </div>
+            <p className="mt-1 text-xs text-ink-dim">Connection health, quota and default routing — all in one place.</p>
+          </div>
+          {connections && connections.length > 0 && (
+            <Button size="sm" tone="ghost" onClick={() => setConnectOpen(true)}>
+              <Plug className="h-3.5 w-3.5" /> Add connection
+            </Button>
+          )}
+        </div>
+
+        {connections === null ? (
+          <Card>
+            <Spinner label="Checking your model connections…" />
+          </Card>
+        ) : connections.length === 0 ? (
+          <Card>
+            <EmptyState
+              title="Your AI workspace is ready for a model connection"
+              hint="Sign in with the Google account whose plan you want to use. You’ll get live health and quota visibility here once it is connected."
+              action={
+                <Button onClick={() => setConnectOpen(true)} arrow>
+                  <Plug className="h-4 w-4" /> Connect account
+                </Button>
+              }
+            />
+          </Card>
+        ) : (
+          connections.map((c) => (
+            <ConnectionCard
+              key={c.id}
+              connection={c}
+              quota={quotas[c.id] ?? { snapshot: null, error: null, loading: true }}
+              soloAccount={connections.length === 1}
+              onRefreshQuota={() => loadQuota(c.id, true)}
+              onDisconnect={() => disconnect(c)}
+              onMakeDefault={() => makeDefault(c)}
+              onReconnect={() => setConnectOpen(true)}
+              onTested={() => {
+                void loadConnections();
+                void loadQuota(c.id, true);
+              }}
+            />
+          ))
+        )}
+      </section>
 
       <UsageSection usage={usage} />
 
       <ConnectGoogleModal open={connectOpen} onClose={() => setConnectOpen(false)} onDone={onConnected} />
     </div>
+  );
+}
+
+function OverviewStat(props: {
+  icon: LucideIcon;
+  label: string;
+  value: string | number;
+  detail: string;
+  tone: Tone;
+}) {
+  const Icon = props.icon;
+  const iconTone = {
+    accent: "bg-accent-soft text-accent",
+    ok: "bg-ok-soft text-ok",
+    warn: "bg-warn-soft text-warn",
+    danger: "bg-danger-soft text-danger",
+    violet: "bg-violet-soft text-violet",
+    dim: "bg-ink/[0.08] text-ink-dim",
+  }[props.tone];
+
+  return (
+    <div className="glass dashboard-stat min-w-0 p-3.5 sm:p-4">
+      <span className={`grid h-8 w-8 place-items-center rounded-xl ${iconTone}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="mt-3 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-ink-dim">{props.label}</p>
+      <p className="mt-1 truncate text-xl font-extrabold tracking-tight sm:text-2xl">{props.value}</p>
+      <p className="mt-0.5 truncate text-[11px] text-ink-dim">{props.detail}</p>
+    </div>
+  );
+}
+
+function NextMove(props: {
+  to: string;
+  icon: LucideIcon;
+  title: string;
+  copy: string;
+  action: string;
+  onClick?: () => void;
+}) {
+  const Icon = props.icon;
+  return (
+    <Link to={props.to} onClick={props.onClick} className="dashboard-next-move mt-5 flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-center">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent text-accent-ink shadow-sm">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-bold">{props.title}</span>
+        <span className="mt-1 block max-w-xl text-xs leading-relaxed text-ink-dim">{props.copy}</span>
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-accent">
+        {props.action} <ArrowRight className="h-3.5 w-3.5" />
+      </span>
+    </Link>
+  );
+}
+
+function ActionLink(props: { to: string; icon: LucideIcon; title: string; copy: string }) {
+  const Icon = props.icon;
+  return (
+    <Link to={props.to} className="dashboard-action-row flex items-center gap-3 rounded-2xl p-3">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ink/[0.06] text-ink-dim">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-bold">{props.title}</span>
+        <span className="mt-0.5 block truncate text-[11px] text-ink-dim">{props.copy}</span>
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 text-ink-dim" />
+    </Link>
   );
 }
 

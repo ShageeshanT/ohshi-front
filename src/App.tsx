@@ -11,6 +11,7 @@ import {
 } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
 import { AuthenticateWithRedirectCallback, useAuth as useClerkAuth } from "@clerk/react";
+import { ReactLenis } from "lenis/react";
 import { Menu, SquarePen } from "lucide-react";
 import { get, onAuthRequired, post, setTokenSource } from "./lib/api";
 import { AFTER_AUTH_PATH, CLERK_ENABLED, SSO_CALLBACK_PATH, clerkFrontendApi } from "./lib/clerk";
@@ -26,6 +27,7 @@ import Chat from "./pages/Chat";
 import Dashboard from "./pages/Dashboard";
 import Docs from "./pages/Docs";
 import Keys from "./pages/Keys";
+import Profile from "./pages/Profile";
 
 // Marketing and auth pages carry framer-motion, Lenis and the hero art — keep
 // them out of the signed-in app's bundle.
@@ -294,7 +296,9 @@ function AuthedRoutes(props: {
   authError: string | null;
 }) {
   const { me, setMe, signOut, authError } = props;
+  const location = useLocation();
   const lazyPage = (node: ReactNode) => <Suspense fallback={<PageFallback />}>{node}</Suspense>;
+  const loginPath = `/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
 
   return (
     <AuthContext.Provider value={{ me: me ?? null, setMe, signOut, authError }}>
@@ -347,6 +351,14 @@ function AuthedRoutes(props: {
                       }
                     />
                     <Route
+                      path="profile"
+                      element={
+                        <Page>
+                          <Profile />
+                        </Page>
+                      }
+                    />
+                    <Route
                       path="keys"
                       element={
                         <Page>
@@ -367,7 +379,7 @@ function AuthedRoutes(props: {
                 </Shell>
               </ChatListProvider>
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to={loginPath} replace />
             )
           }
         />
@@ -480,8 +492,12 @@ function Shell(props: { children: ReactNode }) {
 
 function Page(props: { children: ReactNode }) {
   return (
-    <div id="main-content" className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-10">{props.children}</div>
-    </div>
+    <ReactLenis
+      id="main-content"
+      className="app-smooth-scroll min-h-0 flex-1 overflow-y-auto"
+      options={{ lerp: 0.1, duration: 1.4, smoothWheel: true, syncTouch: false }}
+    >
+      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 md:px-8 md:py-8">{props.children}</div>
+    </ReactLenis>
   );
 }

@@ -15,6 +15,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "ohshi.theme";
+const MOTION_STORAGE_KEY = "ohshi.reduce-motion";
 
 function initialTheme(): Theme {
   try {
@@ -28,16 +29,33 @@ function initialTheme(): Theme {
   return "light";
 }
 
+function initialReducedMotion(): boolean {
+  try {
+    return localStorage.getItem(MOTION_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 interface ThemeState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggle: () => void;
+  reducedMotion: boolean;
+  setReducedMotion: (reduced: boolean) => void;
 }
 
-const ThemeContext = createContext<ThemeState>({ theme: "light", setTheme: () => {}, toggle: () => {} });
+const ThemeContext = createContext<ThemeState>({
+  theme: "light",
+  setTheme: () => {},
+  toggle: () => {},
+  reducedMotion: false,
+  setReducedMotion: () => {},
+});
 
 export function ThemeProvider(props: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(initialTheme);
+  const [reducedMotion, setReducedMotionState] = useState(initialReducedMotion);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -48,9 +66,22 @@ export function ThemeProvider(props: { children: ReactNode }) {
     }
   }, [theme]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute("data-reduce-motion", reducedMotion ? "true" : "false");
+    try {
+      localStorage.setItem(MOTION_STORAGE_KEY, reducedMotion ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [reducedMotion]);
+
   const setTheme = useCallback((next: Theme) => setThemeState(next), []);
   const toggle = useCallback(() => setThemeState((t) => (t === "dark" ? "light" : "dark")), []);
-  const value = useMemo(() => ({ theme, setTheme, toggle }), [theme, setTheme, toggle]);
+  const setReducedMotion = useCallback((next: boolean) => setReducedMotionState(next), []);
+  const value = useMemo(
+    () => ({ theme, setTheme, toggle, reducedMotion, setReducedMotion }),
+    [theme, setTheme, toggle, reducedMotion, setReducedMotion],
+  );
   return <ThemeContext.Provider value={value}>{props.children}</ThemeContext.Provider>;
 }
 

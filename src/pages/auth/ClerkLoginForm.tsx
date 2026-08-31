@@ -15,12 +15,12 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { CodeField, ErrorLine, OrRule, SocialButton } from "../../components/auth/AuthBits";
 import { Button, Field, Input } from "../../components/ui";
-import { AFTER_AUTH_PATH, SOCIAL_PROVIDERS, SSO_CALLBACK_PATH, clerkMessage } from "../../lib/clerk";
+import { SOCIAL_PROVIDERS, SSO_CALLBACK_PATH, clerkMessage } from "../../lib/clerk";
 import { useClerkReady } from "./useClerkReady";
 
 type Step = "credentials" | "code";
 
-export function ClerkLoginForm(props: { initialError?: string | null }) {
+export function ClerkLoginForm(props: { initialError?: string | null; afterAuth: string }) {
   const { signIn, fetchStatus } = useSignIn();
   const { ready, failed } = useClerkReady();
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ export function ClerkLoginForm(props: { initialError?: string | null }) {
       setError(clerkMessage(finalizeError));
       return;
     }
-    navigate(AFTER_AUTH_PATH, { replace: true });
+    navigate(props.afterAuth, { replace: true });
   };
 
   const submitPassword = async (e?: FormEvent) => {
@@ -110,7 +110,7 @@ export function ClerkLoginForm(props: { initialError?: string | null }) {
     setError(null);
     const { error: ssoError } = await signIn.sso({
       strategy: strategy as Parameters<typeof signIn.sso>[0]["strategy"],
-      redirectUrl: AFTER_AUTH_PATH,
+      redirectUrl: props.afterAuth,
       redirectCallbackUrl: SSO_CALLBACK_PATH,
     });
     if (ssoError) setError(clerkMessage(ssoError));

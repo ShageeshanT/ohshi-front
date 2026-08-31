@@ -13,7 +13,7 @@ import { friendly, post } from "../../lib/api";
 import { buildMismatch } from "../../lib/clerk";
 import { useNavigate } from "react-router-dom";
 
-export function PasswordLoginForm(props: { initialError?: string | null }) {
+export function PasswordLoginForm(props: { initialError?: string | null; afterAuth: string }) {
   const { setMe } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -29,7 +29,7 @@ export function PasswordLoginForm(props: { initialError?: string | null }) {
     post<Me>("/api/auth/login", { email: email.trim(), password })
       .then((me) => {
         setMe(me);
-        navigate("/app", { replace: true });
+        navigate(props.afterAuth, { replace: true });
       })
       .catch((err) => setError(buildMismatch(err) ?? friendly(err)))
       .finally(() => setBusy(false));
