@@ -44,6 +44,10 @@ export interface Me {
     displayName: string;
     createdMs: number;
     termsAcceptedMs?: number | null;
+    /** Ohshi's own plan (free / starter) — set only by verified Dodo webhooks. */
+    plan?: string;
+    subscriptionStatus?: string | null;
+    planRenewsMs?: number | null;
   };
   config: {
     allowRegistration: boolean;
@@ -52,6 +56,8 @@ export interface Me {
     termsVersion?: string;
     /** Which engine the backend is running — see lib/clerk.ts. */
     authProvider?: "clerk" | "password";
+    /** Whether the backend has Dodo configured — the UI hides Upgrade without it. */
+    billingEnabled?: boolean;
   };
 }
 

@@ -1,6 +1,8 @@
-import { CalendarDays, ChevronRight, KeyRound, LogOut, Palette, Plug, ShieldCheck, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useAuth } from "../App";
+import { CalendarDays, ChevronRight, CreditCard, KeyRound, LogOut, Palette, Plug, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useAuth, type Me } from "../App";
+import { formatNumber, friendly, get, post } from "../lib/api";
 import { Avatar, Button, Card, Toggle } from "../components/ui";
 import { useTheme } from "../lib/theme";
 
@@ -28,6 +30,8 @@ export default function Profile() {
           </div>
         </div>
       </header>
+
+      <PlanBillingCard />
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_0.9fr]">
         <Card title="Preferences" aside={<Palette className="h-4 w-4 text-ink-dim" />}>
@@ -89,6 +93,131 @@ export default function Profile() {
         </div>
       </section>
     </div>
+  );
+}
+
+
+interface Entitlement {
+  label: string;
+  requestLimit: number;
+  requestsUsed: number;
+}
+
+/**
+ * Ohshi's own plan — separate from any connected provider account. The card
+ * only ever *asks*: upgrades go to Dodo's hosted checkout and the plan itself
+ * flips when Dodo's signed webhook reaches the backend, so coming back from a
+ * payment can be a few seconds ahead of the plan. That window is the polling
+ * below, keyed off the ?checkout=done return URL.
+ */
+function PlanBillingCard() {
+  const { me, setMe } = useAuth();
+  const [params] = useSearchParams();
+  const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
+  const [busy, setBusy] = useState<"checkout" | "portal" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const justPaid = params.get("checkout") === "done";
+  const plan = me?.user.plan ?? "free";
+  const paid = plan !== "free";
+  const billingEnabled = me?.config.billingEnabled ?? false;
+  const status = me?.user.subscriptionStatus ?? null;
+  const renews = me?.user.planRenewsMs
+    ? new Date(me.user.planRenewsMs).toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  useEffect(() => {
+    let cancelled = false;
+    get<{ entitlement?: Entitlement }>("/api/usage/summary?days=1")
+      .then((summary) => {
+        if (!cancelled && summary.entitlement) setEntitlement(summary.entitlement);
+      })
+      .catch(() => {
+        /* the card still renders from `me` alone */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [plan]);
+
+  // Back from Dodo: the webhook usually lands a few seconds after the
+  // redirect, so poll /me until the plan flips instead of showing a stale
+  // "Free" next to a success note.
+  useEffect(() => {
+    if (!justPaid || paid) return;
+    let tries = 0;
+    const timer = window.setInterval(() => {
+      tries += 1;
+      get<Me>("/api/auth/me")
+        .then(setMe)
+        .catch(() => {});
+      if (tries >= 8) window.clearInterval(timer);
+    }, 2500);
+    return () => window.clearInterval(timer);
+  }, [justPaid, paid, setMe]);
+
+  const go = (which: "checkout" | "portal") => {
+    setBusy(which);
+    setError(null);
+    post<{ url: string }>(`/api/billing/${which}`)
+      .then(({ url }) => {
+        window.location.href = url;
+      })
+      .catch((err) => {
+        setError(friendly(err));
+        setBusy(null);
+      });
+  };
+
+  const label = entitlement?.label ?? (paid ? "Starter" : "Free");
+
+  return (
+    <Card title="Plan & billing" aside={<CreditCard className="h-4 w-4 text-ink-dim" />}>
+      <div className="space-y-4">
+        {justPaid && !paid && (
+          <p className="rounded-2xl bg-accent-soft px-4 py-3 text-sm font-medium text-accent">
+            Payment received — activating your plan. This takes a few seconds.
+          </p>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-extrabold tracking-tight">{label} plan</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-ink-dim">
+              {entitlement
+                ? `${formatNumber(entitlement.requestsUsed)} of ${formatNumber(entitlement.requestLimit)} requests used this month`
+                : "Monthly request allowance"}
+              {paid && renews && (status === "cancelled" ? ` · ends ${renews}` : ` · renews ${renews}`)}
+            </p>
+          </div>
+          {billingEnabled && !paid && (
+            <Button busy={busy === "checkout"} onClick={() => go("checkout")}>
+              Upgrade to Starter
+            </Button>
+          )}
+          {billingEnabled && paid && (
+            <Button busy={busy === "portal"} onClick={() => go("portal")}>
+              Manage billing
+            </Button>
+          )}
+        </div>
+        {status === "cancelled" && paid && (
+          <p className="text-xs leading-relaxed text-warn">
+            Your subscription is cancelled and stays active until the date above.
+          </p>
+        )}
+        {error && <p className="text-sm font-medium text-danger">{error}</p>}
+        {billingEnabled && (
+          <p className="text-[11px] leading-relaxed text-ink-dim">
+            Checkout, invoices and cancellation are handled by Dodo Payments, our merchant of
+            record. Your card details never touch Ohshi.
+          </p>
+        )}
+      </div>
+    </Card>
   );
 }
 
