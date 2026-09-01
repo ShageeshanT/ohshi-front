@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
+  Check,
   ChevronDown,
   Code2,
   KeyRound,
@@ -41,6 +42,7 @@ import { MarketingNav } from "../components/marketing/MarketingNav";
 import { Reveal } from "../components/marketing/Reveal";
 import { SmoothScroll } from "../components/marketing/SmoothScroll";
 import { COPY, PROVIDERS } from "../content/landing";
+import { get } from "../lib/api";
 import { useTheme } from "../lib/theme";
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -61,6 +63,7 @@ export default function Landing() {
         <HowItWorks />
         <Providers />
         <Quota />
+        <Pricing />
         <Developers />
         <Faq />
         <CallToAction />
@@ -337,6 +340,113 @@ function Quota() {
           <QuotaBoard />
         </Reveal>
       </div>
+    </section>
+  );
+}
+
+
+interface PlanRow {
+  code: string;
+  label: string;
+  priceUsd: number;
+  monthlyRequestLimit: number;
+  maxConnections: number;
+  maxApiKeys: number;
+  historyDays: number;
+  perMinuteLimit: number;
+}
+
+// Mirrors entitlements.PLANS so the section paints instantly; the fetch in
+// Pricing() overwrites it with whatever the backend actually enforces, so a
+// price or limit change needs no edit here to show up.
+const PLAN_FALLBACK: PlanRow[] = [
+  { code: "free", label: "Free", priceUsd: 0, monthlyRequestLimit: 50, maxConnections: 1, maxApiKeys: 1, historyDays: 7, perMinuteLimit: 3 },
+  { code: "plus", label: "Plus", priceUsd: 6, monthlyRequestLimit: 200, maxConnections: 2, maxApiKeys: 3, historyDays: 90, perMinuteLimit: 14 },
+  { code: "pro", label: "Pro", priceUsd: 17, monthlyRequestLimit: 1000, maxConnections: 5, maxApiKeys: 10, historyDays: 365, perMinuteLimit: 30 },
+];
+
+const historyLabel = (days: number) => (days >= 365 ? "1 year" : `${days} days`);
+
+function planPerks(plan: PlanRow): string[] {
+  return [
+    `${plan.monthlyRequestLimit.toLocaleString()} successful requests a month`,
+    `${plan.maxConnections} connected account${plan.maxConnections === 1 ? "" : "s"}`,
+    `${plan.maxApiKeys} API key${plan.maxApiKeys === 1 ? "" : "s"}`,
+    `${historyLabel(plan.historyDays)} of history`,
+    `${plan.perMinuteLimit} requests a minute`,
+  ];
+}
+
+function Pricing() {
+  const p = COPY.pricing;
+  const [plans, setPlans] = useState<PlanRow[]>(PLAN_FALLBACK);
+
+  useEffect(() => {
+    let cancelled = false;
+    get<{ plans?: PlanRow[] }>("/api/billing/plans")
+      .then((data) => {
+        if (!cancelled && data.plans?.length) setPlans(data.plans);
+      })
+      .catch(() => {
+        /* the mirror above keeps the section honest even offline */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section id="pricing" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
+      <SectionHeader eyebrow={p.eyebrow} title={p.title} text={p.intro} />
+      <div className="mt-14 grid gap-4 md:grid-cols-3">
+        {plans.map((plan, i) => {
+          const popular = plan.code === "plus";
+          return (
+            <Reveal key={plan.code} delay={i * 80} className="min-w-0">
+              <div
+                className={`glass lift relative flex h-full flex-col p-6 sm:p-7 ${
+                  popular ? "ring-1 ring-accent/40" : ""
+                }`}
+              >
+                {popular && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-accent-ink">
+                    {p.popular}
+                  </span>
+                )}
+                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
+                  {plan.label}
+                </p>
+                <p className="mt-3 flex items-baseline gap-1.5">
+                  <span className="text-4xl font-semibold tracking-tight">${plan.priceUsd}</span>
+                  <span className="text-sm text-ink-dim">{plan.priceUsd > 0 ? "/ month" : "forever"}</span>
+                </p>
+                <ul className="mt-6 space-y-2.5 text-[14px] text-ink/85">
+                  {planPerks(plan).map((perk) => (
+                    <li key={perk} className="flex items-start gap-2.5">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                      {perk}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-7 flex-1" />
+                <Link to="/signup" className={`${popular ? "btn-primary" : "btn-ghost"} w-full`}>
+                  {plan.priceUsd > 0 ? `${p.paidCta} ${plan.label}` : p.freeCta}
+                </Link>
+              </div>
+            </Reveal>
+          );
+        })}
+      </div>
+      <Reveal className="mx-auto mt-8 max-w-3xl">
+        <ul className="grid gap-x-8 gap-y-1.5 text-[12.5px] text-ink-dim sm:grid-cols-2">
+          {p.fine.map((line) => (
+            <li key={line} className="flex items-start gap-2">
+              <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-current opacity-60" />
+              {line}
+            </li>
+          ))}
+        </ul>
+      </Reveal>
     </section>
   );
 }

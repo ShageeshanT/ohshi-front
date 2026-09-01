@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, KeyRound, Plus, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Badge, Button, Card, EmptyState, Field, Input, Modal, Notice, Spinner } from "../components/ui";
 import { copyText, friendly, get, post, timeAgo } from "../lib/api";
 
@@ -10,6 +11,7 @@ interface ApiKeyRow {
   createdMs: number;
   lastUsedMs: number | null;
   revokedMs: number | null;
+  locked?: boolean;
 }
 
 export default function Keys() {
@@ -21,10 +23,13 @@ export default function Keys() {
   const [fresh, setFresh] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showRevoked, setShowRevoked] = useState(false);
+  const [maxKeys, setMaxKeys] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setKeys((await get<{ keys: ApiKeyRow[] }>("/api/keys")).keys);
+      const payload = await get<{ keys: ApiKeyRow[]; maxApiKeys?: number }>("/api/keys");
+      setKeys(payload.keys);
+      setMaxKeys(payload.maxApiKeys ?? null);
       setError(null);
     } catch (e) {
       setError(friendly(e));
@@ -69,6 +74,20 @@ export default function Keys() {
             Your agents send one of these as <code className="mono">Authorization: Bearer ohs_…</code> to{" "}
             <code className="mono">/v1</code>.
           </p>
+          {maxKeys !== null && keys !== null && (
+            <p className="mt-1 text-xs text-ink-dim">
+              {keys.filter((k) => k.revokedMs === null).length} of {maxKeys} active key
+              {maxKeys === 1 ? "" : "s"} on your plan
+              {keys.filter((k) => k.revokedMs === null).length >= maxKeys && (
+                <>
+                  {" · "}
+                  <Link to="/app/profile" className="font-semibold text-accent hover:underline">
+                    Upgrade for more
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
         </div>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" /> New key
@@ -113,6 +132,7 @@ export default function Keys() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {k.locked && k.revokedMs === null && <Badge tone="warn">Locked on your plan</Badge>}
                   {k.revokedMs !== null ? (
                     <Badge tone="danger">Revoked {timeAgo(k.revokedMs)}</Badge>
                   ) : (

@@ -104,6 +104,15 @@ export interface LandingCopy {
     modelsLabel: string;
   };
   models: { eyebrow: string; title: string; intro: string };
+  pricing: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    popular: string;
+    freeCta: string;
+    paidCta: string;
+    fine: string[];
+  };
   quota: { eyebrow: string; title: string; paragraph: string; bullets: string[] };
   developers: {
     eyebrow: string;
@@ -118,9 +127,9 @@ export interface LandingCopy {
 }
 
 export const COPY: LandingCopy = {
-  nav: ["Why Ohshi", "How It Works", "Providers", "Developers", "FAQ"],
+  nav: ["Why Ohshi", "How It Works", "Providers", "Pricing", "Developers", "FAQ"],
   hero: {
-    badge: "Free During Beta",
+    badge: "Start Free",
     line1: "One Subscription.",
     line2: "Chat and API.",
     paragraph:
@@ -227,6 +236,21 @@ export const COPY: LandingCopy = {
       "Connect several accounts and pick a default. Each shows its own remaining quota.",
     ],
   },
+  pricing: {
+    eyebrow: "Pricing",
+    title: "Start Free. Upgrade When You Outgrow It.",
+    intro:
+      "Every plan is an Ohshi allowance on top of the subscriptions you connect — the models themselves keep running on your own accounts. Checkout, tax and invoices are handled by Dodo Payments, our merchant of record.",
+    popular: "Most Popular",
+    freeCta: "Start Free",
+    paidCta: "Start with",
+    fine: [
+      "Only successful requests count — a failed call hands its slot back.",
+      "Downgrading locks extras instead of deleting them; upgrade again and they wake up.",
+      "Chat and usage history outside your plan's window is pruned.",
+      "Cancel any time; a paid plan stays active until the period already paid for ends.",
+    ],
+  },
   developers: {
     eyebrow: "Developers",
     title: "Swap the Base URL and the Key.",
@@ -270,13 +294,13 @@ export const COPY: LandingCopy = {
       },
       {
         q: "What Does Ohshi Cost?",
-        a: "Nothing during beta, and there is nothing to buy from Ohshi. The only plans involved are the subscriptions you already hold.",
+        a: "The Free plan is $0: 50 successful requests a month, one connection and one API key. Plus is $6 a month for 200 requests, two connections and three keys with 90 days of history. Pro is $17 a month for 1,000 requests, five connections, ten keys and a year of history. The models themselves still run on the subscriptions you connect — Ohshi never resells model access.",
       },
     ],
   },
   cta: {
     title: "Start With the Plans You Have.",
-    text: "Sign up, connect an account and use the same models from chat and from /v1. Free during beta, with nothing to buy.",
+    text: "Sign up, connect an account and use the same models from chat and from /v1. The Free plan is ready the moment you sign in.",
     primary: "Create an Account",
     secondary: "Read the Docs",
   },

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { LegalLayout } from "../components/marketing/LegalLayout";
 
-export const TERMS_VERSION = "2026-08-30";
+export const TERMS_VERSION = "2026-09-01";
 
 export default function Terms() {
   return (
@@ -104,13 +104,33 @@ export default function Terms() {
         response time or that a specific model will remain available.
       </p>
 
-      <h2 id="fees">8. Fees</h2>
+      <h2 id="fees">8. Fees and billing</h2>
       <p>
-        The Service is currently free. If we introduce paid plans we will announce them in advance, and nothing you use
-        today will start charging you without your explicit agreement. Any costs of your Google plan are between you and
-        Google.
+        Ohshi has a free plan and paid monthly subscriptions (currently Plus and Pro). Prices,
+        taxes and invoices are handled at checkout by Dodo Payments, our merchant of record —
+        Dodo is the seller of the subscription and processes your payment details; Ohshi never
+        sees your card.
       </p>
-
+      <ul>
+        <li>
+          Paid plans renew monthly until cancelled. You can cancel any time from your profile or
+          the billing portal; the plan stays active until the end of the period already paid for.
+        </li>
+        <li>
+          Each plan carries usage limits — monthly requests, connected accounts, API keys,
+          history retention and request rate — shown on the pricing page. Only successful
+          requests count against the monthly allowance.
+        </li>
+        <li>
+          When a subscription ends, is refunded or is disputed, the account returns to the free
+          plan. Connections and keys above the free limits are locked, not deleted; history
+          outside the free plan&apos;s retention window is pruned.
+        </li>
+        <li>
+          Refunds: contact us within 14 days of a charge and we will review it. Approved refunds
+          are processed by Dodo and end the paid plan immediately.
+        </li>
+      </ul>
       <h2 id="termination">9. Ending things</h2>
       <p>
         You can stop using Ohshi at any time by disconnecting your Google accounts, revoking your keys and asking us to

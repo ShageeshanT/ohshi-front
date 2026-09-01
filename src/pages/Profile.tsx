@@ -114,7 +114,8 @@ function PlanBillingCard() {
   const { me, setMe } = useAuth();
   const [params] = useSearchParams();
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
-  const [busy, setBusy] = useState<"checkout" | "portal" | null>(null);
+  const [prices, setPrices] = useState<Record<string, number>>({ plus: 6, pro: 17 });
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const justPaid = params.get("checkout") === "done";
@@ -139,6 +140,12 @@ function PlanBillingCard() {
       .catch(() => {
         /* the card still renders from `me` alone */
       });
+    get<{ plans?: { code: string; priceUsd: number }[] }>("/api/billing/plans")
+      .then((data) => {
+        if (cancelled || !data.plans) return;
+        setPrices(Object.fromEntries(data.plans.map((entry) => [entry.code, entry.priceUsd])));
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -160,10 +167,10 @@ function PlanBillingCard() {
     return () => window.clearInterval(timer);
   }, [justPaid, paid, setMe]);
 
-  const go = (which: "checkout" | "portal") => {
-    setBusy(which);
+  const checkout = (target: "plus" | "pro") => {
+    setBusy(target);
     setError(null);
-    post<{ url: string }>(`/api/billing/${which}`)
+    post<{ url: string }>("/api/billing/checkout", { plan: target })
       .then(({ url }) => {
         window.location.href = url;
       })
@@ -173,7 +180,21 @@ function PlanBillingCard() {
       });
   };
 
-  const label = entitlement?.label ?? (paid ? "Plus" : "Free");
+  const openPortal = () => {
+    setBusy("portal");
+    setError(null);
+    post<{ url: string }>("/api/billing/portal")
+      .then(({ url }) => {
+        window.location.href = url;
+      })
+      .catch((err) => {
+        setError(friendly(err));
+        setBusy(null);
+      });
+  };
+
+  const label = entitlement?.label ?? (paid ? plan[0].toUpperCase() + plan.slice(1) : "Free");
+  const price = (code: string) => (prices[code] != null ? ` · $${prices[code]}/mo` : "");
 
   return (
     <Card title="Plan & billing" aside={<CreditCard className="h-4 w-4 text-ink-dim" />}>
@@ -193,16 +214,33 @@ function PlanBillingCard() {
               {paid && renews && (status === "cancelled" ? ` · ends ${renews}` : ` · renews ${renews}`)}
             </p>
           </div>
-          {billingEnabled && !paid && (
-            <Button busy={busy === "checkout"} onClick={() => go("checkout")}>
-              Upgrade to Plus
-            </Button>
-          )}
-          {billingEnabled && paid && (
-            <Button busy={busy === "portal"} onClick={() => go("portal")}>
-              Manage billing
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {billingEnabled && plan === "free" && (
+              <>
+                <Button busy={busy === "plus"} onClick={() => checkout("plus")}>
+                  Upgrade to Plus{price("plus")}
+                </Button>
+                <Button tone="ghost" busy={busy === "pro"} onClick={() => checkout("pro")}>
+                  Go Pro{price("pro")}
+                </Button>
+              </>
+            )}
+            {billingEnabled && plan === "plus" && (
+              <>
+                <Button busy={busy === "pro"} onClick={() => checkout("pro")}>
+                  Switch to Pro{price("pro")}
+                </Button>
+                <Button tone="ghost" busy={busy === "portal"} onClick={openPortal}>
+                  Manage billing
+                </Button>
+              </>
+            )}
+            {billingEnabled && plan === "pro" && (
+              <Button busy={busy === "portal"} onClick={openPortal}>
+                Manage billing
+              </Button>
+            )}
+          </div>
         </div>
         {status === "cancelled" && paid && (
           <p className="text-xs leading-relaxed text-warn">

@@ -70,6 +70,7 @@ interface Connection {
   tier: string;
   status: "active" | "needs_reconnect" | "revoked";
   isDefault: boolean;
+  locked?: boolean;
   connectedMs: number;
   health: Health;
 }
@@ -352,6 +353,22 @@ export default function Dashboard() {
         </Notice>
       )}
       {loadError && <Notice tone="danger">{loadError}</Notice>}
+      {planUsage &&
+        planUsage.requestLimit > 0 &&
+        planUsage.requestsUsed / planUsage.requestLimit >= 0.8 && (
+          <Notice tone="warn">
+            <span>
+              {formatNumber(planUsage.requestsUsed)} of {formatNumber(planUsage.requestLimit)} plan
+              requests used this month
+              {planUsage.requestsRemaining === 0
+                ? " — new requests are paused until the month resets. "
+                : ". "}
+              <Link to="/app/profile" className="font-semibold underline">
+                Upgrade for more headroom
+              </Link>
+            </span>
+          </Notice>
+        )}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <OverviewStat
@@ -632,6 +649,7 @@ function ConnectionCard(props: {
                   <Star className="h-3 w-3" /> Default
                 </Badge>
               )}
+              {c.locked && <Badge tone="warn">Locked on your plan</Badge>}
               {connected ? (
                 c.health?.status === "error" ? (
                   <Badge tone="danger">Connected, not answering</Badge>
