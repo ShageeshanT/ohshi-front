@@ -173,7 +173,7 @@ function PlanBillingCard() {
       });
   };
 
-  const label = entitlement?.label ?? (paid ? "Starter" : "Free");
+  const label = entitlement?.label ?? (paid ? "Plus" : "Free");
 
   return (
     <Card title="Plan & billing" aside={<CreditCard className="h-4 w-4 text-ink-dim" />}>
@@ -195,7 +195,7 @@ function PlanBillingCard() {
           </div>
           {billingEnabled && !paid && (
             <Button busy={busy === "checkout"} onClick={() => go("checkout")}>
-              Upgrade to Starter
+              Upgrade to Plus
             </Button>
           )}
           {billingEnabled && paid && (
