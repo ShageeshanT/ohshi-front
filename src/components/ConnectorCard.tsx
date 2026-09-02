@@ -40,7 +40,9 @@ export interface RunnerStatus {
 }
 
 export function commandWithToken(status: RunnerStatus, token: string): string {
-  return status.command.replace(status.tokenPlaceholder, token);
+  // A function replacement: a "$&" or "$'" inside the token must be copied
+  // literally, not read as a replacement pattern.
+  return status.command.replace(status.tokenPlaceholder, () => token);
 }
 
 export default function ConnectorCard(props: {
@@ -197,7 +199,13 @@ export default function ConnectorCard(props: {
         </div>
       </div>
 
-      <Modal open={createOpen} onClose={closeModal} title={fresh ? "Copy your connector token" : "New connector token"}>
+      {/* While the one-time token is on screen the modal closes only through Done:
+          a stray click on the backdrop must not throw the secret away. */}
+      <Modal
+        open={createOpen}
+        onClose={fresh ? () => undefined : closeModal}
+        title={fresh ? "Copy your connector token" : "New connector token"}
+      >
         {fresh && status ? (
           <div className="space-y-4">
             <p className="text-[13px] leading-relaxed text-ink-dim">

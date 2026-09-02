@@ -108,6 +108,7 @@ export default function GeminiKeysCard(props: {
   const studioUrl = payload?.studioUrl ?? "https://aistudio.google.com/apikey";
   const [label, setLabel] = useState("");
   const [key, setKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
@@ -200,7 +201,22 @@ export default function GeminiKeysCard(props: {
             <Input value={label} onChange={setLabel} placeholder="personal" autoFocus onEnter={save} />
           </Field>
           <Field label="API key">
-            <Input value={key} onChange={setKey} placeholder="AIza…" mono autoComplete="off" onEnter={save} />
+            {/* A secret: masked while typed (screen shares, recordings, shoulders), shown on request. */}
+            <div className="flex items-center gap-2">
+              <Input
+                value={key}
+                onChange={setKey}
+                placeholder="AIza…"
+                mono
+                type={showKey ? "text" : "password"}
+                autoComplete="off"
+                onEnter={save}
+                className="flex-1"
+              />
+              <Button tone="ghost" size="sm" onClick={() => setShowKey((v) => !v)}>
+                {showKey ? "Hide" : "Show"}
+              </Button>
+            </div>
           </Field>
           {note && <p className="text-[13px] text-warn">{note}</p>}
           <div className="flex gap-2">

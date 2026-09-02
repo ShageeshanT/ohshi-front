@@ -46,7 +46,18 @@ export const AFTER_AUTH_PATH = "/app";
  * redirect bugs to slip in.
  */
 export function afterAuthPath(next?: string | null): string {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : AFTER_AUTH_PATH;
+  // A leading "/" is not enough: browsers read "/\evil.com" (and "//evil.com")
+  // as a different origin. Resolve it and keep only a path on this origin.
+  if (!next || !next.startsWith("/") || /^\/[/\\]/.test(next) || next.includes("\\")) {
+    return AFTER_AUTH_PATH;
+  }
+  try {
+    const url = new URL(next, window.location.origin);
+    if (url.origin !== window.location.origin) return AFTER_AUTH_PATH;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return AFTER_AUTH_PATH;
+  }
 }
 
 /**

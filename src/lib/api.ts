@@ -196,6 +196,36 @@ export async function readSSE(
   if (buffer.trim()) handleBlock(buffer);
 }
 
+/**
+ * A link the API handed back, safe to hand to `window.location`: https only
+ * and, when `hosts` is given, only on one of them (a host, or a `.suffix`
+ * that also matches the bare domain). Anything else — `javascript:`, a host
+ * nobody expected — is refused rather than followed.
+ */
+export function safeExternalUrl(url: unknown, hosts: string[] = []): string | null {
+  if (typeof url !== "string" || !url) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:") return null;
+  const host = parsed.hostname.toLowerCase();
+  const allowed = (h: string) =>
+    h.startsWith(".") ? host === h.slice(1) || host.endsWith(h) : host === h.toLowerCase();
+  if (hosts.length > 0 && !hosts.some(allowed)) return null;
+  return parsed.href;
+}
+
+/** Text taken from a URL parameter, trimmed to something a page may show. */
+export function paramText(value: string | null | undefined, max = 160): string | null {
+  if (!value) return null;
+  // eslint-disable-next-line no-control-regex
+  const text = value.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+  return text ? text.slice(0, max) : null;
+}
+
 /** Friendly error line for the UI. */
 export function friendly(e: unknown, fallback = "Something went wrong. Please try again."): string {
   if (e instanceof ApiError) return e.message || fallback;

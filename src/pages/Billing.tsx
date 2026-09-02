@@ -14,7 +14,7 @@ import { useAuth, type Me } from "../App";
 import { ArrowLoopDoodle, StarsDoodle } from "../components/Doodles";
 import { PlanCard } from "../components/PlanCard";
 import { Badge, Button, Card, Notice, PageHeader, Progress, SectionTitle } from "../components/ui";
-import { formatNumber, friendly, get, post } from "../lib/api";
+import { formatNumber, friendly, get, post, safeExternalUrl } from "../lib/api";
 import { fetchPlans, type PlansPayload } from "../lib/plans";
 import { useUsage } from "../lib/workspace";
 
@@ -76,7 +76,11 @@ export default function Billing() {
     setError(null);
     post<{ url: string }>("/api/billing/checkout", { plan: target })
       .then(({ url }) => {
-        window.location.href = url;
+        // Only ever to the payment processor, over https — never to a link
+        // an answer could have been made to carry.
+        const safe = safeExternalUrl(url, [".dodopayments.com"]);
+        if (!safe) throw new Error("unexpected billing link");
+        window.location.assign(safe);
       })
       .catch((err) => {
         setError(friendly(err));
@@ -89,7 +93,11 @@ export default function Billing() {
     setError(null);
     post<{ url: string }>("/api/billing/portal")
       .then(({ url }) => {
-        window.location.href = url;
+        // Only ever to the payment processor, over https — never to a link
+        // an answer could have been made to carry.
+        const safe = safeExternalUrl(url, [".dodopayments.com"]);
+        if (!safe) throw new Error("unexpected billing link");
+        window.location.assign(safe);
       })
       .catch((err) => {
         setError(friendly(err));

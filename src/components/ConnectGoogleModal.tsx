@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { ExternalLink } from "lucide-react";
-import { friendly, post } from "../lib/api";
+import { friendly, post, safeExternalUrl } from "../lib/api";
 import { GoogleLogo } from "./logos";
 import { Button, Field, Input, Modal } from "./ui";
 
@@ -44,12 +44,16 @@ export default function ConnectGoogleModal(props: {
     setNote(null);
     post<StartResponse>("/api/google/connect/start")
       .then((d) => {
+        // Only an https address is ever handed to the browser, whatever the
+        // API answered — never a javascript: or a look-alike scheme.
+        const authorizeUrl = safeExternalUrl(d.authorizeUrl);
+        if (!authorizeUrl) throw new Error("unexpected sign-in address");
         if (d.redirectMode === "callback") {
-          window.location.assign(d.authorizeUrl);
+          window.location.assign(authorizeUrl);
           return;
         }
-        setStart(d);
-        window.open(d.authorizeUrl, "_blank", "noopener");
+        setStart({ ...d, authorizeUrl });
+        window.open(authorizeUrl, "_blank", "noopener");
       })
       .catch((e) => setNote(friendly(e, "Couldn't start the sign in. Please try again.")))
       .finally(() => setStarting(false));

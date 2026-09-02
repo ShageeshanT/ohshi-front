@@ -17,7 +17,7 @@ import ConnectorCard from "../components/ConnectorCard";
 import GeminiKeysCard from "../components/GeminiKeysCard";
 import { GeminiLogo, GoogleLogo } from "../components/logos";
 import { Badge, Button, Card, EmptyState, Notice, PageHeader, SectionTitle, Spinner, type Tone } from "../components/ui";
-import { friendly, post } from "../lib/api";
+import { friendly, paramText, post } from "../lib/api";
 import {
   quotaFor,
   useConnections,
@@ -40,8 +40,10 @@ export default function Accounts() {
   const [flash, setFlash] = useState<{ tone: Tone; text: string } | null>(() => {
     const connected = params.get("connected");
     const error = params.get("connect_error");
-    if (connected) return { tone: "ok", text: `Connected ${connected}.` };
-    if (error) return { tone: "danger", text: error };
+    // Both come from the address bar: cut to size, and labelled as a note
+    // about the connect attempt rather than shown as this page's own words.
+    if (connected) return { tone: "ok", text: `Connected ${paramText(connected, 120) ?? ""}.` };
+    if (error) return { tone: "danger", text: `Connecting Google did not finish: ${paramText(error) ?? ""}` };
     return null;
   });
 

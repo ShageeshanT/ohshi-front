@@ -77,7 +77,10 @@ export default function Landing() {
 }
 
 function scrollToHash(lenis: ReturnType<typeof useLenis>, hash: string) {
-  const el = document.querySelector<HTMLElement>(hash);
+  // Only a plain element id — anything else in the fragment is not a selector
+  // this page should evaluate.
+  if (!/^#[A-Za-z][\w-]*$/.test(hash)) return;
+  const el = document.getElementById(hash.slice(1));
   if (!el) return;
   if (lenis) lenis.scrollTo(el, { offset: -90 });
   else el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -155,7 +158,7 @@ function Hero() {
               </li>
             ))}
           </motion.ul>
-        </motion.div>
+        </div>
       </div>
 
       <button

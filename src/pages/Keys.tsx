@@ -163,7 +163,13 @@ export default function Keys() {
         )}
       </Card>
 
-      <Modal open={createOpen} onClose={closeModal} title={fresh ? "Copy your new key" : "Create an API key"}>
+      {/* While the one-time key is on screen the modal closes only through Done:
+          a stray click on the backdrop must not throw the secret away. */}
+      <Modal
+        open={createOpen}
+        onClose={fresh ? () => undefined : closeModal}
+        title={fresh ? "Copy your new key" : "Create an API key"}
+      >
         {fresh ? (
           <div className="space-y-4">
             <p className="text-[13px] leading-relaxed text-ink-dim">
