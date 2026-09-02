@@ -93,7 +93,7 @@ type Tone = "plain" | "accent" | "night" | "danger" | "ok";
 const ICON_TONE: Record<Tone, string> = {
   plain: "border border-edge bg-panel-2 text-ink",
   accent: "bg-accent-soft text-accent",
-  night: "bg-night text-white",
+  night: "bg-night text-night-ink",
   danger: "bg-danger-soft text-danger",
   ok: "bg-ok-soft text-ok",
 };
@@ -159,7 +159,7 @@ function Caption(props: { title: string; accent?: boolean }) {
 
 function Tally(props: { items: string[]; note: string; accent?: boolean }) {
   return (
-    <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-edge/70 pt-4">
+    <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-edge pt-4">
       <ul className="flex items-center gap-1.5">
         {props.items.map((t) => (
           <li
@@ -195,7 +195,7 @@ export function PayTwiceDiagram() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="glass flex flex-col p-5 sm:p-6">
+      <div className="card flex flex-col p-4 sm:p-5">
         <Caption title={before.title} />
 
         <div className="mb-5 mt-5 hidden flex-1 grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)] md:grid">
@@ -227,7 +227,7 @@ export function PayTwiceDiagram() {
           {before.rows.map((r, i) => (
             <div
               key={r.from}
-              className={`flex flex-col items-center gap-2 ${i > 0 ? "border-t border-edge/70 pt-3" : ""}`}
+              className={`flex flex-col items-center gap-2 ${i > 0 ? "border-t border-edge pt-3" : ""}`}
             >
               <Node icon={fromIcon(i)} label={r.from} sub={r.fromSub} tone={i === 0 ? "plain" : "danger"} />
               <Down />
@@ -239,7 +239,7 @@ export function PayTwiceDiagram() {
         <Tally items={before.tally} note={before.note} />
       </div>
 
-      <div className="glass flex flex-col p-5 ring-1 ring-accent/25 sm:p-6">
+      <div className="card flex flex-col p-4 ring-1 ring-accent/30 sm:p-5">
         <Caption title={after.title} accent />
 
         <div className="mb-5 mt-5 hidden flex-1 grid-cols-[minmax(0,1fr)_2.5rem_auto_2.5rem_minmax(0,1fr)] pb-9 md:grid">
@@ -391,15 +391,15 @@ export function ProviderCard({ provider }: { provider: Provider }) {
   const p = COPY.providers;
   const Logo = PROVIDER_LOGOS[provider.id];
   return (
-    <div className="glass lift flex h-full flex-col p-5">
+    <div className="card card-hover flex h-full flex-col p-4">
       <div className="flex items-center justify-between gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-2xl border border-edge bg-panel text-ink">
+        <span className="grid h-9 w-9 place-items-center rounded-lg border border-edge bg-panel text-ink">
           <Logo className="h-5 w-5" />
         </span>
         <Status live={provider.live} />
       </div>
-      <h3 className="mt-4 text-lg font-semibold tracking-tight">{provider.vendor}</h3>
-      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-dim">{p.plansLabel}</p>
+      <h3 className="mt-3 text-[15px] font-semibold tracking-tight">{provider.vendor}</h3>
+      <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.1em] text-ink-faint">{p.plansLabel}</p>
       <ul className="mt-1.5 flex flex-wrap gap-1.5">
         {provider.plans.map((plan) => (
           <li
@@ -410,7 +410,7 @@ export function ProviderCard({ provider }: { provider: Provider }) {
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-dim">{p.modelsLabel}</p>
+      <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.1em] text-ink-faint">{p.modelsLabel}</p>
       <p className="mt-1 text-[13.5px] leading-relaxed text-ink-dim">{provider.models}</p>
     </div>
   );
@@ -431,8 +431,8 @@ const meterTone = (pct: number) => (pct > 50 ? "bg-ok" : pct > 25 ? "bg-warn" : 
 /** The dashboard's quota card, with the meters filling as it scrolls in. */
 export function QuotaBoard() {
   return (
-    <div className="glass overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-edge/70 px-5 py-4">
+    <div className="card overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-edge px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-edge bg-panel">
             <GoogleLogo className="h-4.5 w-4.5" />
@@ -447,7 +447,7 @@ export function QuotaBoard() {
           Resets in 3h 40m
         </span>
       </div>
-      <ul className="divide-y divide-edge/60 px-5">
+      <ul className="divide-y divide-edge px-5">
         {QUOTA_DEMO.map((m, i) => (
           <li key={m.name} className="grid grid-cols-[auto_minmax(0,1fr)_3rem] items-center gap-3 py-3">
             <span className="grid h-8 w-8 place-items-center rounded-lg border border-edge bg-panel text-ink">
@@ -469,7 +469,7 @@ export function QuotaBoard() {
           </li>
         ))}
       </ul>
-      <div className="flex items-center gap-2 border-t border-edge/70 bg-panel-2/60 px-5 py-3 text-[11.5px] text-ink-dim">
+      <div className="flex items-center gap-2 border-t border-edge bg-surface px-5 py-3 text-[11.5px] text-ink-dim">
         <span className="status-pulse h-1.5 w-1.5 rounded-full bg-ok text-ok" />
         Read live from the provider
       </div>
@@ -481,7 +481,7 @@ export function QuotaBoard() {
 
 function Mock(props: { children: ReactNode }) {
   return (
-    <div className="flex flex-col justify-center rounded-2xl border border-edge/70 bg-panel-2/50 p-3 md:min-h-[10.5rem]">
+    <div className="flex flex-col justify-center rounded-lg border border-edge bg-surface p-3 md:min-h-[10.5rem]">
       {props.children}
     </div>
   );

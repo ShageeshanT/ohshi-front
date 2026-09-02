@@ -90,24 +90,22 @@ export default function ConnectorCard(props: {
   };
 
   return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-start gap-3.5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-edge bg-panel">
-            <Laptop className="h-5 w-5 text-ink-dim" />
+    <Card flush>
+      <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3.5">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-edge bg-panel">
+            <Laptop className="h-4 w-4 text-ink-dim" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-bold tracking-tight">Connector</span>
-              <Badge tone="violet">Beta</Badge>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[13px] font-semibold">Your machine</span>
               <StatusPill status={status} />
             </div>
-            <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-ink-dim">
-              Run your model calls from your own computer instead of Ohshi's servers, so Google sees your
-              network. Switch it on per account below. Whenever the connector is offline, those calls simply
-              run on Ohshi's servers.
+            <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-ink-dim">
+              Google sees your network instead of Ohshi's. Switch it on per account above; whenever the connector
+              is offline those calls simply run on Ohshi's servers.
             </p>
-            <p className="mt-1 text-xs text-ink-dim">
+            <p className="mt-0.5 text-[12px] text-ink-dim">
               {status?.online
                 ? `${status.jobsDispatched} request${status.jobsDispatched === 1 ? "" : "s"} routed to ${
                     status.hostname ?? "your machine"
@@ -124,42 +122,38 @@ export default function ConnectorCard(props: {
             </p>
           </div>
         </div>
-        <div className="w-full sm:w-auto">
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-3.5 w-3.5" /> New token
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="h-3.5 w-3.5" /> New token
+        </Button>
       </div>
 
-      {props.error && (
-        <div className="mt-4">
-          <Notice tone="warn">{props.error}</Notice>
-        </div>
-      )}
-      {note && (
-        <div className="mt-4">
-          <Notice tone="danger" onClose={() => setNote(null)}>
-            {note}
-          </Notice>
+      {(props.error || note) && (
+        <div className="space-y-2 px-4 pb-3">
+          {props.error && <Notice tone="warn">{props.error}</Notice>}
+          {note && (
+            <Notice tone="danger" onClose={() => setNote(null)}>
+              {note}
+            </Notice>
+          )}
         </div>
       )}
 
-      <div className="mt-5 grid gap-5 border-t border-edge pt-5 lg:grid-cols-[1fr_1.1fr]">
-        <div>
-          <h3 className="text-[13px] font-bold tracking-tight">Tokens</h3>
-          <p className="text-[11px] text-ink-dim">One per machine. Each is shown once, like an API key.</p>
+      <div className="grid border-t border-edge lg:grid-cols-[1fr_1.15fr]">
+        <div className="border-b border-edge px-4 py-3.5 lg:border-b-0 lg:border-r">
+          <h3 className="text-[12.5px] font-semibold">Tokens</h3>
+          <p className="text-[12px] text-ink-dim">One per machine. Each is shown once, like an API key.</p>
           {active.length === 0 ? (
-            <p className="mt-3 rounded-xl border border-dashed border-edge bg-ink/[0.02] px-4 py-4 text-xs text-ink-dim">
+            <p className="mt-3 rounded-lg border border-dashed border-edge px-3 py-3 text-[12px] text-ink-dim">
               No connector tokens yet. Create one, run the command on your computer, then switch an account to
               “Run on my machine”.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-edge">
+            <ul className="mt-2 divide-y divide-edge">
               {[...active, ...(showRevoked ? revoked : [])].map((t) => (
-                <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
+                <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold">{t.name || "Untitled machine"}</p>
-                    <p className="text-[11px] text-ink-dim">
+                    <p className="truncate text-[12.5px] font-medium">{t.name || "Untitled machine"}</p>
+                    <p className="text-[11.5px] text-ink-dim">
                       <span className="mono">{t.prefix}…</span>, created {timeAgo(t.createdMs)}, last seen{" "}
                       {timeAgo(t.lastSeenMs)}
                     </p>
@@ -179,24 +173,24 @@ export default function ConnectorCard(props: {
             <button
               type="button"
               onClick={() => setShowRevoked((v) => !v)}
-              className="mt-3 text-xs font-semibold text-ink-dim hover:text-ink"
+              className="mt-2 text-[12px] font-medium text-ink-dim hover:text-ink"
             >
               {showRevoked ? "Hide" : "Show"} {revoked.length} revoked token{revoked.length > 1 ? "s" : ""}
             </button>
           )}
         </div>
 
-        <div className="min-w-0">
-          <h3 className="text-[13px] font-bold tracking-tight">Run it on your computer</h3>
-          <p className="text-[11px] text-ink-dim">
+        <div className="min-w-0 px-4 py-3.5">
+          <h3 className="text-[12.5px] font-semibold">Run it on your computer</h3>
+          <p className="text-[12px] text-ink-dim">
             Needs Python 3.11+ and <span className="mono">uv</span>. Put your token in place of{" "}
             <span className="mono">{status?.tokenPlaceholder ?? "OHR_TOKEN"}</span>; both flags are remembered,
             so after the first run <span className="mono">ohshi runner</span> alone is enough.
           </p>
-          <div className="mt-3">
+          <div className="mt-2.5">
             <CommandBox command={status?.command ?? "…"} />
           </div>
-          <p className="mt-2 text-[11px] text-ink-dim">
+          <p className="mt-2 text-[12px] text-ink-dim">
             It reconnects by itself after sleep or a network blip. Sign a Google account in from that machine
             with <span className="mono">ohshi runner connect</span> and it appears here, set to run there.
           </p>
@@ -206,15 +200,13 @@ export default function ConnectorCard(props: {
       <Modal open={createOpen} onClose={closeModal} title={fresh ? "Copy your connector token" : "New connector token"}>
         {fresh && status ? (
           <div className="space-y-4">
-            <p className="text-sm text-ink-dim">
+            <p className="text-[13px] leading-relaxed text-ink-dim">
               This is the only time the full token is shown. Run the command below on the computer that should
               make the calls.
             </p>
             <SecretBox value={fresh} label="Copy token" />
             <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">
-                Ready-to-run command
-              </p>
+              <p className="mb-1.5 text-[12.5px] font-medium">Ready-to-run command</p>
               <CommandBox command={commandWithToken(status, fresh)} />
             </div>
             <Button onClick={closeModal}>Done</Button>
@@ -240,11 +232,11 @@ function StatusPill(props: { status: RunnerStatus | null }) {
   if (s.online) {
     return (
       <>
-        <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-ok-soft px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-ok">
+        <Badge tone="ok">
           <span className="live-dot" aria-hidden />
           Online
-        </span>
-        <span className="min-w-0 truncate text-xs text-ink-dim">
+        </Badge>
+        <span className="min-w-0 truncate text-[12px] text-ink-dim">
           {s.hostname ?? "your machine"}, seen {timeAgo(s.lastSeenMs)}
         </span>
       </>
@@ -252,32 +244,32 @@ function StatusPill(props: { status: RunnerStatus | null }) {
   }
   return (
     <>
-      <Badge>Offline</Badge>
-      {s.lastSeenMs ? <span className="text-xs text-ink-dim">last seen {timeAgo(s.lastSeenMs)}</span> : null}
+      <Badge dot>Offline</Badge>
+      {s.lastSeenMs ? <span className="text-[12px] text-ink-dim">last seen {timeAgo(s.lastSeenMs)}</span> : null}
     </>
   );
 }
 
-function SecretBox(props: { value: string; label: string }) {
+export function SecretBox(props: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-night p-3 text-white">
-      <code className="mono min-w-0 flex-1 break-all text-xs">{props.value}</code>
+    <div className="flex items-center gap-2 rounded-lg bg-code p-3 text-[#e6e8eb]">
+      <code className="mono min-w-0 flex-1 break-all text-[12px]">{props.value}</code>
       <button
         type="button"
-        className="shrink-0 rounded-lg bg-white/10 p-2 hover:bg-white/20"
+        className="shrink-0 rounded-md bg-white/10 p-1.5 transition-colors hover:bg-white/20"
         onClick={() => {
           void copyText(props.value).then((ok) => setCopied(ok));
         }}
         aria-label={props.label}
       >
-        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
       </button>
     </div>
   );
 }
 
-function CommandBox(props: { command: string }) {
+export function CommandBox(props: { command: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="relative">
@@ -289,12 +281,12 @@ function CommandBox(props: { command: string }) {
             window.setTimeout(() => setCopied(false), 1500);
           });
         }}
-        className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-ink/10 px-2.5 py-1 text-[11px] font-semibold text-ink-dim transition-colors hover:bg-ink/20 hover:text-ink"
+        className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-md bg-white/10 px-2 py-1 text-[11px] font-medium text-[#d5dae3] transition-colors hover:bg-white/20 hover:text-white"
       >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
         {copied ? "Copied" : "Copy"}
       </button>
-      <Code className="whitespace-pre-wrap break-words pr-24 [overflow-wrap:anywhere]">{props.command}</Code>
+      <Code className="whitespace-pre-wrap break-words pr-20 [overflow-wrap:anywhere]">{props.command}</Code>
     </div>
   );
 }

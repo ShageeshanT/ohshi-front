@@ -1,7 +1,7 @@
 /**
- * Google accounts — connect an account, see whether it actually answers, and
- * watch the remaining usage per model. Plus what your agents spent through the
- * gateway.
+ * Dashboard — model sources (Gemini API keys, Google accounts), whether they
+ * actually answer, live remaining quota per model, the optional connector, and
+ * what your agents spent through the gateway.
  *
  * Data:
  *   GET  /api/gemini/keys                            -> {keys, route, studioUrl, maxKeys} (see GeminiKeysCard)
@@ -13,27 +13,25 @@
  *   GET  /api/usage/summary?days=30                  -> totals / byModel / series / recent
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Activity,
   ArrowRight,
-  BookOpen,
   CheckCircle2,
   CircleGauge,
+  ExternalLink,
   KeyRound,
   Laptop,
   MessageSquare,
   Plug,
+  Plus,
   RefreshCw,
-  Sparkles,
   Star,
   Trash2,
   TriangleAlert,
   Zap,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { useAuth } from "../App";
 import ConnectGoogleModal from "../components/ConnectGoogleModal";
 import ConnectorCard, { type RunnerStatus } from "../components/ConnectorCard";
 import GeminiKeysCard, { type GeminiKeysPayload } from "../components/GeminiKeysCard";
@@ -44,12 +42,15 @@ import {
   Card,
   EmptyState,
   Notice,
+  PageHeader,
   Progress,
+  SectionTitle,
   Skeleton,
   Spinner,
-  StatChip,
+  Stat,
   Toggle,
   quotaTone,
+  toneTextClass,
   type Tone,
 } from "../components/ui";
 import { ApiError, countdown, formatNumber, friendly, get, poll, post, timeAgo } from "../lib/api";
@@ -212,7 +213,6 @@ function executionLine(c: Connection, runner: RunnerStatus | null): { tone: Tone
 // --- page ---------------------------------------------------------------------
 
 export default function Dashboard() {
-  const { me } = useAuth();
   const [params, setParams] = useSearchParams();
   const [connections, setConnections] = useState<Connection[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -224,6 +224,7 @@ export default function Dashboard() {
   const [gemini, setGemini] = useState<GeminiKeysPayload | null>(null);
   const [geminiError, setGeminiError] = useState<string | null>(null);
   const [addKeyOpen, setAddKeyOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [flash, setFlash] = useState<{ tone: Tone; text: string } | null>(() => {
     const connected = params.get("connected");
     const error = params.get("connect_error");
@@ -250,7 +251,7 @@ export default function Dashboard() {
     try {
       setUsage(await get<UsageSummary>("/api/usage/summary?days=30"));
     } catch {
-      /* the accounts section is the important one */
+      /* the sources are the important part */
     }
   }, []);
 
@@ -370,60 +371,53 @@ export default function Dashboard() {
   const keys = gemini?.keys ?? [];
   const activeKeys = keys.filter((k) => k.status === "active");
   const route = gemini?.route ?? null;
+  const studioUrl = gemini?.studioUrl ?? "https://aistudio.google.com/apikey";
   const sourcesKnown = connections !== null && gemini !== null;
   const activeSources = activeConnections.length + activeKeys.length;
   const totalSources = (connections?.length ?? 0) + keys.length;
-  const needsAttention: unknown[] = [
-    ...(connections ?? []).filter(
-      (connection) => connection.status !== "active" || connection.health?.status === "error",
-    ),
-    ...keys.filter((k) => k.status !== "active" || k.health?.status === "error"),
-  ];
+  const needsAttention =
+    (connections ?? []).filter((c) => c.status !== "active" || c.health?.status === "error").length +
+    keys.filter((k) => k.status !== "active" || k.health?.status === "error").length;
   const availableFamilies = new Set(
     Object.values(quotas).flatMap((quota) => quota.snapshot?.families.map((family) => family.id) ?? []),
   ).size;
-  const displayName = me?.user.displayName || me?.user.email.split("@")[0] || "there";
-  const firstName = displayName.split(/\s+/)[0];
   const requestCount = usage?.totals.requests ?? 0;
   const errorRate = usage && usage.totals.requests ? Math.round((usage.totals.errors / usage.totals.requests) * 100) : 0;
 
   const refreshWorkspace = async () => {
-    await Promise.all([
-      loadConnections(),
-      loadGemini(),
-      loadUsage(),
-      loadRunner(),
-      ...activeConnections.map((connection) => loadQuota(connection.id, true)),
-    ]);
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        loadConnections(),
+        loadGemini(),
+        loadUsage(),
+        loadRunner(),
+        ...activeConnections.map((connection) => loadQuota(connection.id, true)),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   return (
-    <div className="workspace-page rise-in space-y-8">
-      <section className="workspace-header">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="workspace-overline">Workspace</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Welcome back, {firstName}.</h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-dim">
-              Manage your model sources, usage and API access.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/app" className="dashboard-primary-action">
-              <MessageSquare className="h-4 w-4" /> New chat
-            </Link>
-            <Button tone="ghost" onClick={() => setAddKeyOpen(true)}>
-              <KeyRound className="h-4 w-4" /> Add key
+    <div className="rise-in space-y-7">
+      <PageHeader
+        title="Overview"
+        description="Your model sources, live quota and what your agents used through the gateway."
+        actions={
+          <>
+            <Button tone="ghost" busy={refreshing} onClick={() => void refreshWorkspace()}>
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
             </Button>
             <Button tone="ghost" onClick={() => setConnectOpen(true)}>
-              <Plug className="h-4 w-4" /> Connect Google
+              <GoogleLogo className="h-3.5 w-3.5" /> Connect Google
             </Button>
-            <Button tone="ghost" onClick={() => void refreshWorkspace()}>
-              <RefreshCw className="h-4 w-4" /> Refresh
+            <Button onClick={() => setAddKeyOpen(true)}>
+              <Plus className="h-3.5 w-3.5" /> Add key
             </Button>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       {flash && (
         <Notice tone={flash.tone} onClose={() => setFlash(null)}>
@@ -432,123 +426,83 @@ export default function Dashboard() {
       )}
       {loadError && <Notice tone="danger">{loadError}</Notice>}
 
-      <section className="workspace-stats grid grid-cols-2 gap-px overflow-hidden border-y border-edge bg-edge lg:grid-cols-4">
-        <OverviewStat
+      <div className="tiles grid-cols-2 lg:grid-cols-4">
+        <Stat
           icon={Plug}
           label="Model sources"
-          value={!sourcesKnown ? "—" : `${activeSources}/${totalSources}`}
-          detail={
+          value={!sourcesKnown ? "—" : `${activeSources} / ${totalSources}`}
+          sub={
             !sourcesKnown
               ? "Checking status"
               : route
                 ? route.kind === "gemini_api"
-                  ? `Route: Gemini API key ${route.label}`
+                  ? `Route: Gemini key ${route.label}`
                   : `Route: ${route.label} (Beta)`
                 : "Add a key or connect an account"
           }
-          tone={activeSources ? "ok" : "accent"}
         />
-        <OverviewStat
+        <Stat
           icon={CircleGauge}
           label="Quota families"
           value={availableFamilies || (activeConnections.length ? "…" : "0")}
-          detail={
+          sub={
             availableFamilies
-              ? "Google accounts, live"
+              ? "Read live from Google"
               : activeConnections.length
                 ? "Reading quota"
                 : activeKeys.length
                   ? "API keys report no meter"
-                  : "After you connect"
+                  : "After you connect an account"
           }
-          tone="accent"
         />
-        <OverviewStat
+        <Stat
           icon={Activity}
           label="Gateway requests"
           value={usage ? formatNumber(requestCount) : "…"}
-          detail={`Last ${usage?.windowDays ?? 30} days`}
-          tone="violet"
+          sub={`Last ${usage?.windowDays ?? 30} days`}
         />
-        <OverviewStat
-          icon={needsAttention.length ? TriangleAlert : CheckCircle2}
-          label="Workspace health"
-          value={needsAttention.length ? `${needsAttention.length} issue${needsAttention.length > 1 ? "s" : ""}` : "Healthy"}
-          detail={needsAttention.length ? "Action recommended" : usage && requestCount ? `${errorRate}% gateway errors` : "Ready for your first run"}
-          tone={needsAttention.length ? "warn" : "ok"}
+        <Stat
+          icon={needsAttention ? TriangleAlert : CheckCircle2}
+          label="Health"
+          value={needsAttention ? `${needsAttention} issue${needsAttention > 1 ? "s" : ""}` : "Healthy"}
+          sub={
+            needsAttention
+              ? "A source needs a check"
+              : usage && requestCount
+                ? `${errorRate}% gateway errors`
+                : "Ready for your first run"
+          }
+          tone={needsAttention ? "warn" : undefined}
         />
-      </section>
+      </div>
 
-      <section className="grid gap-5 xl:grid-cols-[1.45fr_1fr]">
-        <div className="workspace-panel p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold tracking-tight">Next step</h2>
-              <p className="mt-1 text-xs leading-relaxed text-ink-dim">One useful place to continue.</p>
-            </div>
-            {needsAttention.length > 0 && <Badge tone="warn">Needs attention</Badge>}
-          </div>
-          {!sourcesKnown ? (
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
-              <Skeleton className="h-20 w-full rounded-2xl" />
-              <Skeleton className="h-20 w-full rounded-2xl" />
-            </div>
-          ) : activeSources === 0 ? (
-            <NextMove
-              to="/app/accounts"
-              icon={KeyRound}
-              title="Add a Gemini API key"
-              copy="Paste a key from Google AI Studio, the supported path, and chat and the API gateway run on it. You can also connect a Google account in Beta."
-              action="Add a key"
-              onClick={() => setAddKeyOpen(true)}
-            />
-          ) : needsAttention.length > 0 ? (
-            <NextMove
-              to="#sources"
-              icon={TriangleAlert}
-              title="A model source needs a quick check"
-              copy="Run a test, paste a fresh key or reconnect the account before your agents hit a failed request."
-              action="Review sources"
-            />
-          ) : requestCount === 0 ? (
-            <NextMove
-              to="/app"
-              icon={Sparkles}
-              title="Start your first AI session"
-              copy="Open chat to explore the models on your default connection, then keep the useful threads in history."
-              action="Open new chat"
-            />
-          ) : (
-            <NextMove
-              to="/app/keys"
-              icon={KeyRound}
-              title="Put Ohshi to work outside this tab"
-              copy="Create an API key and point your agent or application at the OpenAI-compatible gateway."
-              action="Manage API keys"
-            />
-          )}
-        </div>
-
-        <div className="workspace-panel p-5 sm:p-6">
-          <h2 className="text-base font-semibold tracking-tight">Shortcuts</h2>
-          <div className="mt-3 grid gap-2">
-            <ActionLink to="/app" icon={MessageSquare} title="Start a chat" copy="Explore with the default model" />
-            <ActionLink to="/app/keys" icon={KeyRound} title="Create an API key" copy="Use Ohshi from your own agent" />
-            <ActionLink to="/app/docs" icon={BookOpen} title="View API recipes" copy="Copy a working integration" />
-          </div>
-        </div>
-      </section>
+      {sourcesKnown && activeSources === 0 && (
+        <GetStarted onAddKey={() => setAddKeyOpen(true)} onConnect={() => setConnectOpen(true)} />
+      )}
 
       <section id="sources" className="scroll-mt-4 space-y-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <GeminiLogo className="h-4 w-4 text-ink-dim" />
-            <h2 className="text-lg font-bold tracking-tight">Gemini API</h2>
-          </div>
-          <p className="mt-1 text-xs text-ink-dim">
-            Your own key from Google AI Studio. The supported path: Google bills the key, Ohshi routes to it.
-          </p>
-        </div>
+        <SectionTitle
+          icon={GeminiLogo}
+          title="Gemini API keys"
+          badge={
+            <Badge tone="ok" dot>
+              Live
+            </Badge>
+          }
+          description="Your own key from Google AI Studio. Google bills the key, Ohshi routes chat and /v1 to it."
+          aside={
+            <div className="flex gap-2">
+              <a href={studioUrl} target="_blank" rel="noreferrer" className="inline-flex">
+                <Button size="sm" tone="ghost">
+                  <ExternalLink className="h-3.5 w-3.5" /> Get a key
+                </Button>
+              </a>
+              <Button size="sm" onClick={() => setAddKeyOpen(true)}>
+                <Plus className="h-3.5 w-3.5" /> Add key
+              </Button>
+            </div>
+          }
+        />
         <GeminiKeysCard
           payload={gemini}
           error={geminiError}
@@ -563,23 +517,17 @@ export default function Dashboard() {
       </section>
 
       <section id="connections" className="scroll-mt-4 space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <Plug className="h-4 w-4 text-ink-dim" />
-              <h2 className="text-lg font-bold tracking-tight">Google accounts</h2>
-              <Badge tone="violet">Beta</Badge>
-            </div>
-            <p className="mt-1 text-xs text-ink-dim">
-              Sign in with the account behind your Google AI plan. Health, live quota and default routing in one place.
-            </p>
-          </div>
-          {connections && connections.length > 0 && (
+        <SectionTitle
+          icon={GoogleLogo}
+          title="Google accounts"
+          badge={<Badge tone="violet">Beta</Badge>}
+          description="Sign in with the account behind your Google AI plan. Health, live quota and routing in one place."
+          aside={
             <Button size="sm" tone="ghost" onClick={() => setConnectOpen(true)}>
               <Plug className="h-3.5 w-3.5" /> Add account
             </Button>
-          )}
-        </div>
+          }
+        />
 
         {connections === null ? (
           <Card>
@@ -589,44 +537,45 @@ export default function Dashboard() {
           <Card>
             <EmptyState
               title="No Google account connected"
-              hint="Optional, and in Beta: sign in with the Google account whose plan you want to use and paste back the code. Live health and quota show up here once it is connected."
+              hint="Optional, and in Beta. Sign in with the Google account whose plan you want to use and paste back the code. Live health and quota show up here once it is connected."
               action={
                 <Button tone="ghost" onClick={() => setConnectOpen(true)} arrow>
-                  <Plug className="h-4 w-4" /> Connect account
+                  <Plug className="h-3.5 w-3.5" /> Connect account
                 </Button>
               }
             />
           </Card>
         ) : (
-          connections.map((c) => (
-            <ConnectionCard
-              key={c.id}
-              connection={c}
-              quota={quotas[c.id] ?? { snapshot: null, error: null, loading: true }}
-              runner={runner}
-              canMakeDefault={!c.isDefault && (connections.length > 1 || route?.kind === "gemini_api")}
-              onRefreshQuota={() => loadQuota(c.id, true)}
-              onDisconnect={() => disconnect(c)}
-              onMakeDefault={() => makeDefault(c)}
-              onReconnect={() => setConnectOpen(true)}
-              onExecuteMode={(mode) => void setExecuteMode(c, mode)}
-              onTested={() => {
-                void loadConnections();
-                void loadQuota(c.id, true);
-              }}
-            />
-          ))
+          <div className="space-y-3">
+            {connections.map((c) => (
+              <ConnectionCard
+                key={c.id}
+                connection={c}
+                quota={quotas[c.id] ?? { snapshot: null, error: null, loading: true }}
+                runner={runner}
+                canMakeDefault={!c.isDefault && (connections.length > 1 || route?.kind === "gemini_api")}
+                onRefreshQuota={() => loadQuota(c.id, true)}
+                onDisconnect={() => disconnect(c)}
+                onMakeDefault={() => makeDefault(c)}
+                onReconnect={() => setConnectOpen(true)}
+                onExecuteMode={(mode) => void setExecuteMode(c, mode)}
+                onTested={() => {
+                  void loadConnections();
+                  void loadQuota(c.id, true);
+                }}
+              />
+            ))}
+          </div>
         )}
       </section>
 
       <section id="connector" className="scroll-mt-4 space-y-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <Laptop className="h-4 w-4 text-ink-dim" />
-            <h2 className="text-lg font-bold tracking-tight">Connector</h2>
-          </div>
-          <p className="mt-1 text-xs text-ink-dim">Optional. Make your model calls from your own computer.</p>
-        </div>
+        <SectionTitle
+          icon={Laptop}
+          title="Connector"
+          badge={<Badge tone="violet">Beta</Badge>}
+          description="Optional. Make your model calls from your own computer instead of Ohshi's servers."
+        />
         <ConnectorCard
           status={runner}
           error={runnerError}
@@ -642,86 +591,62 @@ export default function Dashboard() {
   );
 }
 
-function OverviewStat(props: {
-  icon: LucideIcon;
-  label: string;
-  value: string | number;
-  detail: string;
-  tone: Tone;
-}) {
-  const Icon = props.icon;
-  const iconTone = {
-    accent: "bg-accent-soft text-accent",
-    ok: "bg-ok-soft text-ok",
-    warn: "bg-warn-soft text-warn",
-    danger: "bg-danger-soft text-danger",
-    violet: "bg-violet-soft text-violet",
-    dim: "bg-ink/[0.08] text-ink-dim",
-  }[props.tone];
-
+/** Three steps, shown only while nothing is connected yet. */
+function GetStarted(props: { onAddKey: () => void; onConnect: () => void }) {
+  const steps: { n: string; title: string; text: string; action: ReactNode }[] = [
+    {
+      n: "1",
+      title: "Add a model source",
+      text: "Paste a Gemini API key from Google AI Studio, or connect a Google account in Beta.",
+      action: (
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={props.onAddKey}>
+            <KeyRound className="h-3.5 w-3.5" /> Add a key
+          </Button>
+          <Button size="sm" tone="ghost" onClick={props.onConnect}>
+            Connect Google
+          </Button>
+        </div>
+      ),
+    },
+    {
+      n: "2",
+      title: "Try it in chat",
+      text: "Pick a model in the composer and send a message. Replies stream on your own key or plan.",
+      action: (
+        <Link to="/app" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline">
+          <MessageSquare className="h-3.5 w-3.5" /> Open chat <ArrowRight className="h-3 w-3" />
+        </Link>
+      ),
+    },
+    {
+      n: "3",
+      title: "Point your code at /v1",
+      text: "Create an ohs_ key and use it with any OpenAI compatible client. The docs have a snippet per model.",
+      action: (
+        <Link to="/app/keys" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline">
+          <KeyRound className="h-3.5 w-3.5" /> Create an API key <ArrowRight className="h-3 w-3" />
+        </Link>
+      ),
+    },
+  ];
   return (
-    <div className="dashboard-stat min-w-0 bg-surface p-4 sm:p-5">
-      <span className={`grid h-8 w-8 place-items-center rounded-lg ${iconTone}`}>
-        <Icon className="h-4 w-4" />
-      </span>
-      <p className="mt-3 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-ink-dim">{props.label}</p>
-      <p className="mt-1 truncate text-xl font-extrabold tracking-tight sm:text-2xl">{props.value}</p>
-      <p className="mt-0.5 truncate text-[11px] text-ink-dim">{props.detail}</p>
+    <div className="tiles sm:grid-cols-3">
+      {steps.map((s) => (
+        <div key={s.n} className="flex flex-col gap-2.5 px-4 py-4">
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-ink text-[11px] font-semibold text-panel">{s.n}</span>
+          <div>
+            <p className="text-[13px] font-semibold">{s.title}</p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-dim">{s.text}</p>
+          </div>
+          <div className="mt-auto pt-1">{s.action}</div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function NextMove(props: {
-  to: string;
-  icon: LucideIcon;
-  title: string;
-  copy: string;
-  action: string;
-  onClick?: () => void;
-}) {
-  const Icon = props.icon;
-  return (
-    <Link to={props.to} onClick={props.onClick} className="workspace-next-step mt-5 flex flex-col gap-4 rounded-xl p-4 sm:flex-row sm:items-center">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-accent text-accent-ink">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold">{props.title}</span>
-        <span className="mt-1 block max-w-xl text-xs leading-relaxed text-ink-dim">{props.copy}</span>
-      </span>
-      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-accent">
-        {props.action} <ArrowRight className="h-3.5 w-3.5" />
-      </span>
-    </Link>
-  );
-}
-
-function ActionLink(props: { to: string; icon: LucideIcon; title: string; copy: string }) {
-  const Icon = props.icon;
-  return (
-    <Link to={props.to} className="workspace-action-row flex items-center gap-3 rounded-xl p-3">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ink/[0.05] text-ink-dim">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-bold">{props.title}</span>
-        <span className="mt-0.5 block truncate text-[11px] text-ink-dim">{props.copy}</span>
-      </span>
-      <ArrowRight className="h-4 w-4 shrink-0 text-ink-dim" />
-    </Link>
-  );
-}
-
 // --- one connected account -------------------------------------------------------
-
-const toneText = {
-  accent: "text-accent",
-  ok: "text-ok",
-  warn: "text-warn",
-  danger: "text-danger",
-  violet: "text-violet",
-  dim: "text-ink-dim",
-} as const;
 
 function ConnectionCard(props: {
   connection: Connection;
@@ -740,7 +665,6 @@ function ConnectionCard(props: {
   const [testing, setTesting] = useState(false);
   const [test, setTest] = useState<TestResult | null>(null);
   const line = healthLine(c, testing);
-  const lineCls = toneText[line.tone];
   const connected = c.status === "active";
   const preferLocal = c.executeMode === "prefer_local";
   const execution = executionLine(c, props.runner);
@@ -762,15 +686,15 @@ function ConnectionCard(props: {
   };
 
   return (
-    <Card className={c.isDefault ? "ring-1 ring-accent/25" : undefined}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-start gap-3.5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-edge bg-panel">
-            <GoogleLogo className="h-5 w-5" />
+    <Card flush className={c.isDefault ? "ring-1 ring-accent/30" : undefined}>
+      <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3.5">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-edge bg-panel">
+            <GoogleLogo className="h-4 w-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-sm font-bold tracking-tight">{c.email}</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="truncate text-[13px] font-semibold">{c.email}</span>
               {c.isDefault && (
                 <Badge tone="accent">
                   <Star className="h-3 w-3" /> Default
@@ -778,30 +702,35 @@ function ConnectionCard(props: {
               )}
               {connected ? (
                 c.health?.status === "error" ? (
-                  <Badge tone="danger">Connected, not answering</Badge>
+                  <Badge tone="danger" dot>
+                    Not answering
+                  </Badge>
                 ) : (
-                  <Badge tone="ok">Connected</Badge>
+                  <Badge tone="ok" dot>
+                    Connected
+                  </Badge>
                 )
               ) : (
-                <Badge tone="danger">Needs reconnect</Badge>
+                <Badge tone="danger" dot>
+                  Needs reconnect
+                </Badge>
               )}
               {c.tier && <Badge>{c.tier === "free" ? "Code Assist free tier" : `${c.tier} tier`}</Badge>}
             </div>
-            <p className={`mt-1.5 text-xs ${lineCls}`}>{line.text}</p>
+            <p className={`mt-1 text-[12px] ${toneTextClass(line.tone)}`}>{line.text}</p>
             {test && !testing && (
-              <p className={`mt-1 text-xs ${test.ok ? "text-ok" : "text-danger"}`}>
+              <p className={`mt-0.5 text-[12px] ${test.ok ? "text-ok" : "text-danger"}`}>
                 {test.ok
                   ? `Test passed, “${test.reply}” from ${test.model} via ${test.endpointLabel} in ${(test.latencyMs / 1000).toFixed(1)}s`
                   : `Test failed, ${test.error}${test.tried?.length ? ` (tried ${test.tried.join(", ")})` : ""}`}
               </p>
             )}
-            <p className="mt-1 text-xs text-ink-dim">
+            <p className="mt-0.5 text-[12px] text-ink-dim">
               Connected {timeAgo(c.connectedMs)}, project {c.projectId || "pending"}
             </p>
           </div>
         </div>
-        {/* On a phone the actions take their own row, so the text keeps its width. */}
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+        <div className="flex w-full flex-wrap gap-1.5 sm:w-auto">
           {connected ? (
             <Button size="sm" tone="ghost" busy={testing} onClick={runTest}>
               <Zap className="h-3.5 w-3.5" /> Test
@@ -823,29 +752,28 @@ function ConnectionCard(props: {
       </div>
 
       {connected && (
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-3 rounded-xl bg-ink/[0.03] px-3.5 py-3">
-          <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-edge bg-surface px-4 py-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <Toggle
               checked={preferLocal}
               onChange={(next) => props.onExecuteMode(next ? "prefer_local" : "cloud")}
               label="Run on my machine"
             />
-            <p className={`mt-1.5 text-xs ${toneText[execution.tone]}`}>{execution.text}</p>
+            <span className={`text-[12px] ${toneTextClass(execution.tone)}`}>{execution.text}</span>
             {fellBack && (
-              <p className="mt-1 text-xs text-warn">
+              <span className="text-[12px] text-warn">
                 The last call ran on Ohshi's servers because the connector was offline.
-              </p>
+              </span>
             )}
           </div>
-          <a href="#connector" className="shrink-0 text-xs font-semibold text-ink-dim hover:text-ink">
-            <Laptop className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
-            Connector
+          <a href="#connector" className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-ink-dim hover:text-ink">
+            <Laptop className="h-3.5 w-3.5" /> Connector
           </a>
         </div>
       )}
 
       {connected && (
-        <div className="mt-5 border-t border-edge pt-5">
+        <div className="border-t border-edge px-4 py-3.5">
           <QuotaPanel quota={props.quota} onRefresh={props.onRefreshQuota} />
         </div>
       )}
@@ -869,8 +797,8 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
     <div>
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-[13px] font-bold tracking-tight">Remaining usage</h3>
-          <p className="text-[11px] text-ink-dim">
+          <h3 className="text-[12.5px] font-semibold">Remaining quota</h3>
+          <p className="text-[12px] text-ink-dim">
             {snapshot
               ? `Live from Google, ${snapshot.endpointLabel} endpoint, ${timeAgo(snapshot.fetchedMs)}${
                   snapshot.cached ? ", cached" : ""
@@ -896,11 +824,11 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
 
       {!snapshot ? (
         loading ? (
-          <div className="grid gap-1.5 md:grid-cols-2">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="rounded-xl bg-ink/[0.03] px-3 py-2.5">
-                <Skeleton className="h-2.5 w-32" />
-                <Skeleton className="mt-2 h-1.5 w-full" />
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-lg border border-edge px-3 py-2.5">
+                <Skeleton className="h-2.5 w-28" />
+                <Skeleton className="mt-2.5 h-1.5 w-full" />
               </div>
             ))}
           </div>
@@ -908,12 +836,9 @@ function QuotaPanel(props: { quota: QuotaState; onRefresh: () => void }) {
           <EmptyState title="No quota reading yet" hint="Hit Refresh to ask Google again." />
         )
       ) : snapshot.families.length === 0 ? (
-        <EmptyState
-          title="Google listed no models for this account"
-          hint="The plan may not include Antigravity yet."
-        />
+        <EmptyState title="Google listed no models for this account" hint="The plan may not include Antigravity yet." />
       ) : (
-        <div className="grid gap-1.5 md:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {snapshot.families.map((f) => (
             <FamilyRow key={f.id} family={f} now={now} />
           ))}
@@ -928,40 +853,30 @@ function FamilyRow(props: { family: FamilyQuota; now: number }) {
   const tone = quotaTone(f.remainingPercent);
   const Logo = vendorLogo(f.vendor);
   const reset = f.resetMs ? countdown(f.resetMs, props.now) : "";
-  const toneCls = {
-    accent: "text-accent",
-    ok: "text-ok",
-    warn: "text-warn",
-    danger: "text-danger",
-    violet: "text-violet",
-    dim: "text-ink-dim",
-  }[tone];
 
   return (
-    <div className="rounded-xl bg-ink/[0.03] px-3 py-2.5 transition-colors duration-300 hover:bg-ink/[0.06]">
+    <div className="rounded-lg border border-edge px-3 py-2.5 transition-colors hover:border-edge-strong">
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
           <Logo className="h-3.5 w-3.5 shrink-0 text-ink-dim" />
-          <span className="truncate text-[12.5px] font-semibold">
-            {f.known ? f.label : (f.variants[0]?.displayName ?? f.id)}
-          </span>
+          <span className="truncate text-[12.5px] font-medium">{f.known ? f.label : (f.variants[0]?.displayName ?? f.id)}</span>
         </span>
-        <span className={`shrink-0 text-[11px] font-semibold ${toneCls}`}>
+        <span className={`tnum shrink-0 text-[12px] font-medium ${toneTextClass(tone)}`}>
           {f.remainingPercent === null ? "Unknown" : f.exhausted ? "out of quota" : `${f.remainingPercent}%`}
-          {reset && <span className="ml-1 font-medium text-ink-dim">{reset}</span>}
+          {reset && <span className="ml-1 font-normal text-ink-dim">{reset}</span>}
         </span>
       </div>
-      <div className="mt-1.5">
-        <Progress percent={f.remainingPercent} tone={tone} className="h-1.5" />
+      <div className="mt-2">
+        <Progress percent={f.remainingPercent} tone={tone} className="h-1" />
       </div>
       {f.variants.length > 1 && (
-        <div className="mt-1.5 flex flex-wrap gap-1">
+        <div className="mt-2 flex flex-wrap gap-1">
           {f.variants.map((v) => (
             <span
               key={v.id}
               title={`${v.id}${v.resetMs ? `, resets ${countdown(v.resetMs, props.now)}` : ""}`}
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                v.exhausted ? "bg-danger-soft text-danger line-through" : "bg-ink/[0.06] text-ink-dim"
+              className={`rounded px-1.5 py-0.5 text-[10.5px] font-medium ${
+                v.exhausted ? "bg-danger-soft text-danger line-through" : "bg-ink/[0.05] text-ink-dim"
               }`}
             >
               {v.effort || v.id}
@@ -979,31 +894,27 @@ function FamilyRow(props: { family: FamilyQuota; now: number }) {
 function UsageSection(props: { usage: UsageSummary | null }) {
   const u = props.usage;
   return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Activity className="h-4 w-4 text-ink-dim" />
-        <h2 className="text-base font-bold tracking-tight">What your agents used</h2>
-        <span className="text-xs text-ink-dim">last {u?.windowDays ?? 30} days, through this gateway</span>
-      </div>
+    <section className="space-y-3">
+      <SectionTitle
+        icon={Activity}
+        title="Usage"
+        description={`What your agents used through the gateway in the last ${u?.windowDays ?? 30} days.`}
+      />
       {!u ? (
         <Card>
           <Spinner label="Loading usage…" />
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatChip label="Requests" value={formatNumber(u.totals.requests)} />
-            <StatChip
+          <div className="tiles grid-cols-2 md:grid-cols-4">
+            <Stat label="Requests" value={formatNumber(u.totals.requests)} />
+            <Stat
               label="Tokens"
               value={formatNumber(u.totals.totalTokens)}
               sub={`${formatNumber(u.totals.promptTokens)} in, ${formatNumber(u.totals.completionTokens)} out`}
             />
-            <StatChip
-              label="Errors"
-              value={formatNumber(u.totals.errors)}
-              tone={u.totals.errors ? "danger" : undefined}
-            />
-            <StatChip label="Models used" value={u.byModel.length} />
+            <Stat label="Errors" value={formatNumber(u.totals.errors)} tone={u.totals.errors ? "danger" : undefined} />
+            <Stat label="Models used" value={u.byModel.length} />
           </div>
           {u.totals.requests === 0 ? (
             <Card>
@@ -1018,56 +929,67 @@ function UsageSection(props: { usage: UsageSummary | null }) {
               />
             </Card>
           ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card title="By model">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-[10px] uppercase tracking-[0.12em] text-ink-dim">
-                    <tr>
-                      <th className="pb-2 font-semibold">Model</th>
-                      <th className="pb-2 text-right font-semibold">Calls</th>
-                      <th className="pb-2 text-right font-semibold">Tokens</th>
-                      <th className="pb-2 text-right font-semibold">Errors</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {u.byModel.map((row) => (
-                      <tr key={row.model} className="border-t border-edge">
-                        <td className="mono py-2 text-xs">{row.model}</td>
-                        <td className="py-2 text-right">{formatNumber(row.requests)}</td>
-                        <td className="py-2 text-right">{formatNumber(row.totalTokens)}</td>
-                        <td className={`py-2 text-right ${row.errors ? "font-semibold text-danger" : ""}`}>
-                          {row.errors}
-                        </td>
+            <div className="grid gap-3 lg:grid-cols-2">
+              <Card title="By model" flush>
+                <div className="overflow-x-auto">
+                  <table className="tbl">
+                    <thead>
+                      <tr>
+                        <th>Model</th>
+                        <th className="num">Calls</th>
+                        <th className="num">Tokens</th>
+                        <th className="num">Errors</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {u.byModel.map((row) => (
+                        <tr key={row.model}>
+                          <td className="mono text-[12px]">{row.model}</td>
+                          <td className="num">{formatNumber(row.requests)}</td>
+                          <td className="num">{formatNumber(row.totalTokens)}</td>
+                          <td className={`num ${row.errors ? "font-medium text-danger" : "text-ink-dim"}`}>{row.errors}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </Card>
-              <Card title="Recent calls">
-                <ul className="space-y-2">
-                  {u.recent.slice(0, 10).map((r) => (
-                    <li
-                      key={r.id}
-                      className="flex items-start justify-between gap-3 border-t border-edge pt-2 text-xs first:border-t-0 first:pt-0"
-                    >
-                      <div className="min-w-0">
-                        <p className="mono truncate">{r.apiModel}</p>
-                        <p className="text-ink-dim">
-                          {timeAgo(r.createdMs)}, {(r.latencyMs / 1000).toFixed(1)}s
-                          {r.streamed ? ", streamed" : ""}
-                          {r.status !== "ok" && r.error ? `, ${r.error}` : ""}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        {r.status === "ok" ? (
-                          <span className="font-medium">{formatNumber(r.totalTokens)} tokens</span>
-                        ) : (
-                          <Badge tone="danger">{r.httpStatus ?? "error"}</Badge>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              <Card title="Recent calls" flush>
+                <div className="overflow-x-auto">
+                  <table className="tbl">
+                    <thead>
+                      <tr>
+                        <th>Model</th>
+                        <th>When</th>
+                        <th className="num">Latency</th>
+                        <th className="num">Result</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {u.recent.slice(0, 10).map((r) => (
+                        <tr key={r.id}>
+                          <td className="mono max-w-[14rem] truncate text-[12px]" title={r.apiModel}>
+                            {r.apiModel}
+                          </td>
+                          <td className="whitespace-nowrap text-ink-dim">
+                            {timeAgo(r.createdMs)}
+                            {r.streamed ? ", streamed" : ""}
+                          </td>
+                          <td className="num text-ink-dim">{(r.latencyMs / 1000).toFixed(1)}s</td>
+                          <td className="num">
+                            {r.status === "ok" ? (
+                              `${formatNumber(r.totalTokens)} tok`
+                            ) : (
+                              <Badge tone="danger" className="ml-auto" >
+                                {r.httpStatus ?? "error"}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </Card>
             </div>
           )}

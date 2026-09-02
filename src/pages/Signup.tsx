@@ -20,17 +20,13 @@ export default function Signup() {
 
   return (
     <AuthShell
-      page="signup"
-      caption="Start with the plans you have."
-      captionSub="Connect an account and every model on it is yours, from chat and from the API."
-      eyebrow="Get Started"
-      title="Create Your Account"
-      subtitle="Connect a provider account next to use its models."
+      title="Create your account"
+      subtitle="Chat and an API on your own Google AI access."
       footer={
         <>
           Already have an account?{" "}
-          <Link to={loginLink} className="font-semibold text-accent hover:underline">
-            Sign In
+          <Link to={loginLink} className="font-medium text-ink hover:underline">
+            Sign in
           </Link>
         </>
       }

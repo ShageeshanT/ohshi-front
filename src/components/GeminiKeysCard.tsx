@@ -13,10 +13,9 @@
  */
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Plus, Star, Trash2, Zap } from "lucide-react";
+import { Plus, Star, Trash2, Zap } from "lucide-react";
 import { friendly, get, post, timeAgo } from "../lib/api";
-import { GeminiLogo } from "./logos";
-import { Badge, Button, Card, EmptyState, Field, Input, Modal, Notice, type Tone } from "./ui";
+import { Badge, Button, Card, EmptyState, Field, Input, Modal, Notice, toneTextClass, type Tone } from "./ui";
 
 export interface KeyHealth {
   status: "ok" | "error" | "unknown";
@@ -71,15 +70,6 @@ interface TestResult {
   key?: GeminiKeyRow;
 }
 
-const toneText: Record<Tone, string> = {
-  accent: "text-accent",
-  ok: "text-ok",
-  warn: "text-warn",
-  danger: "text-danger",
-  violet: "text-violet",
-  dim: "text-ink-dim",
-};
-
 export function keyName(k: GeminiKeyRow): string {
   return k.label || k.prefix;
 }
@@ -92,16 +82,16 @@ function healthLine(k: GeminiKeyRow, testing: boolean): { tone: Tone; text: stri
   }
   const h = k.health;
   if (!h || h.status === "unknown") {
-    return { tone: "dim", text: "Not tested yet. Hit Test to check it actually answers." };
+    return { tone: "dim", text: "Not tested yet" };
   }
   if (h.status === "ok") {
     const latency = h.lastLatencyMs != null ? ` in ${(h.lastLatencyMs / 1000).toFixed(1)}s` : "";
-    return { tone: "ok", text: `Working, ${h.lastModel ?? "it"} replied${latency}, ${timeAgo(h.lastOkMs)}` };
+    return { tone: "ok", text: `${h.lastModel ?? "Replied"}${latency}, ${timeAgo(h.lastOkMs)}` };
   }
   const status = h.lastErrorStatus ? `HTTP ${h.lastErrorStatus}, ` : "";
   return {
     tone: h.lastErrorStatus === 429 ? "warn" : "danger",
-    text: `Failing, ${status}${h.lastError ?? "unknown error"}, ${timeAgo(h.lastErrorMs)}`,
+    text: `${status}${h.lastError ?? "unknown error"}, ${timeAgo(h.lastErrorMs)}`,
   };
 }
 
@@ -149,79 +139,58 @@ export default function GeminiKeysCard(props: {
   };
 
   return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-start gap-3.5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-edge bg-panel">
-            <GeminiLogo className="h-5 w-5 text-accent" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-bold tracking-tight">Gemini API keys</span>
-              <Badge tone="ok">Live</Badge>
-              {keys.length > 0 && (
-                <span className="text-xs text-ink-dim">
-                  {keys.length} of {payload?.maxKeys ?? 10}
-                </span>
-              )}
-            </div>
-            <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-ink-dim">
-              Paste a key from Google AI Studio once. Google bills that key for what you use, and Ohshi routes
-              chat and the API gateway to it. Stored encrypted; only the prefix is ever shown again.
+    <>
+      <Card flush>
+        {props.error && (
+          <div className="p-3">
+            <Notice tone="warn">{props.error}</Notice>
+          </div>
+        )}
+        {payload === null ? (
+          <p className="px-4 py-6 text-center text-[12.5px] text-ink-dim">Checking your keys…</p>
+        ) : keys.length === 0 ? (
+          <div className="p-4">
+            <EmptyState
+              title="No Gemini API key yet"
+              hint="Paste one from Google AI Studio. It is stored encrypted and only the prefix is ever shown again."
+              action={
+                <Button onClick={() => props.onAddOpen(true)} arrow>
+                  <Plus className="h-3.5 w-3.5" /> Add a key
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Status</th>
+                  <th>Last check</th>
+                  <th>Models</th>
+                  <th className="num">Added</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {keys.map((k) => (
+                  <KeyRow key={k.id} row={k} route={payload.route} onChanged={props.onChanged} onFlash={props.onFlash} />
+                ))}
+              </tbody>
+            </table>
+            <p className="border-t border-edge px-4 py-2 text-[11.5px] text-ink-dim">
+              {keys.length} of {payload.maxKeys} keys. Stored encrypted; Google bills each key for what it is used for.
             </p>
           </div>
-        </div>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <a href={studioUrl} target="_blank" rel="noreferrer" className="inline-flex">
-            <Button size="sm" tone="ghost">
-              <ExternalLink className="h-3.5 w-3.5" /> Get a key
-            </Button>
-          </a>
-          <Button size="sm" onClick={() => props.onAddOpen(true)}>
-            <Plus className="h-3.5 w-3.5" /> Add key
-          </Button>
-        </div>
-      </div>
-
-      {props.error && (
-        <div className="mt-4">
-          <Notice tone="warn">{props.error}</Notice>
-        </div>
-      )}
-
-      <div className="mt-5 border-t border-edge pt-5">
-        {payload === null ? (
-          <p className="text-xs text-ink-dim">Checking your keys…</p>
-        ) : keys.length === 0 ? (
-          <EmptyState
-            title="Use a Gemini API key from Google AI Studio"
-            hint="This is the supported path. The Google account connector below stays Beta."
-            action={
-              <Button onClick={() => props.onAddOpen(true)} arrow>
-                <Plus className="h-4 w-4" /> Add a key
-              </Button>
-            }
-          />
-        ) : (
-          <ul className="divide-y divide-edge">
-            {keys.map((k) => (
-              <KeyRow
-                key={k.id}
-                row={k}
-                route={payload.route}
-                onChanged={props.onChanged}
-                onFlash={props.onFlash}
-              />
-            ))}
-          </ul>
         )}
-      </div>
+      </Card>
 
       <Modal open={props.addOpen} onClose={close} title="Add a Gemini API key">
         <div className="space-y-4">
-          <p className="text-sm text-ink-dim">
+          <p className="text-[13px] leading-relaxed text-ink-dim">
             Create a key at{" "}
-            <a href={studioUrl} target="_blank" rel="noreferrer" className="font-semibold text-accent underline-offset-2 hover:underline">
+            <a href={studioUrl} target="_blank" rel="noreferrer" className="font-medium text-accent underline-offset-2 hover:underline">
               aistudio.google.com/apikey
             </a>{" "}
             and paste it here. It starts with <span className="mono">AIza</span>. Ohshi keeps it encrypted and
@@ -231,16 +200,9 @@ export default function GeminiKeysCard(props: {
             <Input value={label} onChange={setLabel} placeholder="personal" autoFocus onEnter={save} />
           </Field>
           <Field label="API key">
-            <Input
-              value={key}
-              onChange={setKey}
-              placeholder="AIza…"
-              mono
-              autoComplete="off"
-              onEnter={save}
-            />
+            <Input value={key} onChange={setKey} placeholder="AIza…" mono autoComplete="off" onEnter={save} />
           </Field>
-          {note && <p className="text-sm text-warn">{note}</p>}
+          {note && <p className="text-[13px] text-warn">{note}</p>}
           <div className="flex gap-2">
             <Button onClick={save} busy={saving} disabled={!key.trim()}>
               Save key
@@ -251,7 +213,7 @@ export default function GeminiKeysCard(props: {
           </div>
         </div>
       </Modal>
-    </Card>
+    </>
   );
 }
 
@@ -328,53 +290,77 @@ function KeyRow(props: {
     .join(", ");
 
   return (
-    <li className="flex flex-wrap items-start justify-between gap-3 py-3.5 first:pt-0 last:pb-0">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate text-sm font-bold tracking-tight">{keyName(k)}</span>
+    <tr>
+      <td>
+        <div className="flex items-center gap-1.5">
+          <span className="font-medium">{keyName(k)}</span>
           {isRoute && (
             <Badge tone="accent">
               <Star className="h-3 w-3" /> Default
             </Badge>
           )}
-          {active ? (
-            k.health?.status === "error" ? (
-              <Badge tone="danger">Saved, not answering</Badge>
-            ) : (
-              <Badge tone="ok">Active</Badge>
-            )
-          ) : (
-            <Badge tone="danger">Rejected by Google</Badge>
-          )}
         </div>
-        <p className={`mt-1.5 text-xs ${toneText[line.tone]}`}>{line.text}</p>
+        <span className="mono text-[11.5px] text-ink-dim">{k.prefix}…</span>
+      </td>
+      <td>
+        {active ? (
+          k.health?.status === "error" ? (
+            <Badge tone="danger" dot>
+              Not answering
+            </Badge>
+          ) : (
+            <Badge tone="ok" dot>
+              Active
+            </Badge>
+          )
+        ) : (
+          <Badge tone="danger" dot>
+            Rejected
+          </Badge>
+        )}
+      </td>
+      <td className="max-w-[16rem]">
+        <span className={`block truncate text-[12px] ${toneTextClass(line.tone)}`} title={line.text}>
+          {line.text}
+        </span>
         {test && !testing && (
-          <p className={`mt-1 text-xs ${test.ok ? "text-ok" : "text-danger"}`}>
+          <span className={`block truncate text-[12px] ${test.ok ? "text-ok" : "text-danger"}`}>
             {test.ok
               ? `Test passed, “${test.reply}” from ${test.model} in ${(test.latencyMs / 1000).toFixed(1)}s`
               : `Test failed, ${test.error}`}
-          </p>
+          </span>
         )}
-        <p className="mt-1 text-xs text-ink-dim">
-          <span className="mono">{k.prefix}</span>, added {timeAgo(k.createdMs)}
-          {models ? `, ${models.count} model${models.count === 1 ? "" : "s"} available${preview ? ` (${preview}…)` : ""}` : ""}
-        </p>
-      </div>
-      <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-        {active && (
-          <Button size="sm" tone="ghost" busy={testing} onClick={runTest}>
-            <Zap className="h-3.5 w-3.5" /> Test
+      </td>
+      <td className="max-w-[14rem] text-[12px] text-ink-dim">
+        {models ? (
+          <span className="block truncate" title={preview}>
+            {models.count} model{models.count === 1 ? "" : "s"}
+            {preview ? ` · ${preview}` : ""}
+          </span>
+        ) : active ? (
+          "…"
+        ) : (
+          "—"
+        )}
+      </td>
+      <td className="num whitespace-nowrap text-[12px] text-ink-dim">{timeAgo(k.createdMs)}</td>
+      <td className="num">
+        <div className="flex justify-end gap-1">
+          {active && (
+            <Button size="sm" tone="ghost" busy={testing} onClick={runTest} title="Send a tiny message on this key">
+              <Zap className="h-3.5 w-3.5" /> Test
+            </Button>
+          )}
+          {active && !isRoute && (
+            <Button size="sm" tone="ghost" busy={busy} onClick={makeDefault}>
+              <Star className="h-3.5 w-3.5" /> Default
+            </Button>
+          )}
+          <Button size="sm" tone="danger" busy={busy} onClick={remove} title="Remove from Ohshi">
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
-        )}
-        {active && !isRoute && (
-          <Button size="sm" tone="ghost" busy={busy} onClick={makeDefault}>
-            <Star className="h-3.5 w-3.5" /> Make default
-          </Button>
-        )}
-        <Button size="sm" tone="danger" busy={busy} onClick={remove}>
-          <Trash2 className="h-3.5 w-3.5" /> Remove
-        </Button>
-      </div>
-    </li>
+        </div>
+      </td>
+    </tr>
   );
 }

@@ -1,8 +1,8 @@
 /**
- * The public landing page at ohshi.space. Hero laid out like the brand
- * mockup on the full-bleed artwork, then the pitch: why one subscription
- * beats a subscription plus API credits (a before and after wiring diagram),
- * how it works with a mock of each step, the providers and their plans (a hub
+ * The public landing page at ohshi.space. A plain hero — headline, lede, two
+ * buttons, the painting in a frame — then the pitch: why one source beats a
+ * subscription plus API credits (a before and after wiring diagram), how it
+ * works with a mock of each step, the providers and their plans (a hub
  * diagram) with the model line-up, a live quota board, a developer snippet,
  * FAQ, CTA and the footer. Smooth-scrolled with Lenis; sections reveal on
  * entry. All words come from content/landing.ts; the diagrams and mocks from
@@ -45,9 +45,9 @@ import { useTheme } from "../lib/theme";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const rise = (delay: number) => ({
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.7, ease, delay },
+  transition: { duration: 0.6, ease, delay },
 });
 
 export default function Landing() {
@@ -73,7 +73,7 @@ export default function Landing() {
 function scrollToHash(lenis: ReturnType<typeof useLenis>, hash: string) {
   const el = document.querySelector<HTMLElement>(hash);
   if (!el) return;
-  if (lenis) lenis.scrollTo(el, { offset: -110 });
+  if (lenis) lenis.scrollTo(el, { offset: -90 });
   else el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -98,79 +98,63 @@ function Hero() {
   const h = COPY.hero;
 
   return (
-    <section className="relative isolate min-h-[100svh] overflow-hidden">
-      {/* The painting fills the frame. It is cut two ways: a 16:9 plate for
-          landscape windows and a portrait plate below md, so a phone downloads
-          the one that fits it rather than a wide crop of the other. The scrim
-          that keeps the copy legible lives on .hero-art::after. */}
-      <div className="hero-art">
-        <picture key={theme}>
-          <source
-            media="(max-width: 767px)"
-            srcSet={theme === "dark" ? heroMobileDark : heroMobileLight}
-          />
-          <img
-            src={theme === "dark" ? heroDark : heroLight}
-            alt=""
-            aria-hidden
-            draggable={false}
-            fetchPriority="high"
-            onLoad={() => setLoaded(true)}
-            className={`transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
-          />
-        </picture>
-      </div>
-      <div className="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-t from-surface to-transparent" />
-
-      <div className="hero-shell mx-auto flex min-h-[100svh] max-w-[1460px] flex-col justify-center px-6 sm:px-10 lg:px-[5.5%]">
-        <div className="hero-copy max-w-[52rem]">
-          <motion.div {...rise(0.05)}>
+    <section className="relative pt-[5.75rem] sm:pt-[6.5rem]">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <motion.div {...rise(0.05)} className="flex justify-center">
             <span className="eyebrow">
               <span className="eyebrow-dot" />
               {h.badge}
             </span>
           </motion.div>
-          <motion.h1 {...rise(0.15)} className="hero-title hero-gap">
+          <motion.h1 {...rise(0.12)} className="hero-title mt-5">
             {h.line1}
             <br />
             {h.line2}
           </motion.h1>
-          <motion.p {...rise(0.28)} className="hero-lede hero-gap max-w-[30rem]">
+          <motion.p {...rise(0.22)} className="hero-lede mx-auto mt-5 max-w-[34rem]">
             {h.paragraph}
           </motion.p>
-          <motion.div {...rise(0.4)} className="hero-gap-lg flex flex-wrap items-center gap-3">
-            <Link to="/signup" className="btn-primary btn-lg">
+          <motion.div {...rise(0.32)} className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
+            <Link to="/signup" className="btn-primary">
               {h.primaryCta} <ArrowRight className="h-4 w-4" />
             </Link>
-            <button type="button" onClick={() => scrollToHash(lenis, "#developers")} className="btn-ghost btn-lg">
+            <button type="button" onClick={() => scrollToHash(lenis, "#developers")} className="btn-ghost">
               {h.secondaryCta}
             </button>
           </motion.div>
-          <motion.ul
-            {...rise(0.52)}
-            className="hero-trust hero-gap-lg flex flex-wrap items-center gap-y-1 text-[13px]"
-          >
-            {h.trust.map((label, i) => (
-              <li
-                key={label}
-                className={`flex items-center gap-2 py-1 pr-5 ${i === 0 ? "" : "sm:border-l sm:border-ink/30 sm:pl-5"}`}
-              >
-                <ShieldCheck className="hero-trust-icon h-4 w-4 shrink-0 text-accent" />
+          <motion.ul {...rise(0.42)} className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] text-ink-dim">
+            {h.trust.map((label) => (
+              <li key={label} className="flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-accent" />
                 {label}
               </li>
             ))}
           </motion.ul>
         </div>
-      </div>
 
-      <button
-        type="button"
-        onClick={() => scrollToHash(lenis, "#features")}
-        className="hero-copy hero-cue absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 text-[12px] font-medium uppercase tracking-[0.14em] text-ink/85 transition-colors hover:text-ink"
-      >
-        Scroll to explore
-        <ChevronDown className="scroll-cue h-5 w-5" />
-      </button>
+        {/* The painting, framed. Two plates: a wide one for landscape windows
+            and a portrait one below md, so a phone downloads the cut that fits. */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease, delay: 0.5 }}
+          className="hero-frame mt-10 sm:mt-12"
+        >
+          <picture key={theme}>
+            <source media="(max-width: 767px)" srcSet={theme === "dark" ? heroMobileDark : heroMobileLight} />
+            <img
+              src={theme === "dark" ? heroDark : heroLight}
+              alt=""
+              aria-hidden
+              draggable={false}
+              fetchPriority="high"
+              onLoad={() => setLoaded(true)}
+              className={`transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
+            />
+          </picture>
+        </motion.div>
+      </div>
     </section>
   );
 }
@@ -180,9 +164,9 @@ function Hero() {
 function SectionHeader(props: { eyebrow: string; title: string; text?: string }) {
   return (
     <Reveal className="mx-auto max-w-2xl text-center">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{props.eyebrow}</p>
+      <p className="eyebrow justify-center">{props.eyebrow}</p>
       <h2 className="mk-h2 mt-3">{props.title}</h2>
-      {props.text && <p className="mt-4 text-[17px] leading-relaxed text-ink-dim">{props.text}</p>}
+      {props.text && <p className="mt-3.5 text-[15px] leading-relaxed text-ink-dim">{props.text}</p>}
     </Reveal>
   );
 }
@@ -193,27 +177,27 @@ const FEATURE_ICONS = [MessagesSquare, Code2, BarChart3, KeyRound];
 function Why() {
   const f = COPY.why;
   return (
-    <section id="features" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
+    <section id="features" className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-8 md:py-28">
       <SectionHeader eyebrow={f.eyebrow} title={f.title} text={f.intro} />
-      <Reveal className="mt-14">
+      <Reveal className="mt-12">
         <PayTwiceDiagram />
       </Reveal>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {f.cards.map((card, i) => {
-          const Icon = FEATURE_ICONS[i % FEATURE_ICONS.length];
-          return (
-            <Reveal key={card.title} delay={i * 70}>
-              <div className="glass lift h-full p-6">
-                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent-soft text-accent">
-                  <Icon className="h-5 w-5" />
+      <Reveal className="mt-3">
+        <div className="tiles sm:grid-cols-2 lg:grid-cols-4">
+          {f.cards.map((card, i) => {
+            const Icon = FEATURE_ICONS[i % FEATURE_ICONS.length];
+            return (
+              <div key={card.title} className="p-5">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-panel-2 text-ink">
+                  <Icon className="h-4 w-4" />
                 </span>
-                <h3 className="mt-5 text-lg font-semibold tracking-tight">{card.title}</h3>
-                <p className="mt-2 text-[14.5px] leading-relaxed text-ink-dim">{card.text}</p>
+                <h3 className="mt-4 text-[14.5px] font-semibold tracking-tight">{card.title}</h3>
+                <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-dim">{card.text}</p>
               </div>
-            </Reveal>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </Reveal>
     </section>
   );
 }
@@ -223,33 +207,31 @@ const STEP_ICONS = [Plug, Sparkles, KeyRound];
 function HowItWorks() {
   const h = COPY.how;
   return (
-    <section id="how" className="relative z-10 border-y border-edge/70 bg-panel-2/40 py-24 md:py-32">
+    <section id="how" className="relative z-10 border-y border-edge bg-panel py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <SectionHeader eyebrow={h.eyebrow} title={h.title} text={h.intro} />
-        <ol className="mt-14 grid gap-4 md:grid-cols-3">
-          {h.steps.map((s, i) => {
-            const Icon = STEP_ICONS[i % STEP_ICONS.length];
-            return (
-              <Reveal key={s.title} delay={i * 90}>
-                <li className="glass flex h-full flex-col p-5 sm:p-6">
+        <Reveal className="mt-12">
+          <ol className="tiles md:grid-cols-3">
+            {h.steps.map((s, i) => {
+              const Icon = STEP_ICONS[i % STEP_ICONS.length];
+              return (
+                <li key={s.title} className="flex h-full flex-col p-5">
                   <div className="flex items-center justify-between">
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-night text-white">
-                      <Icon className="h-5 w-5" />
+                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-night text-night-ink">
+                      <Icon className="h-4 w-4" />
                     </span>
-                    <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
-                      Step 0{i + 1}
-                    </span>
+                    <span className="text-[11.5px] font-medium uppercase tracking-[0.1em] text-ink-faint">Step 0{i + 1}</span>
                   </div>
-                  <div className="mt-5">
+                  <div className="mt-4">
                     <StepMock step={i} />
                   </div>
-                  <h3 className="mt-5 text-lg font-semibold tracking-tight">{s.title}</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-ink-dim">{s.text}</p>
+                  <h3 className="mt-4 text-[14.5px] font-semibold tracking-tight">{s.title}</h3>
+                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-dim">{s.text}</p>
                 </li>
-              </Reveal>
-            );
-          })}
-        </ol>
+              );
+            })}
+          </ol>
+        </Reveal>
       </div>
     </section>
   );
@@ -269,48 +251,45 @@ function Providers() {
   const p = COPY.providers;
   const m = COPY.models;
   return (
-    <section id="models" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
+    <section id="models" className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-8 md:py-28">
       <SectionHeader eyebrow={p.eyebrow} title={p.title} text={p.intro} />
-      <Reveal className="mt-14">
-        <div className="glass p-5 sm:p-8">
+      <Reveal className="mt-12">
+        <div className="card p-5 sm:p-7">
           <ProviderHub />
         </div>
       </Reveal>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PROVIDERS.map((pr, i) => (
-          <Reveal key={pr.id} delay={i * 70}>
+          <Reveal key={pr.id} delay={i * 60}>
             <ProviderCard provider={pr} />
           </Reveal>
         ))}
       </div>
 
-      <Reveal className="mx-auto mt-24 max-w-2xl text-center">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{m.eyebrow}</p>
+      <Reveal className="mx-auto mt-20 max-w-2xl text-center">
+        <p className="eyebrow justify-center">{m.eyebrow}</p>
         <h3 className="mk-h3 mt-3">{m.title}</h3>
-        <p className="mt-4 text-[16px] leading-relaxed text-ink-dim">{m.intro}</p>
+        <p className="mt-3.5 text-[15px] leading-relaxed text-ink-dim">{m.intro}</p>
       </Reveal>
-      <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {/* min-w-0 on each card: the model name and note never wrap, so without
-            it the single column on a phone widens to fit them and the page
-            slides sideways. */}
-        {MODELS.map((model, i) => (
-          <Reveal key={model.name} delay={i * 60} className="min-w-0">
-            <div className="glass lift flex items-center gap-4 p-5">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-edge bg-panel text-ink">
-                <model.Logo className="h-5 w-5" />
+      <Reveal className="mt-8">
+        <div className="tiles sm:grid-cols-2 lg:grid-cols-3">
+          {MODELS.map((model) => (
+            <div key={model.name} className="flex items-center gap-3 p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-edge bg-panel text-ink">
+                <model.Logo className="h-4 w-4" />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-semibold tracking-tight">{model.name}</p>
-                <p className="flex items-center gap-1.5 text-xs text-ink-dim">
+                <p className="truncate text-[14px] font-medium tracking-tight">{model.name}</p>
+                <p className="flex items-center gap-1.5 text-[12px] text-ink-dim">
                   <span className="shrink-0">{model.vendor}</span>
                   <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-current opacity-50" />
                   <span className="truncate">{model.note}</span>
                 </p>
               </div>
             </div>
-          </Reveal>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Reveal>
     </section>
   );
 }
@@ -318,13 +297,13 @@ function Providers() {
 function Quota() {
   const q = COPY.quota;
   return (
-    <section id="quota" className="relative z-10 border-y border-edge/70 bg-panel-2/40 py-24 md:py-32">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 md:grid-cols-2">
+    <section id="quota" className="relative z-10 border-y border-edge bg-panel py-20 md:py-28">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 sm:px-8 md:grid-cols-2 md:gap-14">
         <Reveal className="min-w-0 md:order-2">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{q.eyebrow}</p>
+          <p className="eyebrow">{q.eyebrow}</p>
           <h2 className="mk-h2 mt-3">{q.title}</h2>
-          <p className="mt-4 text-[17px] leading-relaxed text-ink-dim">{q.paragraph}</p>
-          <ul className="mt-6 space-y-3 text-[15px] text-ink/85">
+          <p className="mt-3.5 text-[15px] leading-relaxed text-ink-dim">{q.paragraph}</p>
+          <ul className="mt-5 space-y-2.5 text-[14px] text-ink/85">
             {q.bullets.map((t) => (
               <li key={t} className="flex items-start gap-2.5">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
@@ -333,7 +312,7 @@ function Quota() {
             ))}
           </ul>
         </Reveal>
-        <Reveal delay={120} className="min-w-0 md:order-1">
+        <Reveal delay={100} className="min-w-0 md:order-1">
           <QuotaBoard />
         </Reveal>
       </div>
@@ -358,13 +337,13 @@ resp = client.chat.completions.create(
 function Developers() {
   const d = COPY.developers;
   return (
-    <section id="developers" className="relative z-10 mx-auto max-w-6xl px-5 py-24 sm:px-8 md:py-32">
-      <div className="grid items-center gap-12 md:grid-cols-2">
+    <section id="developers" className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-8 md:py-28">
+      <div className="grid items-center gap-10 md:grid-cols-2 md:gap-14">
         <Reveal>
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{d.eyebrow}</p>
+          <p className="eyebrow">{d.eyebrow}</p>
           <h2 className="mk-h2 mt-3">{d.title}</h2>
-          <p className="mt-4 text-[17px] leading-relaxed text-ink-dim">{d.paragraph}</p>
-          <ul className="mt-6 space-y-3 text-[15px] text-ink/85">
+          <p className="mt-3.5 text-[15px] leading-relaxed text-ink-dim">{d.paragraph}</p>
+          <ul className="mt-5 space-y-2.5 text-[14px] text-ink/85">
             {d.bullets.map((t) => (
               <li key={t} className="flex items-start gap-2.5">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
@@ -372,12 +351,9 @@ function Developers() {
               </li>
             ))}
           </ul>
-          <ul className="mt-7 flex flex-wrap gap-2">
+          <ul className="mt-6 flex flex-wrap gap-1.5">
             {d.integrations.map((name) => (
-              <li
-                key={name}
-                className="rounded-full border border-edge bg-panel px-3 py-1.5 text-[12.5px] font-medium text-ink/85"
-              >
+              <li key={name} className="rounded-md border border-edge bg-panel px-2.5 py-1 text-[12px] font-medium text-ink/85">
                 {name}
               </li>
             ))}
@@ -385,9 +361,9 @@ function Developers() {
         </Reveal>
         {/* min-w-0: without it the code block's longest line sets the grid
             track's min-content width and pushes the page sideways. */}
-        <Reveal delay={120} className="min-w-0">
-          <div className="glass overflow-hidden p-2">
-            <div className="flex items-center justify-between px-3 py-2 text-[11px] text-ink-dim">
+        <Reveal delay={100} className="min-w-0">
+          <div className="card overflow-hidden p-1.5">
+            <div className="flex items-center justify-between px-3 py-2 text-[11.5px] text-ink-dim">
               <span className="mono">agent.py</span>
               <span className="flex items-center gap-1.5">
                 Python
@@ -395,7 +371,7 @@ function Developers() {
                 openai
               </span>
             </div>
-            <pre className="mono overflow-x-auto rounded-2xl bg-code p-5 text-[13px] leading-relaxed text-[#e6e8eb]">
+            <pre className="mono overflow-x-auto rounded-lg bg-code p-4 text-[12.5px] leading-relaxed text-[#e6e8eb]">
               <code>{SNIPPET}</code>
             </pre>
           </div>
@@ -409,25 +385,23 @@ function Faq() {
   const f = COPY.faq;
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="faq" className="relative z-10 mx-auto max-w-3xl px-5 py-24 sm:px-8 md:py-32">
+    <section id="faq" className="relative z-10 mx-auto max-w-3xl px-5 py-20 sm:px-8 md:py-28">
       <SectionHeader eyebrow={f.eyebrow} title={f.title} />
-      <div className="mt-12 space-y-3">
-        {f.items.map((item, i) => {
-          const isOpen = open === i;
-          return (
-            <Reveal key={item.q} delay={i * 50}>
-              <div className="glass overflow-hidden">
+      <Reveal className="mt-10">
+        <div className="card divide-y divide-edge overflow-hidden">
+          {f.items.map((item, i) => {
+            const isOpen = open === i;
+            return (
+              <div key={item.q}>
                 <button
                   type="button"
                   onClick={() => setOpen(isOpen ? null : i)}
-                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-ink/[0.02]"
                   aria-expanded={isOpen}
                 >
-                  <span className="text-[15px] font-semibold tracking-tight sm:text-base">{item.q}</span>
+                  <span className="text-[14px] font-medium tracking-tight">{item.q}</span>
                   <ChevronDown
-                    className={`h-5 w-5 shrink-0 text-ink-dim transition-transform duration-300 ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
+                    className={`h-4 w-4 shrink-0 text-ink-dim transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                   />
                 </button>
                 <div
@@ -435,14 +409,14 @@ function Faq() {
                   style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
                 >
                   <div className="overflow-hidden">
-                    <p className="px-6 pb-6 text-[15px] leading-relaxed text-ink-dim">{item.a}</p>
+                    <p className="px-5 pb-4 text-[13.5px] leading-relaxed text-ink-dim">{item.a}</p>
                   </div>
                 </div>
               </div>
-            </Reveal>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </Reveal>
     </section>
   );
 }
@@ -450,16 +424,16 @@ function Faq() {
 function CallToAction() {
   const c = COPY.cta;
   return (
-    <section className="relative z-10 mx-auto max-w-6xl px-5 pb-24 sm:px-8 md:pb-32">
+    <section className="relative z-10 mx-auto max-w-6xl px-5 pb-20 sm:px-8 md:pb-28">
       <Reveal>
-        <div className="glass hero-bloom relative overflow-hidden px-6 py-16 text-center sm:px-12 sm:py-20">
+        <div className="card px-6 py-14 text-center sm:px-12 sm:py-16">
           <h2 className="mk-h2">{c.title}</h2>
-          <p className="mx-auto mt-4 max-w-xl text-[17px] leading-relaxed text-ink-dim">{c.text}</p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link to="/signup" className="btn-primary btn-lg">
+          <p className="mx-auto mt-3.5 max-w-xl text-[15px] leading-relaxed text-ink-dim">{c.text}</p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
+            <Link to="/signup" className="btn-primary">
               {c.primary} <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/app/docs" className="btn-ghost btn-lg">
+            <Link to="/app/docs" className="btn-ghost">
               {c.secondary}
             </Link>
           </div>

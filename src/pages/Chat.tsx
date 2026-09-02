@@ -1,6 +1,6 @@
 /**
- * The chat screen. "/" is a fresh chat (big brand + pill composer, like Grok's
- * landing); "/c/:chatId" is a conversation. Replies stream over SSE from
+ * The chat screen. "/app" is a fresh chat (lock-up + composer in the middle);
+ * "/app/c/:chatId" is a conversation. Replies stream over SSE from
  * POST /api/chats/:id/messages (see ohshi/chat/service.py for the events).
  */
 
@@ -20,6 +20,7 @@ import { BrandHero, BrandMark } from "../components/brand";
 import { GeminiLogo } from "../components/logos";
 import Markdown from "../components/Markdown";
 import ModelPicker from "../components/ModelPicker";
+import { Topbar } from "../components/Topbar";
 import { Button, Notice, Spinner } from "../components/ui";
 import { copyText, friendly, get, post, readSSE, streamPost } from "../lib/api";
 import {
@@ -263,7 +264,7 @@ export default function Chat() {
   const runTurnRef = useRef(runTurn);
   runTurnRef.current = runTurn;
 
-  // A message typed on "/" arrives here as navigation state once the chat exists.
+  // A message typed on "/app" arrives here as navigation state once the chat exists.
   useEffect(() => {
     const pending = (location.state as PendingState | null)?.pending;
     if (!chatId || !pending || loading) return;
@@ -335,62 +336,45 @@ export default function Chat() {
   );
 
   return (
-    <div className="relative flex h-full flex-col">
-      {/* Floating top bar. The gradient masks content scrolling underneath it —
-          without it, lines slide out from behind the title with a hard edge. */}
-      <div
-        className={`pointer-events-none absolute inset-x-0 top-0 z-10 hidden items-start justify-between gap-4 px-5 pb-6 pt-4 md:flex ${
-          isLanding ? "" : "bg-gradient-to-b from-surface/90 via-surface/70 to-transparent"
-        }`}
-      >
-        {!isLanding && (
-          <p className="max-w-[45%] truncate text-sm font-medium text-ink-dim" title={chat?.title || undefined}>
-            {chat?.title || (loading ? "" : "New chat")}
-          </p>
-        )}
-        <div className="pointer-events-auto ml-auto">
-          <RouteBar models={models} onRouteChange={() => void loadModels(true)} />
-        </div>
-      </div>
+    <div className="relative flex h-full min-h-0 flex-col">
+      <Topbar
+        title={isLanding ? "New chat" : chat?.title || (loading ? "…" : "New chat")}
+        actions={<RouteBar models={models} onRouteChange={() => void loadModels(true)} />}
+      />
 
       {isLanding ? (
         /* Empty state: the lock-up and the composer sit together in the middle
            of the page. The moment a conversation starts the lock-up goes and the
            composer drops to the bottom of the screen. */
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-10">
-          <div className="rise-in flex w-full max-w-3xl flex-col items-center">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
+          <div className="rise-in flex w-full max-w-[720px] flex-col items-center">
             <BrandHero />
+            <p className="mt-3 text-[13px] text-ink-dim">Ask anything. Replies run on your own key or plan.</p>
             {models && !models.connected && (
-              <div className="mt-8 w-full max-w-xl">
+              <div className="mt-6 w-full max-w-lg">
                 <Notice tone="warn">
-                  <span className="normal-case">
-                    Add a Gemini API key or connect a Google account first. Every reply runs on your own key or
-                    plan.{" "}
-                    <Link
-                      to="/app/accounts"
-                      className="inline-flex items-center gap-1 font-semibold underline underline-offset-2"
-                    >
-                      Open the dashboard <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </span>
+                  Add a Gemini API key or connect a Google account first. Every reply runs on your own key or plan.{" "}
+                  <Link to="/app/accounts" className="inline-flex items-center gap-1 font-medium underline underline-offset-2">
+                    Open the dashboard <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </Notice>
               </div>
             )}
             {turnError && (
-              <div className="mt-4 w-full max-w-xl">
+              <div className="mt-4 w-full max-w-lg">
                 <Notice tone="danger" onClose={() => setTurnError(null)}>
                   {turnError}
                 </Notice>
               </div>
             )}
-            <div className="mt-9 w-full">{composer}</div>
-            <p className="mt-2 text-center text-[11px] text-ink-dim">Ohshi can make mistakes.</p>
+            <div className="mt-6 w-full">{composer}</div>
+            <p className="mt-2.5 text-center text-[11px] text-ink-faint">Ohshi can make mistakes. Check important information.</p>
           </div>
         </div>
       ) : (
         <>
           <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-3xl space-y-5 px-4 pb-6 pt-14 md:pt-16">
+            <div className="mx-auto w-full max-w-[760px] space-y-6 px-4 pb-6 pt-6 md:px-6">
               {loading && (
                 <div className="flex justify-center py-10 text-ink-dim">
                   <Spinner />
@@ -399,7 +383,7 @@ export default function Chat() {
               {loadError && (
                 <Notice tone="danger">
                   {loadError}{" "}
-                  <Link to="/app" className="font-semibold underline underline-offset-2">
+                  <Link to="/app" className="font-medium underline underline-offset-2">
                     Start a new chat
                   </Link>
                 </Notice>
@@ -418,15 +402,15 @@ export default function Chat() {
               )}
               {stream && <AssistantMessage streaming={stream} models={models} modelId={model} />}
               {turnError && !busy && (
-                <div className="flex items-center justify-between gap-3 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
                   <span>{turnError}</span>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {canRegenerate && (
                       <Button size="sm" tone="ghost" onClick={regenerate}>
                         <RefreshCw className="h-3.5 w-3.5" /> Retry
                       </Button>
                     )}
-                    <button type="button" className="text-xs font-semibold" onClick={() => setTurnError(null)}>
+                    <button type="button" className="text-[12px] font-medium" onClick={() => setTurnError(null)}>
                       Dismiss
                     </button>
                   </div>
@@ -441,10 +425,10 @@ export default function Chat() {
               )}
             </div>
           </div>
-          <div className="px-4 pb-4 pt-2">
-            <div className="mx-auto w-full max-w-3xl">
+          <div className="px-4 pb-3 pt-1 md:px-6">
+            <div className="mx-auto w-full max-w-[760px]">
               {composer}
-              <p className="mt-2 text-center text-[11px] text-ink-dim">Ohshi can make mistakes.</p>
+              <p className="mt-2 text-center text-[11px] text-ink-faint">Ohshi can make mistakes. Check important information.</p>
             </div>
           </div>
         </>
@@ -474,7 +458,7 @@ function Composer(props: {
     const el = ref.current;
     if (!el) return;
     el.style.height = "0px";
-    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [props.value]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -485,28 +469,21 @@ function Composer(props: {
   };
 
   const canSend = props.value.trim().length > 0 && !props.disabled;
-  const multiline = props.value.includes("\n") || props.value.length > 90;
 
   return (
-    // Narrow screens stack: the message gets the full width and the controls sit
-    // on their own row — otherwise the model name squeezes the input to nothing.
-    <div
-      className={`chat-pill bg-panel px-4 py-2 sm:flex sm:items-end sm:gap-2 sm:py-2 sm:pl-5 sm:pr-2 ${
-        multiline ? "rounded-3xl" : "rounded-3xl sm:rounded-full"
-      }`}
-    >
+    <div className="composer rounded-2xl px-3 pb-2 pt-2.5">
       <textarea
         ref={ref}
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
         onKeyDown={onKeyDown}
-        placeholder={props.disabled ? "Add a Gemini API key or connect Google to start chatting" : "What do you want to know?"}
+        placeholder={props.disabled ? "Add a Gemini API key or connect Google to start chatting" : "Ask anything…"}
         rows={1}
         autoFocus={props.autoFocus}
         disabled={props.disabled}
-        className="my-1.5 max-h-[220px] min-h-[28px] w-full flex-1 resize-none bg-transparent text-[16px] leading-7 outline-none placeholder:text-ink-dim/70 disabled:cursor-not-allowed"
+        className="max-h-[200px] min-h-[24px] w-full resize-none bg-transparent px-1 text-[14px] leading-6 outline-none placeholder:text-ink-faint disabled:cursor-not-allowed"
       />
-      <div className="flex shrink-0 items-center justify-between gap-1 pb-0.5 sm:justify-end">
+      <div className="mt-1.5 flex items-center justify-between gap-2">
         <ModelPicker
           models={props.models}
           value={props.model}
@@ -518,20 +495,20 @@ function Composer(props: {
           <button
             type="button"
             onClick={props.onStop}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-accent-ink transition-transform hover:scale-105 active:scale-95"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-night text-night-ink transition-opacity hover:opacity-85"
             aria-label="Stop generating"
           >
-            <Square className="h-4 w-4 fill-current" />
+            <Square className="h-3.5 w-3.5 fill-current" />
           </button>
         ) : (
           <button
             type="button"
             onClick={props.onSend}
             disabled={!canSend}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-accent-ink transition-transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:scale-100"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-night text-night-ink transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25"
             aria-label="Send"
           >
-            <ArrowUp className="h-5 w-5" />
+            <ArrowUp className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -544,7 +521,7 @@ function Composer(props: {
 function UserBubble(props: { message: ChatMessage }) {
   return (
     <div className="flex justify-end">
-      <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-tr-md bg-bubble-me px-4 py-2.5 text-[15px] leading-7 text-ink shadow-[0_1px_2px_rgb(0_0_0/0.25)]">
+      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-bubble-me px-3.5 py-2 text-[14px] leading-6 text-ink">
         {props.message.content}
       </div>
     </div>
@@ -567,21 +544,20 @@ function AssistantMessage(props: {
 
   return (
     <div className="flex gap-3">
-      <BrandMark className="mt-0.5 h-7" />
+      <BrandMark className="mt-1 h-5 shrink-0" />
       <div className="min-w-0 flex-1">
-       <div className="rounded-2xl rounded-tl-md border border-edge bg-bubble-ai px-4 py-3 shadow-[0_1px_2px_rgb(0_0_0/0.25)] sm:px-5">
         {reasoning && (
           <div className="mb-2">
             <button
               type="button"
               onClick={() => setShowReasoning((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-ink-dim hover:text-ink"
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-dim hover:text-ink"
             >
               {showReasoning ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               {streaming && !content ? "Thinking…" : "Thought process"}
             </button>
             {showReasoning && (
-              <div className="mt-1.5 whitespace-pre-wrap border-l-2 border-edge pl-3 text-sm text-ink-dim">
+              <div className="mt-1.5 whitespace-pre-wrap border-l-2 border-edge pl-3 text-[13px] leading-relaxed text-ink-dim">
                 {reasoning}
               </div>
             )}
@@ -592,14 +568,13 @@ function AssistantMessage(props: {
             <Markdown text={content} />
           </div>
         ) : streaming && !reasoning ? (
-          <div className="flex items-center gap-2 py-1 text-sm text-ink-dim">
+          <div className="flex items-center gap-2 py-1 text-[13px] text-ink-dim">
             <span className="thinking-dots" aria-hidden />
             Thinking…
           </div>
         ) : null}
-       </div>
         {!streaming && props.message && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-1 text-[11px] text-ink-dim">
+          <div className="mt-2 flex flex-wrap items-center gap-1 text-[11.5px] text-ink-dim">
             <button
               type="button"
               onClick={() => {
@@ -608,7 +583,7 @@ function AssistantMessage(props: {
                   window.setTimeout(() => setCopied(false), 1500);
                 });
               }}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink/10 hover:text-ink"
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink/[0.06] hover:text-ink"
               aria-label="Copy reply"
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -618,16 +593,18 @@ function AssistantMessage(props: {
               <button
                 type="button"
                 onClick={props.onRegenerate}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink/10 hover:text-ink"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-ink/[0.06] hover:text-ink"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Regenerate
               </button>
             )}
-            {modelId && <span className="px-1">{modelLabel(props.models, modelId)}</span>}
+            {modelId && <span className="px-1.5 text-ink-faint">{modelLabel(props.models, modelId)}</span>}
             {props.message.status === "interrupted" && (
-              <span className="rounded-full bg-warn-soft px-2 py-0.5 font-medium text-warn">Stopped early</span>
+              <span className="rounded bg-warn-soft px-1.5 py-0.5 font-medium text-warn">Stopped early</span>
             )}
-            {props.message.usage.totalTokens > 0 && <span className="px-1">{props.message.usage.totalTokens} tokens</span>}
+            {props.message.usage.totalTokens > 0 && (
+              <span className="px-1 text-ink-faint">{props.message.usage.totalTokens} tokens</span>
+            )}
           </div>
         )}
       </div>
@@ -650,7 +627,7 @@ interface KeyRow {
   status: "active" | "invalid";
 }
 
-/** Compact route pill: which Gemini API key or Google account replies come
+/** Compact route control: which Gemini API key or Google account replies come
  *  from. Click it to see every source and move the default. */
 function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () => void }) {
   const m = props.models;
@@ -666,14 +643,14 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
     const onDoc = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey as unknown as EventListener);
+    document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey as unknown as EventListener);
+      document.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
@@ -714,9 +691,9 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
     return (
       <Link
         to="/app/accounts"
-        className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink shadow-sm hover:brightness-105"
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-night px-3 text-[12.5px] font-medium text-night-ink hover:opacity-90"
       >
-        <Plug className="h-4 w-4" /> Add a key or account
+        <Plug className="h-3.5 w-3.5" /> Add a key or account
       </Link>
     );
   }
@@ -729,37 +706,31 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
       <button
         type="button"
         onClick={toggle}
-        className="inline-flex items-center gap-2 rounded-full border border-edge bg-panel-2 px-3 py-1.5 text-sm font-medium text-ink-dim hover:text-ink"
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-edge bg-panel px-2.5 text-[12.5px] font-medium text-ink transition-colors hover:border-edge-strong"
         title={routeLabel(m)}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={`h-2 w-2 rounded-full ${gemini || m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
-        {gemini ? <GeminiLogo className="h-4 w-4" /> : <Plug className="h-4 w-4" />}
-        <span className="hidden max-w-[11rem] truncate lg:inline">{gemini ? "Gemini API" : m.email}</span>
-        {m.beta && (
-          <span className="rounded-full bg-violet-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet">
-            Beta
-          </span>
-        )}
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+        <span className={`h-1.5 w-1.5 rounded-full ${gemini || m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
+        {gemini ? <GeminiLogo className="h-3.5 w-3.5 text-ink-dim" /> : <Plug className="h-3.5 w-3.5 text-ink-dim" />}
+        <span className="hidden max-w-[11rem] truncate sm:inline">{gemini ? "Gemini API" : m.email}</span>
+        {m.beta && <span className="rounded bg-violet-soft px-1 py-px text-[10px] font-medium text-violet">Beta</span>}
+        <ChevronDown className={`h-3.5 w-3.5 text-ink-dim transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
         <div
-          className="pop-in absolute right-0 top-full z-30 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-edge bg-panel shadow-2xl"
+          className="pop-in absolute right-0 top-full z-30 mt-2 w-[21rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-edge bg-panel shadow-[0_16px_40px_-16px_rgb(0_0_0/0.35)]"
           role="listbox"
         >
-          <p className="border-b border-edge px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim">
-            Gemini API keys
-          </p>
+          <p className="border-b border-edge px-3 py-2 text-[11.5px] font-medium text-ink-dim">Gemini API keys</p>
           <div className="max-h-40 overflow-y-auto p-1.5">
             {keys === null ? (
               <div className="flex justify-center py-4 text-ink-dim">
-                <Spinner size={16} />
+                <Spinner size={14} />
               </div>
             ) : keys.length === 0 ? (
-              <p className="px-2.5 py-2 text-[12px] text-ink-dim">No keys yet. Add one on the dashboard.</p>
+              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No keys yet. Add one on the dashboard.</p>
             ) : (
               keys.map((row) => (
                 <SourceRow
@@ -775,17 +746,17 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
               ))
             )}
           </div>
-          <p className="flex items-center gap-2 border-y border-edge px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim">
+          <p className="flex items-center gap-2 border-y border-edge px-3 py-2 text-[11.5px] font-medium text-ink-dim">
             Google accounts
-            <span className="rounded-full bg-violet-soft px-1.5 py-0.5 text-[10px] text-violet">Beta</span>
+            <span className="rounded bg-violet-soft px-1 py-px text-[10px] text-violet">Beta</span>
           </p>
           <div className="max-h-40 overflow-y-auto p-1.5">
             {accounts === null ? (
               <div className="flex justify-center py-4 text-ink-dim">
-                <Spinner size={16} />
+                <Spinner size={14} />
               </div>
             ) : accounts.length === 0 ? (
-              <p className="px-2.5 py-2 text-[12px] text-ink-dim">No Google account connected.</p>
+              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No Google account connected.</p>
             ) : (
               accounts.map((row) => (
                 <SourceRow
@@ -801,11 +772,11 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
               ))
             )}
           </div>
-          {error && <p className="border-t border-edge px-3.5 py-2 text-[11px] text-danger">{error}</p>}
+          {error && <p className="border-t border-edge px-3 py-2 text-[11.5px] text-danger">{error}</p>}
           <Link
             to="/app/accounts"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2 border-t border-edge px-3.5 py-2.5 text-[13px] font-medium text-ink-dim hover:text-ink"
+            className="flex items-center gap-2 border-t border-edge px-3 py-2 text-[12.5px] font-medium text-ink-dim hover:text-ink"
           >
             <Plug className="h-3.5 w-3.5" /> Manage sources
           </Link>
@@ -829,19 +800,19 @@ function SourceRow(props: {
       type="button"
       disabled={props.current || props.disabled}
       onClick={props.onPick}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] ${
-        props.current ? "bg-accent-soft" : "hover:bg-ink/[0.04] disabled:opacity-60"
+      className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12.5px] ${
+        props.current ? "bg-ink/[0.06]" : "hover:bg-ink/[0.04] disabled:opacity-60"
       }`}
     >
-      <span className={`h-2 w-2 shrink-0 rounded-full ${props.ok ? "bg-ok" : "bg-danger"}`} />
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${props.ok ? "bg-ok" : "bg-danger"}`} />
       <span className="min-w-0 flex-1 truncate font-medium text-ink">
         {props.label}
         {props.sub && <span className="mono ml-1.5 text-[11px] font-normal text-ink-dim">{props.sub}</span>}
       </span>
       {props.switching ? (
-        <Spinner size={13} />
+        <Spinner size={12} />
       ) : props.current ? (
-        <span className="shrink-0 text-[11px] font-semibold text-accent">Default</span>
+        <span className="shrink-0 text-[11px] font-medium text-ink-dim">Default</span>
       ) : null}
     </button>
   );

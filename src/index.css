@@ -4,66 +4,70 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ── tokens ──────────────────────────────────────────────────────────────────
-   Light: porcelain surfaces, ink text, royal-blue accent (sampled from the
-   brand mockup: page #F7F7F9, nav #FCFCFD, ink #161B25, blue #2E6BD9).
-   Dark: near-black surfaces, ice-blue accent. Every component uses tokens only,
-   so the theme flips by swapping the variables on <html data-theme>. */
+   A quiet, two-tone system: one near-black ink, one blue for links and focus,
+   hairline borders, flat white panels. Light is the default; dark swaps the
+   variables on <html data-theme>. Every component uses tokens only. */
 @theme {
-  --color-surface: #f7f7f9;
+  --color-surface: #fafafa;
   --color-panel: #ffffff;
-  --color-panel-2: #f1f2f5;
-  --color-edge: #e4e6ec;
-  --color-ink: #161b25;
-  --color-ink-dim: #5f6675;
-  --color-accent: #1d4ed8;
+  --color-panel-2: #f4f4f5;
+  --color-edge: #e4e4e7;
+  --color-edge-strong: #cfcfd4;
+  --color-ink: #18181b;
+  --color-ink-dim: #71717a;
+  --color-ink-faint: #a1a1aa;
+  --color-accent: #2563eb;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: #dbe6ff;
-  --color-glow: #2b82db;
+  --color-accent-soft: #e8efff;
+  --color-glow: #2563eb;
   --color-ok: #15803d;
-  --color-ok-soft: #dcfce7;
+  --color-ok-soft: #e6f6ec;
   --color-warn: #b45309;
-  --color-warn-soft: #fef3c7;
+  --color-warn-soft: #fdf3e0;
   --color-danger: #dc2626;
-  --color-danger-soft: #fee2e2;
+  --color-danger-soft: #fdeaea;
   --color-violet: #6d28d9;
-  --color-violet-soft: #ede9fe;
-  --color-night: #0b1a3d;
-  --color-rail: #ffffff;
-  --color-bubble-me: #e6edfb;
+  --color-violet-soft: #efe9fe;
+  --color-night: #18181b;
+  --color-night-ink: #ffffff;
+  --color-rail: #fafafa;
+  --color-bubble-me: #f4f4f5;
   --color-bubble-ai: #ffffff;
-  --color-code: #0f1420;
+  --color-code: #131418;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-app: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
-  /* Display face for the marketing pages, same as the CAGS front end: a high
-     contrast serif reserved for headlines. Body copy stays on Inter. */
+  /* Display face for the marketing headlines only. */
   --font-display: "Instrument Serif", "Playfair Display", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 [data-theme="dark"] {
-  --color-surface: #0a0c10;
-  --color-panel: #13161c;
-  --color-panel-2: #1a1e26;
-  --color-edge: #2a3040;
-  --color-ink: #eef1f6;
-  --color-ink-dim: #98a2b3;
-  --color-accent: #5aa9ff;
-  --color-accent-ink: #061733;
-  --color-accent-soft: #15305e;
-  --color-glow: #3b8fff;
-  --color-ok: #7ee2a0;
-  --color-ok-soft: #12351f;
-  --color-warn: #f5c451;
-  --color-warn-soft: #3d2e0f;
-  --color-danger: #ff8b8b;
-  --color-danger-soft: #46201f;
-  --color-violet: #c4b5fd;
-  --color-violet-soft: #2b2450;
-  --color-night: #0b1a3d;
-  --color-rail: #0d1016;
-  --color-bubble-me: #1f2735;
-  --color-bubble-ai: #12161d;
-  --color-code: #0b0f17;
+  --color-surface: #0c0d10;
+  --color-panel: #121317;
+  --color-panel-2: #1b1c22;
+  --color-edge: #26272e;
+  --color-edge-strong: #383941;
+  --color-ink: #ededf0;
+  --color-ink-dim: #8e919b;
+  --color-ink-faint: #5f626b;
+  --color-accent: #7aa7ff;
+  --color-accent-ink: #0b1a3d;
+  --color-accent-soft: #1a2540;
+  --color-glow: #5b8fff;
+  --color-ok: #4ade80;
+  --color-ok-soft: #12281b;
+  --color-warn: #fbbf24;
+  --color-warn-soft: #2f2510;
+  --color-danger: #f87171;
+  --color-danger-soft: #361c1c;
+  --color-violet: #b8a5ff;
+  --color-violet-soft: #262042;
+  --color-night: #ededf0;
+  --color-night-ink: #121317;
+  --color-rail: #0c0d10;
+  --color-bubble-me: #1b1c22;
+  --color-bubble-ai: #121317;
+  --color-code: #0a0b0e;
   color-scheme: dark;
 }
 
@@ -81,11 +85,13 @@ body {
   @apply bg-surface text-ink antialiased;
   min-width: 320px;
   font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
   font-feature-settings: "cv11", "ss01";
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 24%, transparent);
 }
 
 button,
@@ -107,13 +113,11 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 60%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
   outline-offset: 2px;
 }
-
-/* The composer already shows focus by lighting its whole pill. */
-.chat-pill textarea:focus,
-.chat-pill textarea:focus-visible {
+.composer textarea:focus,
+.composer textarea:focus-visible {
   outline: none;
 }
 
@@ -122,277 +126,118 @@ pre,
 .mono {
   font-family: var(--font-mono);
 }
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
 
-/* The signed-in app keeps the clean GreatAgent face (Plus Jakarta Sans). */
+/* The signed-in app: 13px Plus Jakarta Sans on flat white. */
 .app-shell {
   font-family: var(--font-app);
-}
-.app-display {
-  letter-spacing: -0.02em;
-}
-
-/* ── brand art ─────────────────────────────────────────────────────────────── */
-.brand-glow {
-  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--color-glow) 40%, transparent))
-    drop-shadow(0 0 54px color-mix(in srgb, var(--color-glow) 18%, transparent));
-}
-@keyframes brand-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-.brand-float {
-  animation: brand-float 6s ease-in-out infinite;
-}
-.hero-art {
-  position: absolute;
-  inset: 0;
-  z-index: -20;
-  overflow: hidden;
-}
-/* The painting fills the hero at every window ratio; `cover` decides what to
-   crop and the plate swap in Landing.tsx decides which cut is fetched. */
-.hero-art img {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-  width: 100%;
-  object-fit: cover;
-  object-position: 50% 50%;
-  user-select: none;
-}
-
-/* The scrim. Two layers: a bloom of page colour rolling in from the copy side
-   so the headline holds its contrast over the blossom and the lantern, and a
-   thin wash at the top and bottom so the pill and the section below meet the
-   painting rather than butt against it. Both are mixed from --color-surface,
-   so the same geometry reads as haze at dawn and as dusk after sunset.
-
-   The strengths are variables because the two themes need different amounts:
-   near white ink on a night painting barely needs a veil, while dark ink on a
-   morning one does. Light keeps the lightest wash the headline can still hold
-   over, so the torii and the lanterns stay legible as picture. */
-.hero-art::after {
-  --scrim-near: 62%;
-  --scrim-mid: 44%;
-  --scrim-far: 18%;
-  --scrim-edge: 5%;
-  --scrim-top: 24%;
-  --scrim-top-fade: 4%;
-  --scrim-bottom: 40%;
-
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      115% 118% at -6% 52%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-near), transparent) 0%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-mid), transparent) 26%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-far), transparent) 46%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-edge), transparent) 62%,
-      transparent 76%
-    ),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-surface) var(--scrim-top), transparent) 0%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-top-fade), transparent) 22%,
-      transparent 46%,
-      transparent 72%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-bottom), transparent) 100%
-    );
-}
-[data-theme="dark"] .hero-art::after {
-  --scrim-near: 90%;
-  --scrim-mid: 74%;
-  --scrim-far: 40%;
-  --scrim-edge: 12%;
-  --scrim-top: 45%;
-  --scrim-top-fade: 10%;
-  --scrim-bottom: 55%;
-}
-
-/* On a phone the copy sits over the whole width, so the bloom becomes a wash
-   from the top instead of from the left. */
-@media (max-width: 767px) {
-  .hero-art::after {
-    --scrim-near: 66%;
-    --scrim-mid: 48%;
-    --scrim-far: 37%;
-    --scrim-edge: 39%;
-    --scrim-top: 47%;
-    --scrim-bottom: 55%;
-
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-surface) var(--scrim-near), transparent) 0%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-mid), transparent) 30%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-far), transparent) 50%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-edge), transparent) 66%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-top), transparent) 84%,
-      color-mix(in srgb, var(--color-surface) var(--scrim-bottom), transparent) 100%
-    );
-  }
-  [data-theme="dark"] .hero-art::after {
-    --scrim-near: 88%;
-    --scrim-mid: 72%;
-    --scrim-far: 52%;
-    --scrim-edge: 50%;
-    --scrim-top: 58%;
-    --scrim-bottom: 70%;
-  }
-}
-
-.hero-bloom {
-  position: relative;
-}
-.hero-bloom::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: min(620px, 90vw);
-  aspect-ratio: 1;
-  translate: -50% -30%;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--color-glow) 16%, transparent),
-    color-mix(in srgb, var(--color-glow) 5%, transparent) 42%,
-    transparent 68%
-  );
-}
-
-/* ── backdrops ─────────────────────────────────────────────────────────────── */
-/* Veil over the tile photograph so cards and text keep their contrast. */
-.tiles-veil {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-surface) 62%, transparent),
-    color-mix(in srgb, var(--color-surface) 42%, transparent)
-  );
+  font-size: 13px;
 }
 
 /* ── surfaces ──────────────────────────────────────────────────────────────── */
+.card,
 .glass,
 .panel {
-  @apply rounded-3xl;
-  background: color-mix(in srgb, var(--color-panel) 84%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 7%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 55%, transparent),
-    0 1px 2px rgb(0 0 0 / 0.06),
-    0 18px 40px -30px rgb(0 0 0 / 0.35);
-  transition:
-    box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 240ms ease;
+  border-radius: 12px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-edge);
 }
-[data-theme="dark"] .glass,
-[data-theme="dark"] .panel {
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
-    0 1px 2px rgb(0 0 0 / 0.4),
-    0 18px 40px -30px rgb(0 0 0 / 0.8);
+.card-hover,
+.lift {
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.card-hover:hover,
+.lift:hover {
+  border-color: var(--color-edge-strong);
 }
 
-.lift {
-  position: relative;
-  z-index: 0;
+/* A bordered grid of tiles: one container, hairlines between the cells. */
+.tiles {
+  display: grid;
+  gap: 1px;
+  background: var(--color-edge);
+  border: 1px solid var(--color-edge);
+  border-radius: 12px;
+  overflow: hidden;
 }
-@media (hover: hover) and (pointer: fine) {
-  /* Hit-area anchor: the card lifts 3px on hover, which would slide its bottom
-     edge out from under a resting cursor and make it vibrate. */
-  .lift::after {
-    content: "";
-    position: absolute;
-    inset: 0 0 -3px 0;
-    z-index: -1;
-  }
-  .lift:hover {
-    transform: translate3d(0, -3px, 0);
-    border-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
-    box-shadow: 0 24px 46px -28px rgb(0 0 0 / 0.45);
-  }
+.tiles > * {
+  background: var(--color-panel);
+  min-width: 0;
+}
+
+/* Tables. */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tbl th {
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-ink-dim);
+  border-bottom: 1px solid var(--color-edge);
+  white-space: nowrap;
+}
+.tbl td {
+  padding: 10px 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-edge);
+}
+.tbl tbody tr:last-child td {
+  border-bottom: 0;
+}
+.tbl tbody tr:hover td {
+  background: color-mix(in srgb, var(--color-ink) 2.5%, transparent);
+}
+.tbl .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid var(--color-edge);
+  background: var(--color-panel);
+  font-family: var(--font-app);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-ink-dim);
 }
 
 /* ── marketing ─────────────────────────────────────────────────────────────── */
 
-/* The pearly navigation pill: translucent white, heavy blur, a bright inset
-   top edge and a faint sheen — like a frosted glass tile. */
+/* The navigation pill: flat white, hairline, a whisper of shadow. */
 .mk-nav {
-  background: color-mix(in srgb, var(--color-panel) 78%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
-  backdrop-filter: blur(22px) saturate(170%);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.85),
-    inset 0 -1px 0 rgb(255 255 255 / 0.25),
-    0 1px 2px rgb(0 0 0 / 0.04),
-    0 18px 44px -22px rgb(11 26 61 / 0.28);
-  transition: box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  background: color-mix(in srgb, var(--color-panel) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-edge);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  transition: box-shadow 300ms ease;
 }
 .mk-nav-scrolled {
-  background: color-mix(in srgb, var(--color-panel) 86%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.9),
-    inset 0 -1px 0 rgb(255 255 255 / 0.3),
-    0 0 0 1px color-mix(in srgb, var(--color-glow) 14%, transparent),
-    0 0 40px -6px color-mix(in srgb, var(--color-glow) 28%, transparent),
-    0 22px 50px -18px rgb(11 26 61 / 0.35);
+  box-shadow: 0 6px 24px -12px rgb(0 0 0 / 0.18);
 }
 [data-theme="dark"] .mk-nav {
-  background: rgb(19 22 28 / 0.66);
-  border-color: rgb(255 255 255 / 0.1);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.12),
-    inset 0 -1px 0 rgb(255 255 255 / 0.03),
-    0 1px 2px rgb(0 0 0 / 0.4),
-    0 18px 44px -22px rgb(0 0 0 / 0.7);
+  background: color-mix(in srgb, var(--color-panel) 88%, transparent);
 }
 [data-theme="dark"] .mk-nav-scrolled {
-  background: rgb(19 22 28 / 0.78);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.14),
-    0 0 0 1px color-mix(in srgb, var(--color-glow) 22%, transparent),
-    0 0 44px -6px color-mix(in srgb, var(--color-glow) 32%, transparent),
-    0 22px 50px -18px rgb(0 0 0 / 0.8);
-}
-.mk-nav-sheen {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgb(255 255 255 / 0.55) 0%,
-    rgb(255 255 255 / 0.12) 40%,
-    rgb(255 255 255 / 0) 100%
-  );
-  mix-blend-mode: overlay;
-}
-[data-theme="dark"] .mk-nav-sheen {
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.16) 0%, rgb(255 255 255 / 0.03) 45%, transparent 100%);
-  mix-blend-mode: normal;
+  box-shadow: 0 6px 24px -12px rgb(0 0 0 / 0.7);
 }
 .mk-link {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   white-space: nowrap;
-  color: color-mix(in srgb, var(--color-ink) 80%, transparent);
-  transition:
-    color 200ms ease,
-    font-size 300ms ease;
-}
-.mk-link-sm {
-  font-size: 13px;
+  color: var(--color-ink-dim);
+  transition: color 160ms ease;
 }
 .mk-link:hover {
   color: var(--color-ink);
@@ -402,248 +247,133 @@ pre,
   align-items: center;
   gap: 0.4rem;
   border-radius: 999px;
-  padding: 0.45rem 0.7rem;
-  font-size: 14px;
+  padding: 0.4rem 0.6rem;
+  font-size: 13px;
   font-weight: 500;
-  color: color-mix(in srgb, var(--color-ink) 80%, transparent);
-  transition:
-    background-color 200ms ease,
-    color 200ms ease;
+  color: var(--color-ink-dim);
+  transition: background-color 160ms ease, color 160ms ease;
 }
 .mk-chip:hover {
   background: color-mix(in srgb, var(--color-ink) 6%, transparent);
   color: var(--color-ink);
 }
 
-/* Buttons that match the mockup: a navy gradient primary, a porcelain ghost. */
+/* Marketing buttons: ink primary, bordered ghost, both pills. */
 .btn-primary,
 .btn-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   border-radius: 999px;
-  padding: 0.95rem 1.8rem;
-  font-size: 15px;
+  padding: 0.7rem 1.3rem;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
-  transition:
-    transform 250ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 250ms cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 200ms ease,
-    filter 200ms ease;
-}
-.btn-primary:hover,
-.btn-ghost:hover {
-  transform: translateY(-1px);
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 .btn-primary:active,
 .btn-ghost:active {
-  transform: translateY(0) scale(0.98);
+  transform: scale(0.985);
 }
 .btn-primary {
-  color: #fff;
-  background: linear-gradient(180deg, #123a8f 0%, #0b2a6f 55%, #071d52 100%);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.18),
-    0 10px 24px -12px rgb(11 42 111 / 0.7);
+  color: var(--color-night-ink);
+  background: var(--color-night);
 }
 .btn-primary:hover {
-  filter: brightness(1.08);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.22),
-    0 16px 30px -12px rgb(11 42 111 / 0.75);
-}
-[data-theme="dark"] .btn-primary {
-  background: linear-gradient(180deg, #3f95ff 0%, #2b7fe6 55%, #1f66c4 100%);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.3),
-    0 12px 28px -12px rgb(59 143 255 / 0.7);
+  background: color-mix(in srgb, var(--color-night) 86%, var(--color-ink-dim));
 }
 .btn-ghost {
   color: var(--color-ink);
-  background: color-mix(in srgb, var(--color-panel) 90%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+  background: var(--color-panel);
+  border: 1px solid var(--color-edge);
 }
 .btn-ghost:hover {
-  background: var(--color-panel);
-  border-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
-}
-[data-theme="dark"] .btn-ghost {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  border-color: var(--color-edge-strong);
+  background: var(--color-panel-2);
 }
 .btn-sm {
-  padding: 0.58rem 1.25rem;
-  font-size: 14px;
-  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-size: 13px;
 }
 .btn-lg {
-  padding: 1.05rem 2.4rem;
-  font-size: 16px;
-  border-radius: 999px;
-}
-/* A phone cannot hold the lock-up, the call to action and the menu chip at
-   full size on one row — the pill used to spill past the viewport. */
-@media (max-width: 480px) {
-  .btn-sm {
-    padding: 0.6rem 1.05rem;
-    font-size: 14px;
-  }
+  padding: 0.8rem 1.5rem;
+  font-size: 14.5px;
 }
 
-/* No pill behind it: the dot and the words sit straight on the artwork, flush
-   with the headline's left edge. */
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.5rem;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-ink) 90%, transparent);
+  color: var(--color-ink-dim);
 }
 .eyebrow-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
-  background: var(--color-glow);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-glow) 18%, transparent);
+  background: var(--color-accent);
 }
 
-/* ── hero layout ───────────────────────────────────────────────────────────
-   The hero has to hold the whole stack — badge, headline, lede, buttons, trust
-   row and the scroll cue — inside one screen. A 1920x1080 panel at the Windows
-   150% scale is a 1280x640 viewport, so every vertical measure here is driven
-   by vh as well as vw: `min(vw, vh)` on the type, vh clamps on the gaps. Sized
-   by width alone the headline overflowed a short window and pushed the cue and
-   the trust row below the fold. */
-/* With the scrim thinned out so the painting reads, the copy has to carry its
-   own contrast. A tight halo in the page colour does that locally — it looks
-   like the haze already in the picture — instead of another wash over the
-   whole frame. The buttons paint their own ground, so they opt out. */
-/* Several short shadows rather than one soft one: they build a near-solid
-   sheath right at the glyph edge, which reads as haze already in the painting
-   instead of a box behind the words, and survives a busy mid-tone like the
-   torii or the treeline.
-
-   Light needs far more of it than dark. Near-white ink on a night painting
-   separates on its own; dark ink on a dawn one does not, and the light scrim
-   was deliberately thinned so the picture still reads. */
-.hero-copy {
-  text-shadow:
-    0 0 3px color-mix(in srgb, var(--color-surface) 94%, transparent),
-    0 1px 2px color-mix(in srgb, var(--color-surface) 90%, transparent),
-    0 0 8px color-mix(in srgb, var(--color-surface) 78%, transparent),
-    0 0 20px color-mix(in srgb, var(--color-surface) 60%, transparent),
-    0 0 40px color-mix(in srgb, var(--color-surface) 38%, transparent);
-}
-[data-theme="dark"] .hero-copy {
-  text-shadow:
-    0 1px 1px color-mix(in srgb, var(--color-surface) 62%, transparent),
-    0 0 14px color-mix(in srgb, var(--color-surface) 52%, transparent),
-    0 0 34px color-mix(in srgb, var(--color-surface) 34%, transparent);
-}
-.hero-copy .btn-primary,
-.hero-copy .btn-ghost {
-  text-shadow: none;
-}
-
-.hero-shell {
-  padding-top: clamp(6.75rem, 15vh, 11rem);
-  padding-bottom: clamp(4.25rem, 11vh, 7.5rem);
-}
-
+/* ── hero ─────────────────────────────────────────────────────────────────── */
 .hero-title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(2rem, min(5.4vw, 10vh), 5rem);
+  font-size: clamp(2.4rem, min(5.6vw, 11vh), 4.75rem);
   letter-spacing: -0.005em;
-  line-height: 0.92;
+  line-height: 0.96;
   text-transform: uppercase;
 }
-
 .hero-lede {
-  font-size: clamp(15px, min(1.35vw, 2.5vh), 19px);
-  line-height: 1.55;
-  font-weight: 500;
-  /* Nearly full ink: this paragraph sits on a painting, not on a flat panel,
-     and the muted grey it used to wear disappeared into the treeline. */
-  color: color-mix(in srgb, var(--color-ink) 92%, transparent);
+  font-size: clamp(14.5px, 1.2vw, 16.5px);
+  line-height: 1.6;
+  color: var(--color-ink-dim);
 }
-[data-theme="dark"] .hero-lede {
-  font-weight: 400;
-  color: color-mix(in srgb, var(--color-ink) 78%, transparent);
+/* The painting sits in a frame under the copy; on a short window the frame
+   still starts above the fold. */
+.hero-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--color-edge);
+  background: var(--color-panel-2);
+  aspect-ratio: 16 / 8.2;
 }
-
-/* The trust row is the smallest type in the hero and sits lowest, over the
-   busiest part of the picture. It gets the weight and the densest sheath. */
-.hero-trust {
-  font-weight: 600;
-  color: var(--color-ink);
-  text-shadow:
-    0 0 3px color-mix(in srgb, var(--color-surface) 96%, transparent),
-    0 0 5px color-mix(in srgb, var(--color-surface) 92%, transparent),
-    0 1px 2px color-mix(in srgb, var(--color-surface) 92%, transparent),
-    0 0 12px color-mix(in srgb, var(--color-surface) 80%, transparent),
-    0 0 26px color-mix(in srgb, var(--color-surface) 55%, transparent);
-}
-/* text-shadow does not reach an SVG, so the shields get the same separation
-   as a filter or they float on the painting with nothing behind them. */
-.hero-trust-icon {
-  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--color-surface) 90%, transparent))
-    drop-shadow(0 0 7px color-mix(in srgb, var(--color-surface) 70%, transparent));
-}
-
-[data-theme="dark"] .hero-trust {
-  font-weight: 500;
-  text-shadow:
-    0 1px 1px color-mix(in srgb, var(--color-surface) 70%, transparent),
-    0 0 14px color-mix(in srgb, var(--color-surface) 55%, transparent),
-    0 0 30px color-mix(in srgb, var(--color-surface) 35%, transparent);
-}
-
-/* The gaps down the hero stack. Named rather than utility classes because each
-   one has to breathe with the window height, not just its width. */
-.hero-gap {
-  margin-top: clamp(0.9rem, 2.6vh, 1.75rem);
-}
-.hero-gap-lg {
-  margin-top: clamp(1.15rem, 3.4vh, 2.25rem);
-}
-.hero-cue {
-  bottom: clamp(1.1rem, 3vh, 2rem);
-}
-@media (max-height: 720px) {
-  .btn-lg {
-    padding: 0.85rem 2rem;
-    font-size: 15px;
+@media (max-width: 767px) {
+  .hero-frame {
+    aspect-ratio: 4 / 5;
   }
+}
+.hero-frame img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 42%;
+  user-select: none;
 }
 
 /* Section titles on the marketing pages. */
 .mk-h2 {
   font-family: var(--font-display);
-  font-size: clamp(2.1rem, 3.6vw, 3rem);
-  font-weight: 400;
-  letter-spacing: -0.005em;
-  line-height: 1.04;
-}
-
-/* A display size one step down from .mk-h2, for a heading inside a section. */
-.mk-h3 {
-  font-family: var(--font-display);
-  font-size: clamp(1.7rem, 2.6vw, 2.25rem);
+  font-size: clamp(1.9rem, 3.1vw, 2.6rem);
   font-weight: 400;
   letter-spacing: -0.005em;
   line-height: 1.06;
 }
+.mk-h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 2.3vw, 2rem);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.08;
+}
 
-/* ── landing diagrams ──────────────────────────────────────────────────────
-   Wires between nodes (Diagrams.tsx): a faint base line and a dashed accent
-   stroke that drifts along it. Both are non-scaling strokes inside an SVG
-   stretched to its grid cell, so the dash pattern is in screen pixels. */
+/* ── landing diagrams ──────────────────────────────────────────────────────── */
 .wire {
   stroke: color-mix(in srgb, var(--color-ink) 16%, transparent);
 }
@@ -664,43 +394,25 @@ pre,
   gap: 0.6rem;
   min-width: 0;
   width: 100%;
-  border-radius: 1rem;
-  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  padding: 0.5rem 0.65rem;
   background: var(--color-panel);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 9%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 50%, transparent),
-    0 1px 2px rgb(0 0 0 / 0.05);
+  border: 1px solid var(--color-edge);
 }
-[data-theme="dark"] .dg-node {
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.05),
-    0 1px 2px rgb(0 0 0 / 0.35);
-}
-/* The hub: the mark in a lit ring, with a slow pulse rolling off it. */
 .dg-hub {
   position: relative;
-  width: 4.5rem;
-  height: 4.5rem;
-  background: color-mix(in srgb, var(--color-panel) 94%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-glow) 40%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.6),
-    0 0 0 6px color-mix(in srgb, var(--color-glow) 10%, transparent),
-    0 0 44px -6px color-mix(in srgb, var(--color-glow) 50%, transparent);
-}
-[data-theme="dark"] .dg-hub {
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.1),
-    0 0 0 6px color-mix(in srgb, var(--color-glow) 14%, transparent),
-    0 0 44px -6px color-mix(in srgb, var(--color-glow) 60%, transparent);
+  width: 4rem;
+  height: 4rem;
+  background: var(--color-panel);
+  border: 1px solid var(--color-edge-strong);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-accent) 8%, transparent);
 }
 .dg-hub::after {
   content: "";
   position: absolute;
-  inset: -6px;
+  inset: -5px;
   border-radius: inherit;
-  border: 1px solid color-mix(in srgb, var(--color-glow) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
   animation: hub-pulse 2.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   pointer-events: none;
 }
@@ -710,11 +422,10 @@ pre,
     opacity: 0.7;
   }
   100% {
-    transform: scale(1.7);
+    transform: scale(1.6);
     opacity: 0;
   }
 }
-/* The live dot's heartbeat. Colour comes from the text colour it sits in. */
 .status-pulse {
   animation: status-pulse 2s ease-in-out infinite;
 }
@@ -735,56 +446,16 @@ pre,
   }
 }
 
-/* ── auth ──────────────────────────────────────────────────────────────────
-   Sign in and sign up are locked to one screen: the page never scrolls and
-   every field stays inside the card. Like the hero, each measure is clamped
-   against the window height so the card still fits a 640px tall viewport. */
-.auth-shell {
-  height: 100svh;
-  overflow: hidden;
-}
-.auth-main {
-  padding-top: clamp(3.25rem, 7vh, 4.5rem);
-  padding-bottom: clamp(0.75rem, 3vh, 3.5rem);
-}
-/* The Back to Site chip is pinned top left. Only when the artwork takes the
-   left half does it sit over the art, and only then can the form column stop
-   leaving room for it. */
-@media (min-width: 1024px) {
-  .auth-main-free {
-    padding-top: clamp(0.75rem, 3vh, 3.5rem);
-  }
-}
-.auth-card {
-  padding: clamp(1.1rem, 2.7vh, 2.25rem);
-}
-.auth-title {
-  font-size: clamp(1.35rem, 3.5vh, 2rem);
-  line-height: 1.06;
-}
-.auth-gap {
-  margin-top: clamp(0.7rem, 2.2vh, 1.5rem);
-}
-.auth-gap-sm {
-  margin-top: clamp(0.3rem, 0.9vh, 0.55rem);
-}
+/* ── auth ──────────────────────────────────────────────────────────────────── */
 .auth-stack > * + * {
-  margin-top: clamp(0.55rem, 1.8vh, 1.25rem);
-}
-/* The inputs give up a little height too, so three fields plus the terms box
-   still land above the fold. */
-.auth-stack input:not([type="checkbox"]) {
-  padding-top: clamp(0.38rem, 1.1vh, 0.625rem);
-  padding-bottom: clamp(0.38rem, 1.1vh, 0.625rem);
+  margin-top: 0.85rem;
 }
 
-/* Reveal on scroll — a soft rise once the element enters the viewport. */
+/* Reveal on scroll. */
 .reveal {
   opacity: 0;
-  transform: translate3d(0, 22px, 0);
-  transition:
-    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate3d(0, 16px, 0);
+  transition: opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 .reveal.is-visible {
@@ -792,49 +463,34 @@ pre,
   transform: none;
 }
 
-@keyframes cue-bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.55;
-  }
-  50% {
-    transform: translateY(6px);
-    opacity: 1;
-  }
-}
-.scroll-cue {
-  animation: cue-bounce 1.8s ease-in-out infinite;
-}
-
 /* Legal prose. */
 .legal-prose h2 {
-  margin: 2.2rem 0 0.7rem;
-  font-size: 1.25rem;
-  font-weight: 700;
+  margin: 2rem 0 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 .legal-prose h3 {
-  margin: 1.4rem 0 0.4rem;
-  font-size: 1rem;
-  font-weight: 700;
+  margin: 1.3rem 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 .legal-prose p,
 .legal-prose li {
-  font-size: 15.5px;
-  line-height: 1.75;
+  font-size: 14px;
+  line-height: 1.7;
   color: color-mix(in srgb, var(--color-ink) 82%, transparent);
 }
 .legal-prose p {
-  margin: 0.7rem 0;
+  margin: 0.6rem 0;
 }
 .legal-prose ul {
-  margin: 0.6rem 0 0.9rem;
-  padding-left: 1.35rem;
+  margin: 0.5rem 0 0.8rem;
+  padding-left: 1.3rem;
   list-style: disc;
 }
 .legal-prose li {
-  margin: 0.3rem 0;
+  margin: 0.25rem 0;
 }
 .legal-prose li::marker {
   color: var(--color-ink-dim);
@@ -853,33 +509,23 @@ pre,
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-/* fill-mode BACKWARDS so a settled transform never becomes a containing block
-   for fixed-position descendants (modals). */
 .rise-in {
-  animation: rise-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: rise-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
-.rise-in > * {
-  animation: rise-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
-.rise-in > *:nth-child(2) { animation-delay: 60ms; }
-.rise-in > *:nth-child(3) { animation-delay: 120ms; }
-.rise-in > *:nth-child(4) { animation-delay: 180ms; }
-.rise-in > *:nth-child(5) { animation-delay: 240ms; }
-.route-fade > .rise-in,
-.route-fade > .rise-in > * {
+.route-fade > .rise-in {
   animation: none;
 }
 @keyframes route-fade {
   from {
     opacity: 0;
-    transform: translate3d(0, 8px, 0);
+    transform: translate3d(0, 4px, 0);
   }
   to {
     opacity: 1;
@@ -887,13 +533,10 @@ pre,
   }
 }
 .route-fade {
-  animation: route-fade 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: route-fade 180ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 /* ── signed-in workspace ─────────────────────────────────────────────────── */
-/* Page routes own a Lenis instance instead of borrowing the document-level
-   marketing scroller. This keeps the app's fixed rail fixed while the content
-   pane has the same soft, deliberate momentum. */
 .app-smooth-scroll {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
@@ -901,7 +544,6 @@ pre,
 .app-smooth-scroll.lenis {
   height: 100%;
 }
-
 .sidebar-rail {
   will-change: width, transform;
 }
@@ -909,173 +551,44 @@ pre,
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
-  transition:
-    width 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 160ms ease,
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 140ms ease;
 }
 .sidebar-label-hidden {
   width: 0;
   opacity: 0;
-  transform: translateX(-4px);
-}
-.workspace-header {
-  display: flex;
-  align-items: end;
-  min-height: 9rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--color-edge);
-}
-.workspace-overline {
-  color: var(--color-ink-dim);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.dashboard-primary-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  border-radius: 0.75rem;
-  padding: 0.625rem 0.875rem;
-  background: var(--color-accent);
-  color: var(--color-accent-ink);
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition:
-    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 180ms ease;
-}
-.dashboard-primary-action:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.08);
-}
-.dashboard-stat {
-  min-height: 9.25rem;
-}
-.workspace-panel {
-  border: 1px solid var(--color-edge);
-  border-radius: 1rem;
-  background: color-mix(in srgb, var(--color-panel) 92%, transparent);
-  box-shadow: 0 10px 26px -24px rgb(0 0 0 / 0.55);
-}
-.workspace-next-step {
-  border: 1px solid var(--color-edge);
-  background: color-mix(in srgb, var(--color-ink) 2.5%, transparent);
-  transition:
-    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 180ms ease,
-    background-color 180ms ease;
-}
-.workspace-next-step:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--color-ink) 18%, transparent);
-  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
-}
-.workspace-action-row,
-.settings-link {
-  border: 1px solid transparent;
-  background: color-mix(in srgb, var(--color-ink) 2.5%, transparent);
-  transition:
-    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 180ms ease,
-    background-color 180ms ease;
-}
-.workspace-action-row:hover,
-.settings-link:hover {
-  transform: translateX(2px);
-  border-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
-  background: color-mix(in srgb, var(--color-ink) 4.5%, transparent);
-}
-.settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding-bottom: 1.75rem;
-  border-bottom: 1px solid var(--color-edge);
-}
-.settings-meta {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--color-ink-dim);
-  font-size: 0.75rem;
-}
-.settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.settings-theme-choice {
-  border: 1px solid var(--color-edge);
-  border-radius: 0.75rem;
-  padding: 0.75rem;
-  color: var(--color-ink-dim);
-  text-align: left;
-  transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    color 180ms ease;
-}
-.settings-theme-choice:hover {
-  border-color: color-mix(in srgb, var(--color-ink) 18%, transparent);
-  color: var(--color-ink);
-}
-.settings-theme-choice-active {
-  border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-  color: var(--color-ink);
-}
-@media (max-width: 639px) {
-  .workspace-header {
-    min-height: 0;
-    padding-bottom: 1.5rem;
-  }
-  .dashboard-stat {
-    min-height: 8.75rem;
-  }
-  .settings-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }
 
 @keyframes modal-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.modal-in { animation: modal-in 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.modal-in { animation: modal-in 200ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 @keyframes modal-out {
   from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(5px); }
+  to { opacity: 0; transform: translateY(4px); }
 }
-.modal-out { animation: modal-out 160ms ease-in forwards; }
+.modal-out { animation: modal-out 140ms ease-in forwards; }
 @keyframes backdrop-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.backdrop-in { animation: backdrop-in 200ms ease-out backwards; }
+.backdrop-in { animation: backdrop-in 160ms ease-out backwards; }
 @keyframes backdrop-out {
   from { opacity: 1; }
   to { opacity: 0; }
 }
-.backdrop-out { animation: backdrop-out 160ms ease-in forwards; }
+.backdrop-out { animation: backdrop-out 140ms ease-in forwards; }
 @keyframes pop-in {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.pop-in { animation: pop-in 140ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.pop-in { animation: pop-in 120ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
 @keyframes pulse-ring {
   0% { opacity: 0.55; transform: scale(1); }
   75%, 100% { opacity: 0; transform: scale(2.5); }
 }
 .live-dot {
-  @apply relative inline-block h-2 w-2 rounded-full;
+  @apply relative inline-block h-1.5 w-1.5 rounded-full;
   background: currentColor;
 }
 .live-dot::after {
@@ -1093,13 +606,13 @@ pre,
 .skeleton {
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--color-ink) 6%, transparent),
-    color-mix(in srgb, var(--color-ink) 12%, transparent),
-    color-mix(in srgb, var(--color-ink) 6%, transparent)
+    color-mix(in srgb, var(--color-ink) 5%, transparent),
+    color-mix(in srgb, var(--color-ink) 10%, transparent),
+    color-mix(in srgb, var(--color-ink) 5%, transparent)
   );
   background-size: 240% 100%;
   animation: skeleton-shimmer 1.4s ease-in-out infinite;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1115,7 +628,6 @@ pre,
     transform: none;
   }
 }
-
 [data-reduce-motion="true"] *,
 [data-reduce-motion="true"] *::before,
 [data-reduce-motion="true"] *::after {
@@ -1132,56 +644,43 @@ pre,
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-ink) 22%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 18%, transparent) transparent;
 }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
 *::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 18%, transparent);
   border-radius: 8px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--color-ink) 34%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 30%, transparent);
 }
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* ── chat ─────────────────────────────────────────────────────────────────── */
-.chat-pill {
-  background: color-mix(in srgb, var(--color-panel) 88%, transparent);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.6),
-    0 1px 2px rgb(0 0 0 / 0.06),
-    0 14px 34px -18px rgb(0 0 0 / 0.4);
-  transition:
-    box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 240ms ease;
+.composer {
+  background: var(--color-panel);
+  border: 1px solid var(--color-edge);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -16px rgb(0 0 0 / 0.25);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
-.chat-pill:focus-within {
-  border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.6),
-    0 0 0 4px color-mix(in srgb, var(--color-accent) 10%, transparent),
-    0 18px 44px -18px rgb(0 0 0 / 0.45);
+.composer:focus-within {
+  border-color: var(--color-edge-strong);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -16px rgb(0 0 0 / 0.3);
 }
-[data-theme="dark"] .chat-pill {
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.07),
-    0 1px 2px rgb(0 0 0 / 0.3),
-    0 14px 34px -18px rgb(0 0 0 / 0.8);
+[data-theme="dark"] .composer {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.8);
 }
 
 .cursor-blink > .md > :last-child::after,
 .cursor-blink > .md:empty::after {
   content: "";
   display: inline-block;
-  width: 0.55em;
-  height: 1.05em;
+  width: 0.5em;
+  height: 1em;
   margin-left: 2px;
-  vertical-align: -0.2em;
+  vertical-align: -0.15em;
   border-radius: 2px;
-  background: var(--color-accent);
+  background: var(--color-ink);
   animation: blink 1s steps(2, start) infinite;
 }
 @keyframes blink {
@@ -1190,7 +689,7 @@ pre,
 .thinking-dots {
   display: inline-flex;
   gap: 4px;
-  --dot: 6px;
+  --dot: 5px;
 }
 .thinking-dots::before,
 .thinking-dots::after {
@@ -1198,13 +697,13 @@ pre,
   width: var(--dot);
   height: var(--dot);
   border-radius: 999px;
-  background: var(--color-accent);
+  background: var(--color-ink-dim);
   animation: bounce 1.2s infinite ease-in-out;
 }
 .thinking-dots::after { animation-delay: 0.2s; }
 @keyframes bounce {
   0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-  40% { transform: translateY(-4px); opacity: 1; }
+  40% { transform: translateY(-3px); opacity: 1; }
 }
 .bar-fill {
   transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -1212,66 +711,66 @@ pre,
 
 /* ── markdown (assistant replies) ─────────────────────────────────────────── */
 .md {
-  font-size: 15px;
-  line-height: 1.75;
+  font-size: 14px;
+  line-height: 1.7;
   overflow-wrap: anywhere;
 }
 .md > :first-child { margin-top: 0; }
 .md > :last-child { margin-bottom: 0; }
-.md p { margin: 0.65em 0; }
+.md p { margin: 0.6em 0; }
 .md h1,
 .md h2,
 .md h3,
 .md h4 {
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.3;
-  margin: 1.3em 0 0.5em;
+  margin: 1.2em 0 0.45em;
 }
-.md h1 { font-size: 1.4em; }
-.md h2 { font-size: 1.22em; }
-.md h3 { font-size: 1.08em; }
+.md h1 { font-size: 1.3em; }
+.md h2 { font-size: 1.15em; }
+.md h3 { font-size: 1.05em; }
 .md h4 { font-size: 1em; }
 .md ul { list-style: disc; padding-left: 1.4em; margin: 0.5em 0; }
 .md ol { list-style: decimal; padding-left: 1.4em; margin: 0.5em 0; }
-.md li { margin: 0.25em 0; }
-.md li > p { margin: 0.25em 0; }
+.md li { margin: 0.2em 0; }
+.md li > p { margin: 0.2em 0; }
 .md li::marker { color: var(--color-ink-dim); }
 .md a {
   color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.md strong { font-weight: 700; }
+.md strong { font-weight: 600; }
 .md blockquote {
   margin: 0.8em 0;
-  padding-left: 1em;
-  border-left: 3px solid var(--color-accent);
+  padding-left: 0.9em;
+  border-left: 2px solid var(--color-edge-strong);
   color: var(--color-ink-dim);
 }
 .md hr {
   border: 0;
   border-top: 1px solid var(--color-edge);
-  margin: 1.3em 0;
+  margin: 1.2em 0;
 }
 .md :not(pre) > code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
-  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-  color: var(--color-accent);
-  padding: 0.1em 0.4em;
-  border-radius: 6px;
+  font-size: 0.86em;
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  color: var(--color-ink);
+  padding: 0.08em 0.35em;
+  border-radius: 5px;
 }
 .md pre {
   margin: 0;
-  padding: 0.9rem 1rem;
+  padding: 0.8rem 0.9rem;
   overflow-x: auto;
   background: var(--color-code);
   color: #e6e8eb;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.6;
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 9px 9px;
 }
 .md pre code {
   font-family: var(--font-mono);
@@ -1282,8 +781,8 @@ pre,
   font-size: inherit;
 }
 .md .codeblock {
-  margin: 0.9em 0;
-  border-radius: 14px;
+  margin: 0.8em 0;
+  border-radius: 10px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
 }
@@ -1291,7 +790,7 @@ pre,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.4rem 0.75rem 0.4rem 1rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.9rem;
   background: color-mix(in srgb, var(--color-code) 88%, white);
   color: #a3aab6;
   font-size: 11px;
@@ -1300,15 +799,13 @@ pre,
 .md .codeblock-bar button {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 999px;
+  gap: 0.3rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
   color: #d5dae3;
   font-family: var(--font-app);
-  font-weight: 600;
-  transition:
-    background-color 200ms ease,
-    color 200ms ease;
+  font-weight: 500;
+  transition: background-color 160ms ease, color 160ms ease;
 }
 .md .codeblock-bar button:hover {
   background: rgb(255 255 255 / 0.12);
@@ -1319,22 +816,22 @@ pre,
   max-width: 100%;
   overflow-x: auto;
   border-collapse: collapse;
-  margin: 0.9em 0;
-  font-size: 0.925em;
+  margin: 0.8em 0;
+  font-size: 0.93em;
 }
 .md th,
 .md td {
   border: 1px solid var(--color-edge);
-  padding: 0.45em 0.75em;
+  padding: 0.4em 0.7em;
   text-align: left;
   vertical-align: top;
 }
 .md th {
-  background: color-mix(in srgb, var(--color-ink) 5%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
   font-weight: 600;
 }
 .md img {
   max-width: 100%;
-  border-radius: 14px;
+  border-radius: 10px;
 }
 }

@@ -25,7 +25,7 @@ export function ClerkSessionGuard(props: { children: ReactNode }) {
 
   if (!authError) {
     return (
-      <div className="flex items-center justify-center gap-2.5 py-8 text-sm text-ink-dim">
+      <div className="flex items-center justify-center gap-2.5 py-8 text-[13px] text-ink-dim">
         <Spinner />
         Checking your session…
       </div>
@@ -34,7 +34,7 @@ export function ClerkSessionGuard(props: { children: ReactNode }) {
 
   return (
     <div className="auth-stack">
-      <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm leading-relaxed text-warn">
+      <p className="rounded-lg bg-warn-soft px-3 py-2.5 text-[13px] leading-relaxed text-warn">
         You are signed in, but the server did not accept the session:{" "}
         <span className="font-semibold">{authError}</span>
       </p>

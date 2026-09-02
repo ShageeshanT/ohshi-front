@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, KeyRound, Plus, Trash2 } from "lucide-react";
-import { Badge, Button, Card, EmptyState, Field, Input, Modal, Notice, Spinner } from "../components/ui";
+import { Check, Copy, Plus, Trash2 } from "lucide-react";
+import { Badge, Button, Card, EmptyState, Field, Input, Modal, Notice, PageHeader, Spinner } from "../components/ui";
 import { copyText, friendly, get, post, timeAgo } from "../lib/api";
 
 interface ApiKeyRow {
@@ -57,23 +57,32 @@ export default function Keys() {
     }
   };
 
+  const closeModal = () => {
+    setCreateOpen(false);
+    setFresh(null);
+    setCopied(false);
+  };
+
   const visible = (keys ?? []).filter((k) => showRevoked || k.revokedMs === null);
   const revokedCount = (keys ?? []).filter((k) => k.revokedMs !== null).length;
+  const activeCount = (keys ?? []).length - revokedCount;
 
   return (
-    <div className="rise-in space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">API keys</h1>
-          <p className="mt-1 text-sm text-ink-dim">
-            Your agents send one of these as <code className="mono">Authorization: Bearer ohs_…</code> to{" "}
-            <code className="mono">/v1</code>.
-          </p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" /> New key
-        </Button>
-      </header>
+    <div className="rise-in space-y-5">
+      <PageHeader
+        title="API keys"
+        description={
+          <>
+            Your agents send one as <code className="mono text-[12px] text-ink">Authorization: Bearer ohs_…</code> to{" "}
+            <code className="mono text-[12px] text-ink">/v1</code>. Keys are stored hashed and shown once.
+          </>
+        }
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> New key
+          </Button>
+        }
+      />
 
       {error && (
         <Notice tone="danger" onClose={() => setError(null)}>
@@ -81,106 +90,113 @@ export default function Keys() {
         </Notice>
       )}
 
-      <Card>
+      <Card flush>
         {keys === null ? (
-          <div className="flex justify-center py-6 text-ink-dim">
+          <div className="flex justify-center py-8 text-ink-dim">
             <Spinner />
           </div>
         ) : visible.length === 0 ? (
-          <EmptyState
-            title="No API keys yet"
-            hint="Create one, paste it into your agent's OpenAI client config, and you're live."
-            action={
-              <Button onClick={() => setCreateOpen(true)}>
-                <Plus className="h-4 w-4" /> New key
-              </Button>
-            }
-          />
+          <div className="p-4">
+            <EmptyState
+              title="No API keys yet"
+              hint="Create one, paste it into your agent's OpenAI client config, and you're live."
+              action={
+                <Button onClick={() => setCreateOpen(true)}>
+                  <Plus className="h-3.5 w-3.5" /> New key
+                </Button>
+              }
+            />
+          </div>
         ) : (
-          <ul className="divide-y divide-edge">
-            {visible.map((k) => (
-              <li key={k.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-panel-2">
-                    <KeyRound className="h-4 w-4 text-ink-dim" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{k.name || "Untitled key"}</p>
-                    <p className="text-xs text-ink-dim">
-                      <span className="mono">{k.prefix}…</span>, created {timeAgo(k.createdMs)}, last used{" "}
-                      {timeAgo(k.lastUsedMs)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {k.revokedMs !== null ? (
-                    <Badge tone="danger">Revoked {timeAgo(k.revokedMs)}</Badge>
-                  ) : (
-                    <Button size="sm" tone="danger" onClick={() => void revoke(k)}>
-                      <Trash2 className="h-3.5 w-3.5" /> Revoke
-                    </Button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Key</th>
+                  <th>Created</th>
+                  <th>Last used</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((k) => (
+                  <tr key={k.id} className={k.revokedMs !== null ? "opacity-60" : ""}>
+                    <td className="font-medium">{k.name || "Untitled key"}</td>
+                    <td className="mono text-[12px] text-ink-dim">{k.prefix}…</td>
+                    <td className="whitespace-nowrap text-ink-dim">{timeAgo(k.createdMs)}</td>
+                    <td className="whitespace-nowrap text-ink-dim">{timeAgo(k.lastUsedMs)}</td>
+                    <td>
+                      {k.revokedMs !== null ? (
+                        <Badge tone="danger">Revoked {timeAgo(k.revokedMs)}</Badge>
+                      ) : (
+                        <Badge tone="ok" dot>
+                          Active
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="num">
+                      {k.revokedMs === null && (
+                        <Button size="sm" tone="danger" onClick={() => void revoke(k)}>
+                          <Trash2 className="h-3.5 w-3.5" /> Revoke
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-        {revokedCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowRevoked((v) => !v)}
-            className="mt-4 text-xs font-semibold text-ink-dim hover:text-ink"
-          >
-            {showRevoked ? "Hide" : "Show"} {revokedCount} revoked key{revokedCount > 1 ? "s" : ""}
-          </button>
+        {keys !== null && keys.length > 0 && (
+          <div className="flex items-center justify-between border-t border-edge px-4 py-2 text-[11.5px] text-ink-dim">
+            <span>
+              {activeCount} active key{activeCount === 1 ? "" : "s"}
+            </span>
+            {revokedCount > 0 && (
+              <button type="button" onClick={() => setShowRevoked((v) => !v)} className="font-medium hover:text-ink">
+                {showRevoked ? "Hide" : "Show"} {revokedCount} revoked
+              </button>
+            )}
+          </div>
         )}
       </Card>
 
-      <Modal
-        open={createOpen}
-        onClose={() => {
-          setCreateOpen(false);
-          setFresh(null);
-          setCopied(false);
-        }}
-        title={fresh ? "Copy your new key" : "Create an API key"}
-      >
+      <Modal open={createOpen} onClose={closeModal} title={fresh ? "Copy your new key" : "Create an API key"}>
         {fresh ? (
           <div className="space-y-4">
-            <p className="text-sm text-ink-dim">
+            <p className="text-[13px] leading-relaxed text-ink-dim">
               This is the only time the full key is shown. Store it in your agent's secrets now.
             </p>
-            <div className="flex items-center gap-2 rounded-xl bg-night p-3 text-white">
-              <code className="mono min-w-0 flex-1 break-all text-xs">{fresh}</code>
+            <div className="flex items-center gap-2 rounded-lg bg-code p-3 text-[#e6e8eb]">
+              <code className="mono min-w-0 flex-1 break-all text-[12px]">{fresh}</code>
               <button
                 type="button"
-                className="shrink-0 rounded-lg bg-white/10 p-2 hover:bg-white/20"
+                className="shrink-0 rounded-md bg-white/10 p-1.5 transition-colors hover:bg-white/20"
                 onClick={() => {
                   void copyText(fresh).then((ok) => setCopied(ok));
                 }}
                 aria-label="Copy key"
               >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               </button>
             </div>
-            <Button
-              onClick={() => {
-                setCreateOpen(false);
-                setFresh(null);
-                setCopied(false);
-              }}
-            >
-              Done
-            </Button>
+            <Button onClick={closeModal}>Done</Button>
           </div>
         ) : (
           <div className="space-y-4">
             <Field label="Name" hint="Something you'll recognise, like “support bot (prod)”.">
               <Input value={name} onChange={setName} placeholder="my agent" autoFocus onEnter={create} />
             </Field>
-            <Button onClick={create} busy={creating}>
-              Create key
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={create} busy={creating}>
+                Create key
+              </Button>
+              <Button tone="ghost" onClick={closeModal}>
+                Cancel
+              </Button>
+            </div>
           </div>
         )}
       </Modal>

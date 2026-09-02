@@ -119,8 +119,8 @@ export function ClerkLoginForm(props: { initialError?: string | null; afterAuth:
   if (step === "code") {
     return (
       <form onSubmit={verifyCode} className="auth-stack">
-        <p className="text-[13px] leading-snug text-ink-dim">
-          We sent a six-digit code to <span className="font-semibold text-ink">{email.trim()}</span>.
+        <p className="text-[13px] leading-relaxed text-ink-dim">
+          We sent a six-digit code to <span className="font-medium text-ink">{email.trim()}</span>.
         </p>
         <CodeField value={code} onChange={setCode} onComplete={verifyCode} disabled={working} />
         <ErrorLine>{error}</ErrorLine>
@@ -145,7 +145,7 @@ export function ClerkLoginForm(props: { initialError?: string | null; afterAuth:
   return (
     <div className="auth-stack">
       {failed && (
-        <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
+        <p className="rounded-lg bg-warn-soft px-3 py-2.5 text-[13px] text-warn">
           Sign-in is temporarily unavailable. Please try again in a few minutes.
         </p>
       )}

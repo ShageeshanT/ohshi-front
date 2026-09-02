@@ -42,9 +42,9 @@ export function PasswordSignupForm(props: { registrationOpen: boolean; afterAuth
   return (
     <form onSubmit={submit} className="auth-stack">
       {!props.registrationOpen && (
-        <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">
+        <p className="rounded-lg bg-warn-soft px-3 py-2.5 text-[13px] text-warn">
           Sign-ups are closed right now. If you already have an account you can{" "}
-          <Link to="/login" className="font-semibold underline">
+          <Link to="/login" className="font-medium underline">
             sign in
           </Link>
           .

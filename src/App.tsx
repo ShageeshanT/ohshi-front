@@ -9,19 +9,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
 import { AuthenticateWithRedirectCallback, useAuth as useClerkAuth } from "@clerk/react";
 import { ReactLenis } from "lenis/react";
-import { Menu, SquarePen } from "lucide-react";
 import { get, onAuthRequired, post, setTokenSource } from "./lib/api";
 import { AFTER_AUTH_PATH, CLERK_ENABLED, SSO_CALLBACK_PATH, clerkFrontendApi } from "./lib/clerk";
 import { useClerkReady } from "./pages/auth/useClerkReady";
 import type { ChatSummary } from "./lib/chat";
-import { Wordmark } from "./components/brand";
-import { TilesBackdrop } from "./components/marketing/Backdrop";
-import { ThemeToggle } from "./components/marketing/ThemeToggle";
 import SearchDialog from "./components/SearchDialog";
 import Sidebar from "./components/Sidebar";
+import { Topbar } from "./components/Topbar";
 import { Spinner } from "./components/ui";
 import Chat from "./pages/Chat";
 import Dashboard from "./pages/Dashboard";
@@ -73,6 +70,16 @@ const AuthContext = createContext<AuthState>({
   authError: null,
 });
 export const useAuth = () => useContext(AuthContext);
+
+// --- shell (sidebar + search, reachable from the top bar) ---------------------------
+
+interface ShellState {
+  openNav: () => void;
+  openSearch: () => void;
+}
+
+const ShellContext = createContext<ShellState>({ openNav: () => {}, openSearch: () => {} });
+export const useShell = () => useContext(ShellContext);
 
 // --- chat list (sidebar history) ---------------------------------------------------
 
@@ -345,7 +352,7 @@ function AuthedRoutes(props: {
                     <Route
                       path="accounts"
                       element={
-                        <Page>
+                        <Page title="Dashboard">
                           <Dashboard />
                         </Page>
                       }
@@ -353,7 +360,7 @@ function AuthedRoutes(props: {
                     <Route
                       path="profile"
                       element={
-                        <Page>
+                        <Page title="Account">
                           <Profile />
                         </Page>
                       }
@@ -361,7 +368,7 @@ function AuthedRoutes(props: {
                     <Route
                       path="keys"
                       element={
-                        <Page>
+                        <Page title="API keys">
                           <Keys />
                         </Page>
                       }
@@ -369,7 +376,7 @@ function AuthedRoutes(props: {
                     <Route
                       path="docs"
                       element={
-                        <Page>
+                        <Page title="Docs">
                           <Docs />
                         </Page>
                       }
@@ -392,7 +399,7 @@ function AuthedRoutes(props: {
 const COLLAPSED_KEY = "ohshi.sidebar.collapsed";
 
 function Shell(props: { children: ReactNode }) {
-  const { me, signOut } = useAuth();
+  const { me } = useAuth();
   const { chats, rename, remove } = useChatList();
   const navigate = useNavigate();
   const location = useLocation();
@@ -438,66 +445,53 @@ function Shell(props: { children: ReactNode }) {
     if (id === activeChatId) navigate("/app");
   };
 
+  const shell = useMemo<ShellState>(
+    () => ({
+      openNav: () => setMobileOpen(true),
+      openSearch: () => {
+        setMobileOpen(false);
+        setSearchOpen(true);
+      },
+    }),
+    [],
+  );
+
   return (
-    <div className="app-shell relative flex h-screen overflow-hidden bg-surface">
-      <TilesBackdrop />
-      <Sidebar
-        chats={chats}
-        activeChatId={activeChatId}
-        collapsed={collapsed}
-        onToggleCollapsed={toggleCollapsed}
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
-        onSearch={() => {
-          setMobileOpen(false);
-          setSearchOpen(true);
-        }}
-        onRename={rename}
-        onDelete={onDelete}
-        user={{ email: me?.user.email ?? "", displayName: me?.user.displayName ?? "" }}
-        onSignOut={() => void signOut()}
-      />
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-edge/70 bg-rail/60 px-3 py-2 backdrop-blur-2xl md:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <Link to="/app" aria-label="Ohshi">
-            <Wordmark className="h-8" />
-          </Link>
-          <div className="flex items-center gap-0.5">
-            <ThemeToggle compact />
-            <Link
-              to="/app"
-              className="rounded-full p-2 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
-              aria-label="New chat"
-            >
-              <SquarePen className="h-5 w-5" />
-            </Link>
-          </div>
-        </header>
-        <main key={routeKey} className="route-fade flex min-h-0 flex-1 flex-col">
+    <ShellContext.Provider value={shell}>
+      <div className="app-shell relative flex h-screen overflow-hidden bg-panel">
+        <Sidebar
+          chats={chats}
+          activeChatId={activeChatId}
+          collapsed={collapsed}
+          onToggleCollapsed={toggleCollapsed}
+          mobileOpen={mobileOpen}
+          onMobileClose={() => setMobileOpen(false)}
+          onSearch={shell.openSearch}
+          onRename={rename}
+          onDelete={onDelete}
+          user={{ email: me?.user.email ?? "", displayName: me?.user.displayName ?? "" }}
+        />
+        <main key={routeKey} className="route-fade flex min-h-0 min-w-0 flex-1 flex-col">
           {props.children}
         </main>
+        <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       </div>
-      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-    </div>
+    </ShellContext.Provider>
   );
 }
 
-function Page(props: { children: ReactNode }) {
+/** A scrolling page under the top bar. Chat draws its own bar and pane. */
+function Page(props: { title: string; children: ReactNode }) {
   return (
-    <ReactLenis
-      id="main-content"
-      className="app-smooth-scroll min-h-0 flex-1 overflow-y-auto"
-      options={{ lerp: 0.1, duration: 1.4, smoothWheel: true, syncTouch: false }}
-    >
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 md:px-8 md:py-8">{props.children}</div>
-    </ReactLenis>
+    <>
+      <Topbar title={props.title} />
+      <ReactLenis
+        id="main-content"
+        className="app-smooth-scroll min-h-0 flex-1 overflow-y-auto"
+        options={{ lerp: 0.1, duration: 1.4, smoothWheel: true, syncTouch: false }}
+      >
+        <div className="mx-auto w-full max-w-[1120px] px-4 py-5 sm:px-6 md:px-8 md:py-6">{props.children}</div>
+      </ReactLenis>
+    </>
   );
 }

@@ -1,8 +1,8 @@
 /**
- * Sign in. The card, the painting and the copy are the same either way — only
- * the form inside changes, depending on whether Clerk holds the credential
- * (see lib/clerk.ts). `CLERK_ENABLED` is a build-time constant, so the two
- * forms are never swapped at runtime.
+ * Sign in. The card and the copy are the same either way — only the form
+ * inside changes, depending on whether Clerk holds the credential (see
+ * lib/clerk.ts). `CLERK_ENABLED` is a build-time constant, so the two forms
+ * are never swapped at runtime.
  */
 
 import { Link, useSearchParams } from "react-router-dom";
@@ -21,21 +21,13 @@ export default function Login() {
 
   return (
     <AuthShell
-      page="login"
-      caption="Every model on your plan, one login."
-      captionSub="Your connected accounts, chats and API keys are where you left them."
-      eyebrow="Welcome Back"
-      title="Sign In to Ohshi"
-      subtitle={
-        CLERK_ENABLED
-          ? "Continue with a provider, or use your email."
-          : "Use the email and password you signed up with."
-      }
+      title="Sign in"
+      subtitle={CLERK_ENABLED ? "Continue with Google, or use your email." : "Welcome back."}
       footer={
         <>
           New here?{" "}
-          <Link to={signupLink} className="font-semibold text-accent hover:underline">
-            Create an Account
+          <Link to={signupLink} className="font-medium text-ink hover:underline">
+            Create an account
           </Link>
         </>
       }

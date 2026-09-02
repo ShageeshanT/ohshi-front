@@ -6,10 +6,10 @@
  * catalogs from /api/gemini/catalog and /api/google/catalog.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { vendorLogo } from "../components/logos";
-import { Badge, Card, Code, Spinner, Tabs } from "../components/ui";
+import { Badge, Card, Code, PageHeader, Spinner, Tabs } from "../components/ui";
 import { copyText, get } from "../lib/api";
 import { effortLabel, familyName, routeLabel, type ChatModelsPayload, type RouteKind } from "../lib/chat";
 
@@ -52,6 +52,11 @@ function liveGeminiFamilies(models: ChatModelsPayload): Family[] {
     recommended: f.id === models.default,
   }));
 }
+
+const chip = (active: boolean) =>
+  `rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
+    active ? "bg-ink text-panel" : "bg-ink/[0.05] text-ink-dim hover:bg-ink/10 hover:text-ink"
+  }`;
 
 export default function Docs() {
   const [geminiCatalog, setGeminiCatalog] = useState<Family[] | null>(null);
@@ -126,127 +131,106 @@ export default function Docs() {
   };
 
   return (
-    <div className="rise-in space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold tracking-tight">Using the gateway</h1>
-        <p className="mt-1 text-sm text-ink-dim">
-          Any OpenAI compatible client works. Base URL <code className="mono text-accent">{base}</code>, key from
-          the API keys page.{" "}
-          {models?.route
-            ? `Right now your calls run on ${routeLabel(models)}.`
-            : "Add a Gemini API key or connect a Google account on the dashboard first."}{" "}
-          Nothing in your code says which one; switching the default on the dashboard is enough.
-        </p>
-      </header>
+    <div className="rise-in space-y-5">
+      <PageHeader
+        title="Using the gateway"
+        description={
+          <>
+            Any OpenAI compatible client works. Base URL <code className="mono text-[12px] text-ink">{base}</code>, key
+            from the API keys page.{" "}
+            {models?.route
+              ? `Right now your calls run on ${routeLabel(models)}.`
+              : "Add a Gemini API key or connect a Google account on the dashboard first."}{" "}
+            Nothing in your code says which one; switching the default on the dashboard is enough.
+          </>
+        }
+      />
 
       <Card title="Before you start" aside={<Tabs tabs={PATHS.map((p) => p.tab)} active={pathTab} onChange={onPathTab} />}>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className={`rounded-2xl border px-4 py-3.5 ${gemini ? "border-accent/60 bg-accent/[0.08]" : "border-edge bg-ink/[0.03]"}`}>
-            <p className="flex items-center gap-2 text-[13px] font-semibold">
-              Gemini API key <Badge tone="ok">Live</Badge>
-            </p>
-            <ol className="mt-2 list-decimal space-y-1 pl-4 text-[13px] text-ink-dim">
-              <li>
-                Create a key at{" "}
-                <a href={STUDIO_URL} target="_blank" rel="noreferrer" className="font-semibold text-accent underline-offset-2 hover:underline">
-                  Google AI Studio <ExternalLink className="inline h-3 w-3 align-[-1px]" />
-                </a>
-                . Google bills it for what you use.
-              </li>
-              <li>Paste it once on the dashboard. It is stored encrypted and never shown again.</li>
-              <li>
-                Create an <code className="mono text-ink">ohs_</code> key and call <code className="mono text-ink">/v1</code>. The
-                Gemini key stays on the server.
-              </li>
-            </ol>
-          </div>
-          <div className={`rounded-2xl border px-4 py-3.5 ${!gemini ? "border-accent/60 bg-accent/[0.08]" : "border-edge bg-ink/[0.03]"}`}>
-            <p className="flex items-center gap-2 text-[13px] font-semibold">
-              Google account <Badge tone="violet">Beta</Badge>
-            </p>
-            <ol className="mt-2 list-decimal space-y-1 pl-4 text-[13px] text-ink-dim">
-              <li>Connect the Google account behind your Google AI plan and paste back the code.</li>
-              <li>Calls run on that plan through Google Code Assist, with live remaining quota per model.</li>
-              <li>Beta: not a guaranteed API entitlement. Keep a Gemini API key for anything that must not break.</li>
-            </ol>
-          </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <PathBox active={gemini} title="Gemini API key" badge={<Badge tone="ok" dot>Live</Badge>}>
+            <li>
+              Create a key at{" "}
+              <a href={STUDIO_URL} target="_blank" rel="noreferrer" className="font-medium text-accent underline-offset-2 hover:underline">
+                Google AI Studio <ExternalLink className="inline h-3 w-3 align-[-1px]" />
+              </a>
+              . Google bills it for what you use.
+            </li>
+            <li>Paste it once on the dashboard. It is stored encrypted and never shown again.</li>
+            <li>
+              Create an <code className="mono text-ink">ohs_</code> key and call <code className="mono text-ink">/v1</code>.
+              The Gemini key stays on the server.
+            </li>
+          </PathBox>
+          <PathBox active={!gemini} title="Google account" badge={<Badge tone="violet">Beta</Badge>}>
+            <li>Connect the Google account behind your Google AI plan and paste back the code.</li>
+            <li>Calls run on that plan through Google Code Assist, with live remaining quota per model.</li>
+            <li>Beta: not a guaranteed API entitlement. Keep a Gemini API key for anything that must not break.</li>
+          </PathBox>
         </div>
       </Card>
 
-      <Card title="Step 1. Pick a model">
+      <Card
+        title="1. Pick a model"
+        description={
+          families === null
+            ? undefined
+            : gemini
+              ? live
+                ? `What your key lists on the Gemini API right now (${families.length} chat models). Anything Google adds appears here by itself.`
+                : "The built-in Gemini API list. Once a key is saved, this shows what that key can actually call."
+              : "The Code Assist families a connected Google account serves. Effort levels are separate backend ids."
+        }
+      >
         {families === null ? (
           <Spinner label="Loading the catalog…" />
         ) : (
-          <>
-            <p className="mb-3 text-[11px] text-ink-dim">
-              {gemini
-                ? live
-                  ? `What your key lists on the Gemini API right now (${families.length} chat models). Anything Google adds appears here by itself.`
-                  : "The built-in Gemini API list. Once a key is saved, this shows what that key can actually call."
-                : "The Code Assist families a connected Google account serves. Effort levels are separate backend ids."}
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {families.map((f) => {
-                const Logo = vendorLogo(f.vendor);
-                const active = f.id === modelId;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => pick(f)}
-                    className={`flex flex-col gap-1 rounded-2xl border px-3.5 py-3 text-left transition-colors ${
-                      active ? "border-accent/60 bg-accent/[0.12]" : "border-edge bg-ink/[0.03] hover:bg-ink/[0.06]"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Logo className={`h-4 w-4 shrink-0 ${active ? "text-accent" : "text-ink-dim"}`} />
-                      <span className="truncate text-[13px] font-semibold">{f.label}</span>
-                      {f.recommended && <Badge tone="accent">Default</Badge>}
-                    </span>
-                    <span className="mono truncate text-[11px] text-ink-dim">{f.id}</span>
-                    <span className="text-[11px] text-ink-dim">
-                      {VENDOR_LABEL[f.vendor] ?? f.vendor}
-                      {f.efforts.length > 0 && (gemini ? ", thinking" : `, ${f.efforts.length} effort levels`)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {families.map((f) => {
+              const Logo = vendorLogo(f.vendor);
+              const active = f.id === modelId;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => pick(f)}
+                  className={`flex flex-col gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                    active ? "border-ink bg-ink/[0.03] ring-1 ring-ink" : "border-edge hover:border-edge-strong"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Logo className={`h-3.5 w-3.5 shrink-0 ${active ? "text-ink" : "text-ink-dim"}`} />
+                    <span className="truncate text-[13px] font-medium">{f.label}</span>
+                    {f.recommended && <Badge tone="accent">Default</Badge>}
+                  </span>
+                  <span className="mono truncate text-[11px] text-ink-dim">{f.id}</span>
+                  <span className="text-[11.5px] text-ink-dim">
+                    {VENDOR_LABEL[f.vendor] ?? f.vendor}
+                    {f.efforts.length > 0 && (gemini ? ", thinking" : `, ${f.efforts.length} effort levels`)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         )}
 
         {family && family.efforts.length > 0 && (
           <div className="mt-4 border-t border-edge pt-4">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">
-              Reasoning effort
-            </p>
+            <p className="mb-2 text-[12.5px] font-medium">Reasoning effort</p>
             <div className="flex flex-wrap gap-1.5">
               {gemini && (
-                <button
-                  type="button"
-                  onClick={() => setEffort("")}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                    effort === "" ? "bg-accent text-accent-ink" : "bg-ink/[0.07] text-ink-dim hover:bg-ink/15 hover:text-ink"
-                  }`}
-                >
+                <button type="button" onClick={() => setEffort("")} className={chip(effort === "")}>
                   Model default
                 </button>
               )}
               {family.efforts.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setEffort(e)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                    e === effort ? "bg-accent text-accent-ink" : "bg-ink/[0.07] text-ink-dim hover:bg-ink/15 hover:text-ink"
-                  }`}
-                >
+                <button key={e} type="button" onClick={() => setEffort(e)} className={chip(e === effort)}>
                   {effortLabel(e)}
                   {!gemini && e === family.defaultEffort && <Check className="ml-1 inline h-3 w-3 align-[-1px]" />}
                 </button>
               ))}
             </div>
-            <p className="mt-2.5 text-[11px] text-ink-dim">
+            <p className="mt-2.5 text-[12px] leading-relaxed text-ink-dim">
               {gemini ? (
                 <>
                   On the Gemini API the id goes to Google unchanged and{" "}
@@ -266,11 +250,11 @@ export default function Docs() {
       </Card>
 
       {family && (
-        <Card title="Step 2. Send the request" aside={<Tabs tabs={LANGS} active={lang} onChange={setLang} />}>
+        <Card title="2. Send the request" aside={<Tabs tabs={LANGS} active={lang} onChange={setLang} />}>
           <Snippet code={snippetFor(lang, base, family, effort)} />
-          <p className="mt-3 text-[11px] text-ink-dim">
-            Drop <code className="mono text-ink">stream</code> for a single JSON reply. Tool calling uses the
-            standard OpenAI <code className="mono text-ink">tools</code> array.
+          <p className="mt-2.5 text-[12px] text-ink-dim">
+            Drop <code className="mono text-ink">stream</code> for a single JSON reply. Tool calling uses the standard
+            OpenAI <code className="mono text-ink">tools</code> array.
           </p>
         </Card>
       )}
@@ -278,7 +262,7 @@ export default function Docs() {
       <Card title="Streaming, tools and everything else">
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <p className="mb-2 text-[13px] font-semibold">Streaming</p>
+            <p className="mb-1.5 text-[12.5px] font-medium">Streaming</p>
             <Code>{`for chunk in client.chat.completions.create(
     model="${family?.id ?? "gemini-2.5-flash"}",
     messages=[{"role": "user", "content": "hello"}],
@@ -287,7 +271,7 @@ export default function Docs() {
     print(chunk.choices[0].delta.content or "", end="")`}</Code>
           </div>
           <div>
-            <p className="mb-2 text-[13px] font-semibold">Tool calling</p>
+            <p className="mb-1.5 text-[12.5px] font-medium">Tool calling</p>
             <Code>{`client.chat.completions.create(
     model="${family?.id ?? "gemini-2.5-flash"}",
     messages=[...],
@@ -304,49 +288,55 @@ export default function Docs() {
         </div>
       </Card>
 
-      <Card title="Errors">
-        <ul className="space-y-2 text-sm text-ink-dim">
-          <li className="flex gap-2">
-            <Badge tone="danger">401</Badge>
-            <span>
-              <code className="mono text-ink">authentication_error</code>: missing, wrong or revoked API key.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <Badge tone="warn">403/409</Badge>
-            <span>
-              <code className="mono text-ink">gemini_api_key_error</code>: Google rejected your Gemini API key, or
-              you have none saved. Paste a fresh one on the dashboard.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <Badge tone="warn">409/403</Badge>
-            <span>
-              <code className="mono text-ink">google_account_error</code>: no Google account connected, or it
-              needs reconnecting. The dashboard shows which.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <Badge tone="warn">429</Badge>
-            <span>
-              <code className="mono text-ink">rate_limit_error</code>: Google&apos;s limit on your key, quota
-              exhausted on every Code Assist endpoint, or this key over its per minute burst limit.{" "}
-              <code className="mono">Retry-After</code> says when to try again.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <Badge tone="dim">404</Badge>
-            <span>
-              <code className="mono text-ink">invalid_request_error</code>: that model isn&apos;t available on this
-              key or plan.
-            </span>
-          </li>
-        </ul>
-        <p className="mt-4 text-[11px] text-ink-dim">
+      <Card title="Errors" flush>
+        <table className="tbl">
+          <tbody>
+            <ErrorRow code="401" tone="danger" name="authentication_error">
+              Missing, wrong or revoked API key.
+            </ErrorRow>
+            <ErrorRow code="403 / 409" tone="warn" name="gemini_api_key_error">
+              Google rejected your Gemini API key, or you have none saved. Paste a fresh one on the dashboard.
+            </ErrorRow>
+            <ErrorRow code="409 / 403" tone="warn" name="google_account_error">
+              No Google account connected, or it needs reconnecting. The dashboard shows which.
+            </ErrorRow>
+            <ErrorRow code="429" tone="warn" name="rate_limit_error">
+              Google&apos;s limit on your key, quota exhausted on every Code Assist endpoint, or this key over its per
+              minute burst limit. <code className="mono">Retry-After</code> says when to try again.
+            </ErrorRow>
+            <ErrorRow code="404" tone="dim" name="invalid_request_error">
+              That model isn&apos;t available on this key or plan.
+            </ErrorRow>
+          </tbody>
+        </table>
+        <p className="border-t border-edge px-4 py-2 text-[12px] text-ink-dim">
           <code className="mono text-ink">GET {base}/models</code> lists what your current route accepts.
         </p>
       </Card>
     </div>
+  );
+}
+
+function PathBox(props: { active: boolean; title: string; badge: ReactNode; children: ReactNode }) {
+  return (
+    <div className={`rounded-lg border px-3.5 py-3 ${props.active ? "border-ink ring-1 ring-ink" : "border-edge"}`}>
+      <p className="flex items-center gap-2 text-[13px] font-medium">
+        {props.title} {props.badge}
+      </p>
+      <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-[12.5px] leading-relaxed text-ink-dim">{props.children}</ol>
+    </div>
+  );
+}
+
+function ErrorRow(props: { code: string; tone: "danger" | "warn" | "dim"; name: string; children: ReactNode }) {
+  return (
+    <tr>
+      <td className="w-24 whitespace-nowrap">
+        <Badge tone={props.tone}>{props.code}</Badge>
+      </td>
+      <td className="mono w-56 whitespace-nowrap text-[12px]">{props.name}</td>
+      <td className="text-ink-dim">{props.children}</td>
+    </tr>
   );
 }
 
@@ -362,9 +352,9 @@ function Snippet(props: { code: string }) {
             window.setTimeout(() => setCopied(false), 1500);
           });
         }}
-        className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-ink/10 px-2.5 py-1 text-[11px] font-semibold text-ink-dim transition-colors hover:bg-ink/20 hover:text-ink"
+        className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-md bg-white/10 px-2 py-1 text-[11px] font-medium text-[#d5dae3] transition-colors hover:bg-white/20 hover:text-white"
       >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
         {copied ? "Copied" : "Copy"}
       </button>
       <Code>{props.code}</Code>
