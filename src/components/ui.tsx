@@ -464,7 +464,7 @@ export function Notice(props: { tone: Tone; children: ReactNode; onClose?: () =>
 export function Code(props: { children: string; className?: string }) {
   return (
     <pre
-      className={`overflow-x-auto rounded-lg bg-code p-3.5 text-[12px] leading-relaxed text-[#e6e8eb] ${props.className ?? ""}`}
+      className={`max-w-full overflow-x-auto rounded-lg bg-code p-3.5 text-[12px] leading-relaxed text-[#e6e8eb] ${props.className ?? ""}`}
     >
       <code>{props.children}</code>
     </pre>

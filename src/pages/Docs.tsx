@@ -140,8 +140,8 @@ export default function Docs() {
             from the API keys page.{" "}
             {models?.route
               ? `Right now your calls run on ${routeLabel(models)}.`
-              : "Add a Gemini API key or connect a Google account on the Connected accounts page first."}{" "}
-            Nothing in your code says which one; switching the default on the Connected accounts page is enough.
+              : "Add a Gemini API key or connect a Google account on the Google access page first."}{" "}
+            Nothing in your code says which one; switching the default on the Google access page is enough.
           </>
         }
       />
@@ -156,7 +156,7 @@ export default function Docs() {
               </a>
               . Google bills it for what you use.
             </li>
-            <li>Paste it once on the Connected accounts page. It is stored encrypted and never shown again.</li>
+            <li>Paste it once on the Google access page. It is stored encrypted and never shown again.</li>
             <li>
               Create an <code className="mono text-ink">ohs_</code> key and call <code className="mono text-ink">/v1</code>.
               The Gemini key stays on the server.
@@ -261,7 +261,7 @@ export default function Docs() {
 
       <Card title="Streaming, tools and everything else">
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
+          <div className="min-w-0">
             <p className="mb-1.5 text-[12.5px] font-medium">Streaming</p>
             <Code>{`for chunk in client.chat.completions.create(
     model="${family?.id ?? "gemini-2.5-flash"}",
@@ -270,7 +270,7 @@ export default function Docs() {
 ):
     print(chunk.choices[0].delta.content or "", end="")`}</Code>
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="mb-1.5 text-[12.5px] font-medium">Tool calling</p>
             <Code>{`client.chat.completions.create(
     model="${family?.id ?? "gemini-2.5-flash"}",
@@ -289,16 +289,17 @@ export default function Docs() {
       </Card>
 
       <Card title="Errors" flush>
+        <div className="overflow-x-auto">
         <table className="tbl">
           <tbody>
             <ErrorRow code="401" tone="danger" name="authentication_error">
               Missing, wrong or revoked API key.
             </ErrorRow>
             <ErrorRow code="403 / 409" tone="warn" name="gemini_api_key_error">
-              Google rejected your Gemini API key, or you have none saved. Paste a fresh one on the Connected accounts page.
+              Google rejected your Gemini API key, or you have none saved. Paste a fresh one on the Google access page.
             </ErrorRow>
             <ErrorRow code="409 / 403" tone="warn" name="google_account_error">
-              No Google account connected, or it needs reconnecting. The Connected accounts page shows which.
+              No Google account connected, or it needs reconnecting. The Google access page shows which.
             </ErrorRow>
             <ErrorRow code="429" tone="warn" name="rate_limit_error">
               Google&apos;s limit on your key, quota exhausted on every Code Assist endpoint, or this key over its per
@@ -309,6 +310,7 @@ export default function Docs() {
             </ErrorRow>
           </tbody>
         </table>
+        </div>
         <p className="border-t border-edge px-4 py-2 text-[12px] text-ink-dim">
           <code className="mono text-ink">GET {base}/models</code> lists what your current route accepts.
         </p>

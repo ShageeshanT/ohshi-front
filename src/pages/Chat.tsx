@@ -1,7 +1,14 @@
 /**
- * The chat screen. "/app" is a fresh chat (lock-up + composer in the middle);
- * "/app/c/:chatId" is a conversation. Replies stream over SSE from
- * POST /api/chats/:id/messages (see ohshi/chat/service.py for the events).
+ * The chat screen. "/app" is a fresh chat (lock-up, suggestions and the
+ * composer in the middle); "/app/c/:chatId" is a conversation. Replies stream
+ * over SSE from POST /api/chats/:id/messages (see ohshi/chat/service.py).
+ *
+ * Streaming: the server's chunks land in a buffer and the screen reveals them
+ * a few characters at a time (faster the further it is behind), so a reply
+ * flows instead of jumping. Files: uploaded to the chat the moment they are
+ * added (or, on a fresh chat, right after the chat is created), then sent by
+ * id with the message. Titles: after the first exchange the backend names the
+ * chat with the model; the page polls for the new name briefly.
  */
 
 import {
@@ -11,10 +18,34 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type DragEvent,
   type KeyboardEvent,
 } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, Copy, Plug, RefreshCw, Square } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Code2,
+  Copy,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  Paperclip,
+  PenLine,
+  Plug,
+  Presentation,
+  RefreshCw,
+  Sparkles,
+  Square,
+  X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useChatList } from "../App";
 import { BrandHero, BrandMark } from "../components/brand";
 import { GeminiLogo } from "../components/logos";
@@ -22,13 +53,18 @@ import Markdown from "../components/Markdown";
 import ModelPicker from "../components/ModelPicker";
 import { Topbar } from "../components/Topbar";
 import { Button, Notice, Spinner } from "../components/ui";
-import { copyText, friendly, get, post, readSSE, streamPost } from "../lib/api";
+import { copyText, friendly, get, post, readSSE, streamPost, uploadFile } from "../lib/api";
 import {
+  ATTACHMENT_ACCEPT,
+  ATTACHMENT_MAX_BYTES,
   allVariantIds,
+  attachmentKind,
+  formatBytes,
   loadStoredModel,
   modelLabel,
   routeLabel,
   storeModel,
+  type Attachment,
   type ChatEvent,
   type ChatMessage,
   type ChatModelsPayload,
@@ -42,7 +78,38 @@ interface StreamState {
 
 interface PendingState {
   pending?: string;
+  attachments?: string[];
 }
+
+/** A file in the composer: queued (no chat yet), uploading, ready to send, or refused. */
+interface PendingFile {
+  key: string;
+  file: File;
+  kind: Attachment["kind"];
+  status: "queued" | "uploading" | "ready" | "error";
+  id?: string;
+  error?: string;
+  preview?: string;
+}
+
+const SUGGESTIONS: { icon: LucideIcon; label: string; prompt?: string; attach?: boolean }[] = [
+  {
+    icon: Sparkles,
+    label: "Explain something simply",
+    prompt: "Explain how large language models work, in plain words, for someone new to the topic.",
+  },
+  {
+    icon: PenLine,
+    label: "Draft an email",
+    prompt: "Draft a short, friendly email telling a client that the project timeline has moved by one week.",
+  },
+  { icon: FileText, label: "Summarise a file", attach: true },
+  {
+    icon: Code2,
+    label: "Write some code",
+    prompt: "Write a Python function that removes duplicate lines from a text file while keeping their first order.",
+  },
+];
 
 function tempMessage(role: "user" | "assistant", content: string, extra: Partial<ChatMessage> = {}): ChatMessage {
   return {
@@ -60,6 +127,10 @@ function tempMessage(role: "user" | "assistant", content: string, extra: Partial
   };
 }
 
+const reduceMotion = () =>
+  document.documentElement.getAttribute("data-reduce-motion") === "true" ||
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
 export default function Chat() {
   const { chatId } = useParams<{ chatId: string }>();
   const navigate = useNavigate();
@@ -75,18 +146,25 @@ export default function Chat() {
   const [stream, setStream] = useState<StreamState | null>(null);
   const [turnError, setTurnError] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const [files, setFiles] = useState<PendingFile[]>([]);
+  const [atBottom, setAtBottom] = useState(true);
 
   const abortRef = useRef<AbortController | null>(null);
-  const bufRef = useRef<{ content: string; reasoning: string; timer: number | null }>({
-    content: "",
-    reasoning: "",
-    timer: null,
-  });
+  // The reply as received, how much of it is on screen, and the loop that closes the gap.
+  const targetRef = useRef<StreamState>({ content: "", reasoning: "" });
+  const shownRef = useRef({ content: 0, reasoning: 0 });
+  const tickRef = useRef<number | null>(null);
+  const finishRef = useRef<(() => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
   const pendingKeyRef = useRef<string | null>(null);
   const modelRef = useRef(model);
   modelRef.current = model;
+  const filesRef = useRef(files);
+  filesRef.current = files;
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const titlePollRef = useRef<number[]>([]);
 
   // --- models ---------------------------------------------------------------
   const loadModels = useCallback(async (force = false) => {
@@ -101,7 +179,6 @@ export default function Chat() {
     void loadModels();
   }, [loadModels]);
 
-  // Keep the selection valid against the live list.
   useEffect(() => {
     if (!models) return;
     const ids = allVariantIds(models);
@@ -114,14 +191,28 @@ export default function Chat() {
   };
 
   // --- load a chat ------------------------------------------------------------
+  const stopTick = useCallback(() => {
+    if (tickRef.current !== null) {
+      window.clearTimeout(tickRef.current);
+      tickRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     abortRef.current?.abort();
     abortRef.current = null;
-    bufRef.current = { content: "", reasoning: "", timer: null };
+    stopTick();
+    targetRef.current = { content: "", reasoning: "" };
+    shownRef.current = { content: 0, reasoning: 0 };
+    finishRef.current = null;
+    titlePollRef.current.forEach((t) => window.clearTimeout(t));
+    titlePollRef.current = [];
     setStream(null);
     setTurnError(null);
     setInput("");
+    setFiles([]);
     stickRef.current = true;
+    setAtBottom(true);
     if (!chatId) {
       setChat(null);
       setMessages([]);
@@ -148,34 +239,91 @@ export default function Chat() {
     return () => {
       cancelled = true;
     };
-  }, [chatId]);
+  }, [chatId, stopTick]);
 
-  // --- streaming ---------------------------------------------------------------
-  const flush = useCallback(() => {
-    const buf = bufRef.current;
-    if (buf.timer !== null) {
-      window.clearTimeout(buf.timer);
-      buf.timer = null;
+  // --- the reveal loop ------------------------------------------------------------
+  // Runs every ~28ms while there is unseen text: a few characters when the
+  // screen is nearly caught up, a bigger slice when it is far behind. When the
+  // turn has ended and everything is on screen, the final message is committed.
+  const tick = useCallback(() => {
+    tickRef.current = null;
+    const target = targetRef.current;
+    const shown = shownRef.current;
+    let changed = false;
+    for (const key of ["reasoning", "content"] as const) {
+      const backlog = target[key].length - shown[key];
+      if (backlog > 0) {
+        const step = finishRef.current ? Math.max(6, Math.ceil(backlog / 4)) : Math.max(2, Math.ceil(backlog / 12));
+        shown[key] += Math.min(backlog, step);
+        changed = true;
+      }
     }
-    setStream({ content: buf.content, reasoning: buf.reasoning });
+    if (changed) {
+      setStream({ content: target.content.slice(0, shown.content), reasoning: target.reasoning.slice(0, shown.reasoning) });
+    }
+    const behind = target.content.length > shown.content || target.reasoning.length > shown.reasoning;
+    if (behind) tickRef.current = window.setTimeout(tick, 28);
+    else if (finishRef.current) {
+      const finish = finishRef.current;
+      finishRef.current = null;
+      finish();
+    }
   }, []);
 
-  const scheduleFlush = useCallback(() => {
-    const buf = bufRef.current;
-    if (buf.timer === null) buf.timer = window.setTimeout(flush, 40);
-  }, [flush]);
+  const nudge = useCallback(() => {
+    if (tickRef.current === null) tickRef.current = window.setTimeout(tick, 0);
+  }, [tick]);
 
+  /** Put everything received on screen at once (errors, stop, reduced motion). */
+  const showAll = useCallback(() => {
+    stopTick();
+    const target = targetRef.current;
+    shownRef.current = { content: target.content.length, reasoning: target.reasoning.length };
+    setStream({ content: target.content, reasoning: target.reasoning });
+  }, [stopTick]);
+
+  // --- title: the model names the chat after the first exchange -----------------------
+  const pollTitle = useCallback(
+    (id: string, current: string) => {
+      titlePollRef.current.forEach((t) => window.clearTimeout(t));
+      titlePollRef.current = [1200, 2800, 5200].map((ms) =>
+        window.setTimeout(() => {
+          get<{ chat: ChatSummary }>(`/api/chats/${id}`)
+            .then((d) => {
+              if (d.chat.title && d.chat.title !== current) {
+                setChat((c) => (c && c.id === id ? { ...c, title: d.chat.title } : c));
+                upsert(d.chat);
+                titlePollRef.current.forEach((t) => window.clearTimeout(t));
+                titlePollRef.current = [];
+              }
+            })
+            .catch(() => {});
+        }, ms),
+      );
+    },
+    [upsert],
+  );
+
+  // --- one turn --------------------------------------------------------------------
   const runTurn = useCallback(
-    async (opts: { content?: string }) => {
+    async (opts: { content?: string; attachments?: string[] }) => {
       if (!chatId || abortRef.current) return;
       const controller = new AbortController();
       abortRef.current = controller;
       const chosenModel = modelRef.current;
+      const instant = reduceMotion();
       setTurnError(null);
-      bufRef.current = { content: "", reasoning: "", timer: null };
+      stopTick();
+      targetRef.current = { content: "", reasoning: "" };
+      shownRef.current = { content: 0, reasoning: 0 };
+      finishRef.current = null;
       stickRef.current = true;
       if (opts.content !== undefined) {
-        const optimistic = tempMessage("user", opts.content);
+        const optimistic = tempMessage("user", opts.content, {
+          attachments: filesRef.current
+            .filter((f) => f.status === "ready" && f.id)
+            .map((f) => ({ id: f.id!, name: f.file.name, mime: f.file.type, size: f.file.size, kind: f.kind, url: f.preview ?? "" })),
+        });
         setMessages((m) => [...m, optimistic]);
       } else {
         setMessages((m) => {
@@ -187,63 +335,73 @@ export default function Chat() {
       setStream({ content: "", reasoning: "" });
 
       const finishWithPartial = (status: ChatMessage["status"]) => {
-        const buf = bufRef.current;
-        if (buf.timer !== null) {
-          window.clearTimeout(buf.timer);
-          buf.timer = null;
-        }
-        if (buf.content || buf.reasoning) {
+        stopTick();
+        finishRef.current = null;
+        const target = targetRef.current;
+        if (target.content || target.reasoning) {
           setMessages((m) => [
             ...m,
-            tempMessage("assistant", buf.content, {
-              reasoning: buf.reasoning || null,
-              model: chosenModel,
-              status,
-            }),
+            tempMessage("assistant", target.content, { reasoning: target.reasoning || null, model: chosenModel, status }),
           ]);
         }
         setStream(null);
       };
 
+      let settled = false;
       try {
+        const body = { content: opts.content, model: chosenModel, attachments: opts.attachments ?? [] };
         const resp =
           opts.content !== undefined
-            ? await streamPost(`/api/chats/${chatId}/messages`, { content: opts.content, model: chosenModel }, controller.signal)
+            ? await streamPost(`/api/chats/${chatId}/messages`, body, controller.signal)
             : await streamPost(`/api/chats/${chatId}/regenerate`, { model: chosenModel }, controller.signal);
         await readSSE(resp, (raw) => {
           const ev = raw as unknown as ChatEvent;
           switch (ev.type) {
             case "user":
-              setMessages((m) => [...m.filter((x) => x.id > 0), ev.message]);
+              // Only the optimistic user row goes; a partial reply kept from a stop stays.
+              setMessages((m) => [...m.filter((x) => !(x.id < 0 && x.role === "user")), ev.message]);
               setChat(ev.chat);
               upsert(ev.chat);
+              setFiles([]);
               break;
             case "delta":
-              bufRef.current.content += ev.content;
-              scheduleFlush();
+              targetRef.current.content += ev.content;
+              if (instant) showAll();
+              else nudge();
               break;
             case "reasoning":
-              bufRef.current.reasoning += ev.content;
-              scheduleFlush();
+              targetRef.current.reasoning += ev.content;
+              if (instant) showAll();
+              else nudge();
               break;
-            case "done":
-              if (bufRef.current.timer !== null) {
-                window.clearTimeout(bufRef.current.timer);
-                bufRef.current.timer = null;
+            case "done": {
+              settled = true;
+              const commit = () => {
+                setMessages((m) => [...m, ev.message]);
+                setChat(ev.chat);
+                upsert(ev.chat);
+                setStream(null);
+                if (ev.chat.messageCount === 2) pollTitle(ev.chat.id, ev.chat.title);
+              };
+              const target = targetRef.current;
+              const shown = shownRef.current;
+              if (instant || (target.content.length <= shown.content && target.reasoning.length <= shown.reasoning)) {
+                stopTick();
+                commit();
+              } else {
+                finishRef.current = commit;
+                nudge();
               }
-              setMessages((m) => [...m, ev.message]);
-              setChat(ev.chat);
-              upsert(ev.chat);
-              setStream(null);
               break;
+            }
             case "error":
+              settled = true;
               finishWithPartial("interrupted");
               setTurnError(ev.message);
               break;
           }
         });
-        // Stream ended without a terminal event (proxy cut it) — keep what arrived.
-        if (bufRef.current.timer !== null || stream !== null) finishWithPartial("interrupted");
+        if (!settled) finishWithPartial("interrupted");
       } catch (e) {
         if (controller.signal.aborted) {
           finishWithPartial("interrupted");
@@ -253,12 +411,10 @@ export default function Chat() {
         }
       } finally {
         abortRef.current = null;
-        setStream(null);
+        if (!finishRef.current) setStream((s) => (s && !settled ? null : s));
       }
     },
-    // `stream` is intentionally not a dependency: it is only read defensively after the loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chatId, upsert, scheduleFlush],
+    [chatId, upsert, nudge, showAll, stopTick, pollTitle],
   );
 
   const runTurnRef = useRef(runTurn);
@@ -266,31 +422,92 @@ export default function Chat() {
 
   // A message typed on "/app" arrives here as navigation state once the chat exists.
   useEffect(() => {
-    const pending = (location.state as PendingState | null)?.pending;
-    if (!chatId || !pending || loading) return;
-    const key = `${chatId}:${pending}`;
+    const state = location.state as PendingState | null;
+    const pending = state?.pending;
+    if (!chatId || pending === undefined || loading) return;
+    const key = `${chatId}:${pending}:${(state?.attachments ?? []).join(",")}`;
     if (pendingKeyRef.current === key) return;
     pendingKeyRef.current = key;
     navigate(location.pathname, { replace: true, state: null });
-    void runTurnRef.current({ content: pending });
+    void runTurnRef.current({ content: pending, attachments: state?.attachments ?? [] });
   }, [chatId, loading, location.state, location.pathname, navigate]);
+
+  // --- files ------------------------------------------------------------------------
+  const uploadOne = useCallback(async (targetChat: string, key: string, file: File): Promise<string | null> => {
+    setFiles((list) => list.map((f) => (f.key === key ? { ...f, status: "uploading" } : f)));
+    try {
+      const { attachment } = await uploadFile<{ attachment: Attachment }>(`/api/chats/${targetChat}/attachments`, file);
+      setFiles((list) => list.map((f) => (f.key === key ? { ...f, status: "ready", id: attachment.id } : f)));
+      return attachment.id;
+    } catch (e) {
+      setFiles((list) => list.map((f) => (f.key === key ? { ...f, status: "error", error: friendly(e) } : f)));
+      return null;
+    }
+  }, []);
+
+  const addFiles = useCallback(
+    (incoming: File[]) => {
+      const room = Math.max(0, 4 - filesRef.current.length);
+      const picked = incoming.slice(0, room);
+      if (picked.length === 0) {
+        setTurnError("Up to four files per message.");
+        return;
+      }
+      const next: PendingFile[] = picked.map((file) => {
+        const kind = attachmentKind(file);
+        const key = `${file.name}-${file.size}-${Date.now()}-${Math.random()}`;
+        const preview = kind === "image" ? URL.createObjectURL(file) : undefined;
+        if (!kind) {
+          return { key, file, kind: "text", status: "error", error: "Not supported. Images, PDFs, text and Office files work." };
+        }
+        if (file.size > ATTACHMENT_MAX_BYTES) {
+          return { key, file, kind, status: "error", error: `Over ${formatBytes(ATTACHMENT_MAX_BYTES)}.`, preview };
+        }
+        return { key, file, kind, status: chatId ? "uploading" : "queued", preview };
+      });
+      setFiles((list) => [...list, ...next]);
+      if (chatId) {
+        for (const f of next) if (f.status === "uploading") void uploadOne(chatId, f.key, f.file);
+      }
+    },
+    [chatId, uploadOne],
+  );
+
+  const removeFile = (key: string) => {
+    setFiles((list) => {
+      const gone = list.find((f) => f.key === key);
+      if (gone?.preview) URL.revokeObjectURL(gone.preview);
+      return list.filter((f) => f.key !== key);
+    });
+  };
+
+  const uploading = files.some((f) => f.status === "uploading");
+  const blocked = files.some((f) => f.status === "error");
 
   const send = async () => {
     const text = input.trim();
-    if (!text || abortRef.current) return;
+    const current = filesRef.current;
+    const usable = current.filter((f) => f.status !== "error");
+    if ((!text && usable.length === 0) || abortRef.current || uploading || blocked) return;
     setInput("");
     if (!chatId) {
       try {
         const created = await post<{ chat: ChatSummary }>("/api/chats", { model: modelRef.current });
         upsert(created.chat);
-        navigate(`/app/c/${created.chat.id}`, { state: { pending: text } satisfies PendingState });
+        const ids: string[] = [];
+        for (const f of usable) {
+          const id = await uploadOne(created.chat.id, f.key, f.file);
+          if (id) ids.push(id);
+        }
+        navigate(`/app/c/${created.chat.id}`, { state: { pending: text, attachments: ids } satisfies PendingState });
       } catch (e) {
         setInput(text);
         setTurnError(friendly(e, "Couldn't start a chat. Please try again."));
       }
       return;
     }
-    void runTurn({ content: text });
+    const ids = usable.map((f) => f.id).filter((id): id is string => Boolean(id));
+    void runTurn({ content: text, attachments: ids });
   };
 
   const stop = () => abortRef.current?.abort();
@@ -305,7 +522,17 @@ export default function Chat() {
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
-    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    stickRef.current = near;
+    setAtBottom(near);
+  };
+
+  const jumpToBottom = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickRef.current = true;
+    el.scrollTo({ top: el.scrollHeight, behavior: reduceMotion() ? "auto" : "smooth" });
+    setAtBottom(true);
   };
 
   const busy = stream !== null;
@@ -319,6 +546,15 @@ export default function Chat() {
   }, [messages]);
   const isLanding = !chatId;
 
+  const useSuggestion = (s: (typeof SUGGESTIONS)[number]) => {
+    if (s.attach) {
+      fileInputRef.current?.click();
+      return;
+    }
+    setInput(s.prompt ?? "");
+    window.setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
   const composer = (
     <Composer
       value={input}
@@ -331,6 +567,13 @@ export default function Chat() {
       model={model}
       onModelChange={chooseModel}
       onModelsRefresh={() => loadModels(true)}
+      files={files}
+      onAddFiles={addFiles}
+      onRemoveFile={removeFile}
+      uploading={uploading}
+      blocked={blocked}
+      textareaRef={textareaRef}
+      fileInputRef={fileInputRef}
       autoFocus
     />
   );
@@ -343,19 +586,16 @@ export default function Chat() {
       />
 
       {isLanding ? (
-        /* Empty state: the lock-up and the composer sit together in the middle
-           of the page. The moment a conversation starts the lock-up goes and the
-           composer drops to the bottom of the screen. */
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
           <div className="rise-in flex w-full max-w-[720px] flex-col items-center">
             <BrandHero />
-            <p className="mt-3 text-[13px] text-ink-dim">Ask anything. Replies run on your own key or plan.</p>
+            <p className="mt-3 text-center text-[13px] text-ink-dim">Ask anything, or drop a file in. Replies run on your own key or plan.</p>
             {models && !models.connected && (
               <div className="mt-6 w-full max-w-lg">
                 <Notice tone="warn">
                   Add a Gemini API key or connect a Google account first. Every reply runs on your own key or plan.{" "}
                   <Link to="/app/accounts" className="inline-flex items-center gap-1 font-medium underline underline-offset-2">
-                    Connected accounts <ArrowRight className="h-3.5 w-3.5" />
+                    Google access <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </Notice>
               </div>
@@ -368,62 +608,86 @@ export default function Chat() {
               </div>
             )}
             <div className="mt-6 w-full">{composer}</div>
-            <p className="mt-2.5 text-center text-[11px] text-ink-faint">Ohshi can make mistakes. Check important information.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => useSuggestion(s)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-edge bg-panel px-3 py-1.5 text-[12.5px] text-ink-dim transition-colors hover:border-edge-strong hover:text-ink"
+                >
+                  <s.icon className="h-3.5 w-3.5" /> {s.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 text-center text-[11px] text-ink-faint">Ohshi can make mistakes. Check important information.</p>
           </div>
         </div>
       ) : (
         <>
-          <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-[760px] space-y-6 px-4 pb-6 pt-6 md:px-6">
-              {loading && (
-                <div className="flex justify-center py-10 text-ink-dim">
-                  <Spinner />
-                </div>
-              )}
-              {loadError && (
-                <Notice tone="danger">
-                  {loadError}{" "}
-                  <Link to="/app" className="font-medium underline underline-offset-2">
-                    Start a new chat
-                  </Link>
-                </Notice>
-              )}
-              {messages.map((m) =>
-                m.role === "user" ? (
-                  <UserBubble key={m.id} message={m} />
-                ) : (
-                  <AssistantMessage
-                    key={m.id}
-                    message={m}
-                    models={models}
-                    onRegenerate={m.id === lastAssistantId && !busy ? regenerate : undefined}
-                  />
-                ),
-              )}
-              {stream && <AssistantMessage streaming={stream} models={models} modelId={model} />}
-              {turnError && !busy && (
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
-                  <span>{turnError}</span>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {canRegenerate && (
-                      <Button size="sm" tone="ghost" onClick={regenerate}>
-                        <RefreshCw className="h-3.5 w-3.5" /> Retry
-                      </Button>
-                    )}
-                    <button type="button" className="text-[12px] font-medium" onClick={() => setTurnError(null)}>
-                      Dismiss
-                    </button>
+          <div className="relative min-h-0 flex-1">
+            <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto">
+              <div className="mx-auto w-full max-w-[760px] space-y-6 px-4 pb-6 pt-6 md:px-6">
+                {loading && (
+                  <div className="flex justify-center py-10 text-ink-dim">
+                    <Spinner />
                   </div>
-                </div>
-              )}
-              {!loading && !stream && !turnError && canRegenerate && (
-                <div className="flex justify-start">
-                  <Button size="sm" tone="ghost" onClick={regenerate}>
-                    <RefreshCw className="h-3.5 w-3.5" /> No reply yet, generate one
-                  </Button>
-                </div>
-              )}
+                )}
+                {loadError && (
+                  <Notice tone="danger">
+                    {loadError}{" "}
+                    <Link to="/app" className="font-medium underline underline-offset-2">
+                      Start a new chat
+                    </Link>
+                  </Notice>
+                )}
+                {messages.map((m) =>
+                  m.role === "user" ? (
+                    <UserBubble key={m.id} message={m} />
+                  ) : (
+                    <AssistantMessage
+                      key={m.id}
+                      message={m}
+                      models={models}
+                      onRegenerate={m.id === lastAssistantId && !busy ? regenerate : undefined}
+                    />
+                  ),
+                )}
+                {stream && <AssistantMessage streaming={stream} models={models} modelId={model} />}
+                {turnError && !busy && (
+                  <div className="msg-in flex items-center justify-between gap-3 rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
+                    <span>{turnError}</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {canRegenerate && (
+                        <Button size="sm" tone="ghost" onClick={regenerate}>
+                          <RefreshCw className="h-3.5 w-3.5" /> Retry
+                        </Button>
+                      )}
+                      <button type="button" className="text-[12px] font-medium" onClick={() => setTurnError(null)}>
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!loading && !stream && !turnError && canRegenerate && (
+                  <div className="flex justify-start">
+                    <Button size="sm" tone="ghost" onClick={regenerate}>
+                      <RefreshCw className="h-3.5 w-3.5" /> No reply yet, generate one
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
+            {!atBottom && (
+              <button
+                type="button"
+                onClick={jumpToBottom}
+                className="pop-in absolute bottom-3 left-1/2 inline-flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full border border-edge bg-panel px-3 text-[12px] font-medium text-ink shadow-[0_6px_20px_-8px_rgb(0_0_0/0.35)] hover:border-edge-strong"
+                aria-label="Jump to the latest message"
+              >
+                <ArrowDown className="h-3.5 w-3.5" /> Latest
+              </button>
+            )}
           </div>
           <div className="px-4 pb-3 pt-1 md:px-6">
             <div className="mx-auto w-full max-w-[760px]">
@@ -450,16 +714,24 @@ function Composer(props: {
   model: string;
   onModelChange: (id: string) => void;
   onModelsRefresh: () => Promise<void>;
+  files: PendingFile[];
+  onAddFiles: (files: File[]) => void;
+  onRemoveFile: (key: string) => void;
+  uploading: boolean;
+  blocked: boolean;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   autoFocus?: boolean;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const dragDepth = useRef(0);
 
   useLayoutEffect(() => {
-    const el = ref.current;
+    const el = props.textareaRef.current;
     if (!el) return;
     el.style.height = "0px";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-  }, [props.value]);
+  }, [props.value, props.textareaRef]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -468,15 +740,67 @@ function Composer(props: {
     }
   };
 
-  const canSend = props.value.trim().length > 0 && !props.disabled;
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData?.files ?? []);
+    if (items.length === 0) return;
+    e.preventDefault();
+    props.onAddFiles(items);
+  };
+
+  const onDragEnter = (e: DragEvent) => {
+    if (!e.dataTransfer?.types.includes("Files")) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragging(true);
+  };
+  const onDragLeave = () => {
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragging(false);
+  };
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragging(false);
+    const dropped = Array.from(e.dataTransfer?.files ?? []);
+    if (dropped.length) props.onAddFiles(dropped);
+  };
+  const onPick = (e: ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    if (picked.length) props.onAddFiles(picked);
+    e.target.value = "";
+  };
+
+  const hasFiles = props.files.some((f) => f.status !== "error");
+  const canSend = (props.value.trim().length > 0 || hasFiles) && !props.disabled && !props.uploading && !props.blocked;
 
   return (
-    <div className="composer rounded-2xl px-3 pb-2 pt-2.5">
+    <div
+      className={`composer relative rounded-2xl px-3 pb-2 pt-2.5 ${dragging ? "composer-drag" : ""}`}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => {
+        if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+      }}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-2xl border-2 border-dashed border-accent bg-panel/90 text-[13px] font-medium text-accent">
+          Drop to attach
+        </div>
+      )}
+      {props.files.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5 px-1">
+          {props.files.map((f) => (
+            <FileChip key={f.key} file={f} onRemove={() => props.onRemoveFile(f.key)} />
+          ))}
+        </div>
+      )}
       <textarea
-        ref={ref}
+        ref={props.textareaRef}
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
         placeholder={props.disabled ? "Add a Gemini API key or connect Google to start chatting" : "Ask anything…"}
         rows={1}
         autoFocus={props.autoFocus}
@@ -484,18 +808,31 @@ function Composer(props: {
         className="max-h-[200px] min-h-[24px] w-full resize-none bg-transparent px-1 text-[14px] leading-6 outline-none placeholder:text-ink-faint disabled:cursor-not-allowed"
       />
       <div className="mt-1.5 flex items-center justify-between gap-2">
-        <ModelPicker
-          models={props.models}
-          value={props.model}
-          onChange={props.onModelChange}
-          onRefresh={props.onModelsRefresh}
-          disabled={props.busy}
-        />
+        <div className="flex min-w-0 items-center gap-0.5">
+          <input ref={props.fileInputRef} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden" onChange={onPick} />
+          <button
+            type="button"
+            onClick={() => props.fileInputRef.current?.click()}
+            disabled={props.disabled || props.busy}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-dim transition-colors hover:bg-ink/[0.06] hover:text-ink disabled:opacity-40"
+            aria-label="Attach a file"
+            title="Attach images, PDFs, text or Office files (up to 10 MB each)"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
+          <ModelPicker
+            models={props.models}
+            value={props.model}
+            onChange={props.onModelChange}
+            onRefresh={props.onModelsRefresh}
+            disabled={props.busy}
+          />
+        </div>
         {props.busy ? (
           <button
             type="button"
             onClick={props.onStop}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-night text-night-ink transition-opacity hover:opacity-85"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-night text-night-ink transition-opacity hover:opacity-85"
             aria-label="Stop generating"
           >
             <Square className="h-3.5 w-3.5 fill-current" />
@@ -505,10 +842,11 @@ function Composer(props: {
             type="button"
             onClick={props.onSend}
             disabled={!canSend}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-night text-night-ink transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-night text-night-ink transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25"
             aria-label="Send"
+            title={props.uploading ? "Waiting for the upload" : "Send (Enter)"}
           >
-            <ArrowUp className="h-4 w-4" />
+            {props.uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
           </button>
         )}
       </div>
@@ -516,14 +854,86 @@ function Composer(props: {
   );
 }
 
+const KIND_ICON: Record<Attachment["kind"], LucideIcon> = {
+  image: ImageIcon,
+  pdf: FileText,
+  text: FileText,
+  office: Presentation,
+};
+
+function FileChip(props: { file: PendingFile; onRemove: () => void }) {
+  const f = props.file;
+  const Icon = KIND_ICON[f.kind];
+  const tone = f.status === "error" ? "border-danger/40 bg-danger-soft text-danger" : "border-edge bg-panel";
+  return (
+    <span className={`pop-in inline-flex max-w-[16rem] items-center gap-1.5 rounded-lg border py-1 pl-1.5 pr-1 text-[12px] ${tone}`} title={f.error ?? f.file.name}>
+      {f.preview ? (
+        <img src={f.preview} alt="" className="h-6 w-6 rounded object-cover" />
+      ) : (
+        <Icon className="h-3.5 w-3.5 shrink-0 text-ink-dim" />
+      )}
+      <span className="min-w-0 truncate">
+        <span className="font-medium">{f.file.name}</span>
+        <span className="ml-1 text-ink-dim">{f.error ? f.error : formatBytes(f.file.size)}</span>
+      </span>
+      {f.status === "uploading" ? (
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-ink-dim" />
+      ) : (
+        <button
+          type="button"
+          onClick={props.onRemove}
+          className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-ink-dim hover:bg-ink/10 hover:text-ink"
+          aria-label={`Remove ${f.file.name}`}
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
+    </span>
+  );
+}
+
 // --- messages ------------------------------------------------------------------------
 
-function UserBubble(props: { message: ChatMessage }) {
+function AttachmentList(props: { items: Attachment[] }) {
+  const images = props.items.filter((a) => a.kind === "image" && a.url);
+  const others = props.items.filter((a) => !(a.kind === "image" && a.url));
   return (
-    <div className="flex justify-end">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-bubble-me px-3.5 py-2 text-[14px] leading-6 text-ink">
-        {props.message.content}
-      </div>
+    <div className="mb-1.5 flex flex-wrap justify-end gap-1.5">
+      {images.map((a) => (
+        <a key={a.id} href={a.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-edge">
+          <img src={a.url} alt={a.name} loading="lazy" className="h-28 max-w-[12rem] object-cover" />
+        </a>
+      ))}
+      {others.map((a) => {
+        const Icon = KIND_ICON[a.kind] ?? FileText;
+        return (
+          <a
+            key={a.id}
+            href={a.url || undefined}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-lg border border-edge bg-panel px-2 py-1 text-[12px] hover:border-edge-strong"
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0 text-ink-dim" />
+            <span className="truncate font-medium">{a.name}</span>
+            <span className="shrink-0 text-ink-dim">{formatBytes(a.size)}</span>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+function UserBubble(props: { message: ChatMessage }) {
+  const attachments = props.message.attachments ?? [];
+  return (
+    <div className="msg-in flex flex-col items-end">
+      {attachments.length > 0 && <AttachmentList items={attachments} />}
+      {props.message.content && (
+        <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl bg-bubble-me px-3.5 py-2 text-[14px] leading-6 text-ink">
+          {props.message.content}
+        </div>
+      )}
     </div>
   );
 }
@@ -543,7 +953,7 @@ function AssistantMessage(props: {
   const modelId = props.message?.model || props.modelId || "";
 
   return (
-    <div className="flex gap-3">
+    <div className="msg-in flex gap-3">
       <BrandMark className="mt-1 h-5 shrink-0" />
       <div className="min-w-0 flex-1">
         {reasoning && (
@@ -730,7 +1140,7 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
                 <Spinner size={14} />
               </div>
             ) : keys.length === 0 ? (
-              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No keys yet. Add one on the Connected accounts page.</p>
+              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No keys yet. Add one on the Google access page.</p>
             ) : (
               keys.map((row) => (
                 <SourceRow

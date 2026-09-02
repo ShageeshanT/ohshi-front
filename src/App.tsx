@@ -23,6 +23,7 @@ import { Spinner } from "./components/ui";
 import Accounts from "./pages/Accounts";
 import Billing from "./pages/Billing";
 import Chat from "./pages/Chat";
+import Connections from "./pages/Connections";
 import Docs from "./pages/Docs";
 import Keys from "./pages/Keys";
 import Models from "./pages/Models";
@@ -386,7 +387,7 @@ function AuthedRoutes(props: {
                     <Route
                       path="accounts"
                       element={
-                        <Page title="Connected accounts">
+                        <Page title="Google access">
                           <Accounts />
                         </Page>
                       }
@@ -406,6 +407,14 @@ function AuthedRoutes(props: {
                           <Profile />
                         </Page>
                       }
+                    <Route
+                      path="connections"
+                      element={
+                        <Page title="Connections">
+                          <Connections />
+                        </Page>
+                      }
+                    />
                     />
                     <Route
                       path="keys"

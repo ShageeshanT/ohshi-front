@@ -1,6 +1,6 @@
 /**
  * The public landing page at ohshi.space. The hero is the painting, full
- * frame, with the copy in one solid panel on it; then the pitch: why one
+ * frame, with the copy straight on it over a soft bloom; then the pitch: why one
  * source beats a
  * subscription plus API credits (a before and after wiring diagram), how it
  * works with a mock of each step, the providers and their plans (a hub
@@ -124,12 +124,7 @@ function Hero() {
       </div>
 
       <div className="hero-shell mx-auto flex min-h-[100svh] max-w-[1460px] flex-col justify-center px-5 sm:px-10 lg:px-[5.5%]">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease }}
-          className="hero-card"
-        >
+        <div className="hero-copy max-w-[36rem]">
           <motion.div {...rise(0.05)}>
             <span className="eyebrow">
               <span className="eyebrow-dot" />

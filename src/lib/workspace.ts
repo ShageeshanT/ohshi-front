@@ -179,7 +179,7 @@ export function executionLine(c: Connection, runner: RunnerStatus | null): { ton
     tone: "warn",
     text: hasToken
       ? "Connector offline, so calls run on Ohshi's servers until it is back."
-      : "No connector is set up yet, so calls run on Ohshi's servers. Create a token on the Connected accounts page.",
+      : "No connector is set up yet, so calls run on Ohshi's servers. Create a token on the Google access page.",
   };
 }
 

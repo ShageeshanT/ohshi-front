@@ -176,7 +176,7 @@ export default function Profile() {
           <LinkRow
             to="/app/accounts"
             icon={Plug}
-            title="Connected accounts"
+            title="Google access"
             sub={`${plural(counts.geminiKeys, "Gemini key")}, ${plural(counts.accounts, "Google account")}`}
           />
           <LinkRow to="/app/models" icon={Layers} title="Models" sub="Quota per model and what each key can call" />

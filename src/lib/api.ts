@@ -109,6 +109,32 @@ export const get = <T>(path: string, signal?: AbortSignal) => api<T>(path, { sig
 export const post = <T>(path: string, body?: unknown) =>
   api<T>(path, { method: "POST", body: body ?? {} });
 
+/** Upload one file as the raw request body (no multipart), the way
+ *  POST /api/chats/{id}/attachments expects it. */
+export async function uploadFile<T>(path: string, file: File, signal?: AbortSignal): Promise<T> {
+  const resp = await fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-File-Name": encodeURIComponent(file.name),
+      ...(await authHeader()),
+    },
+    body: file,
+    credentials: "same-origin",
+    signal,
+  });
+  const text = await resp.text();
+  let data: unknown = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  if (resp.status === 401) authListeners.forEach((fn) => fn());
+  if (!resp.ok) throw new ApiError(resp.status, extractMessage(data, resp.status), data);
+  return data as T;
+}
+
 /** POST that returns the raw streaming Response (Server-Sent Events). */
 export async function streamPost(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
   const resp = await fetch(path, {

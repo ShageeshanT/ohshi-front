@@ -101,7 +101,7 @@ export function ConnectionCard(props: {
             </p>
           </div>
         </div>
-        <div className="flex w-full flex-wrap gap-1.5 sm:w-auto">
+        <div className="flex w-full flex-wrap gap-1.5 lg:w-auto">
           {connected ? (
             <Button size="sm" tone="ghost" busy={testing} onClick={runTest}>
               <Zap className="h-3.5 w-3.5" /> Test

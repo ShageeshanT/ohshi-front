@@ -109,8 +109,8 @@ export default function Accounts() {
   return (
     <div className="rise-in space-y-7">
       <PageHeader
-        title="Connected accounts"
-        description="The keys and accounts your chat and /v1 calls run on. Add several and pick a default."
+        title="Google access"
+        description="The Gemini keys and Google accounts your chat and /v1 calls run on. Add several and pick a default."
         actions={
           <>
             <Button tone="ghost" busy={refreshing} onClick={() => void refresh()}>

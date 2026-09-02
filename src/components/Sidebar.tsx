@@ -14,6 +14,7 @@ import {
   KeyRound,
   Layers,
   LayoutDashboard,
+  Network,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
@@ -50,7 +51,8 @@ const WORKSPACE: { to: string; icon: Icon; label: string }[] = [
 ];
 
 const MANAGE: { to: string; icon: Icon; label: string }[] = [
-  { to: "/app/accounts", icon: Plug, label: "Connected accounts" },
+  { to: "/app/connections", icon: Network, label: "Connections" },
+  { to: "/app/accounts", icon: Plug, label: "Google access" },
   { to: "/app/keys", icon: KeyRound, label: "API keys" },
   { to: "/app/billing", icon: CreditCard, label: "Plan and billing" },
   { to: "/app/docs", icon: BookOpen, label: "Docs" },

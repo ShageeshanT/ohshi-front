@@ -339,30 +339,49 @@ pre,
   object-position: 50% 50%;
   user-select: none;
 }
+/* Two quiet gradients, no blur: a bloom of page colour rolling in from the
+   copy's side so the words read, and a short fade at the bottom so the next
+   section meets the painting. The right half of the picture stays untouched.
+   Dark ink on a dawn painting needs a little more ground than white ink on a
+   night one. */
 .hero-art::after {
+  --bloom-near: 86%;
+  --bloom-mid: 58%;
   content: "";
   position: absolute;
-  inset: auto 0 0 0;
-  height: 18%;
-  background: linear-gradient(180deg, transparent, var(--color-surface));
+  inset: 0;
   pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-surface) var(--bloom-near), transparent) 0%,
+      color-mix(in srgb, var(--color-surface) var(--bloom-mid), transparent) 30%,
+      transparent 62%
+    ),
+    linear-gradient(180deg, transparent 84%, var(--color-surface) 100%);
+}
+[data-theme="dark"] .hero-art::after {
+  --bloom-near: 82%;
+  --bloom-mid: 52%;
+}
+@media (max-width: 767px) {
+  .hero-art::after {
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) 74%, transparent) 0%,
+      color-mix(in srgb, var(--color-surface) 62%, transparent) 50%,
+      color-mix(in srgb, var(--color-surface) 24%, transparent) 78%,
+      var(--color-surface) 100%
+    );
+  }
 }
 .hero-shell {
   padding-top: clamp(5.5rem, 13vh, 9rem);
   padding-bottom: clamp(3.5rem, 10vh, 6.5rem);
 }
-/* The copy sits in one solid panel on the painting: fully opaque, a
-   hairline edge and a deep soft shadow so it reads as placed on the picture
-   rather than washed over it. Every measure breathes with the window height
-   so the panel still fits a 640px tall viewport. */
-.hero-card {
-  max-width: 34rem;
-  border-radius: 18px;
-  padding: clamp(1.3rem, 3.6vh, 2.3rem) clamp(1.3rem, 2.6vw, 2.4rem);
-  background: var(--color-panel);
-  border: 1px solid var(--color-edge);
-  box-shadow: 0 30px 70px -36px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.06);
-}
+/* The copy sits straight on the painting. A tight halo in the page colour
+   gives every glyph its own ground; it reads as haze in the picture, not as a
+   box behind the words. */
 .hero-copy {
   text-shadow:
     0 0 3px color-mix(in srgb, var(--color-surface) 94%, transparent),
@@ -393,13 +412,30 @@ pre,
   text-transform: uppercase;
 }
 .hero-lede {
-  font-size: clamp(14px, min(1.2vw, 2.4vh), 16px);
+  font-size: clamp(14px, min(1.25vw, 2.4vh), 16.5px);
   line-height: 1.55;
-  color: var(--color-ink-dim);
+  font-weight: 500;
+  color: color-mix(in srgb, var(--color-ink) 92%, transparent);
+}
+[data-theme="dark"] .hero-lede {
+  font-weight: 400;
+  color: color-mix(in srgb, var(--color-ink) 84%, transparent);
 }
 .hero-trust {
+  font-weight: 600;
+  color: var(--color-ink);
+  text-shadow:
+    0 0 3px color-mix(in srgb, var(--color-surface) 96%, transparent),
+    0 0 6px color-mix(in srgb, var(--color-surface) 90%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-surface) 90%, transparent),
+    0 0 14px color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+[data-theme="dark"] .hero-trust {
   font-weight: 500;
-  color: var(--color-ink-dim);
+}
+.hero-trust svg {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--color-surface) 90%, transparent))
+    drop-shadow(0 0 7px color-mix(in srgb, var(--color-surface) 70%, transparent));
 }
 .hero-gap {
   margin-top: clamp(0.9rem, 2.6vh, 1.6rem);
@@ -749,6 +785,35 @@ pre,
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* ── chat ─────────────────────────────────────────────────────────────────── */
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.msg-in {
+  animation: msg-in 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.composer-drag {
+  border-color: var(--color-accent);
+}
+/* A locked provider: faint diagonal hatching in the corner, nothing else. */
+.provider-locked::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 10px,
+    color-mix(in srgb, var(--color-ink) 3%, transparent) 10px 11px
+  );
+}
 .composer {
   background: var(--color-panel);
   border: 1px solid var(--color-edge);

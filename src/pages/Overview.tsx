@@ -62,9 +62,9 @@ export default function Overview() {
         description="A quick read on your model sources, quota and gateway usage. Each card opens its page."
         actions={
           <>
-            <Link to="/app/accounts">
+            <Link to="/app/connections">
               <Button tone="ghost">
-                <Plug className="h-3.5 w-3.5" /> Connected accounts
+                <Plug className="h-3.5 w-3.5" /> Connections
               </Button>
             </Link>
             <Link to="/app">
@@ -139,7 +139,7 @@ export default function Overview() {
         </Card>
       )}
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SummaryCard icon={Layers} title="Models" to="/app/models" hint="Quota and what each key can call">
           {!sourcesKnown ? (
             <Rows n={3} />
@@ -176,7 +176,7 @@ export default function Overview() {
           )}
         </SummaryCard>
 
-        <SummaryCard icon={Plug} title="Connected accounts" to="/app/accounts" hint="Keys, accounts and the connector">
+        <SummaryCard icon={Plug} title="Google access" to="/app/accounts" hint="Keys, accounts and the connector">
           {!sourcesKnown ? (
             <Rows n={3} />
           ) : totalSources === 0 ? (

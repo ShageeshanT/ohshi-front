@@ -15,6 +15,16 @@ export interface ChatUsage {
   totalTokens: number;
 }
 
+/** A file sent with a user message (see ohshi/chat/attachments.py). */
+export interface Attachment {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  kind: "image" | "pdf" | "text" | "office";
+  url: string;
+}
+
 export interface ChatMessage {
   id: number;
   role: "user" | "assistant";
@@ -26,6 +36,36 @@ export interface ChatMessage {
   usage: ChatUsage;
   latencyMs: number;
   createdMs: number;
+  attachments?: Attachment[];
+}
+
+export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+
+/** What the composer accepts; mirrors the backend's classify(). */
+export const ATTACHMENT_ACCEPT =
+  "image/*,.pdf,.pptx,.docx,.xlsx,.txt,.md,.csv,.json,.xml,.yaml,.yml,.toml,.py,.js,.ts,.tsx,.jsx,.html,.css,.sql,.sh,.log";
+
+const OFFICE_EXT: Record<string, true> = { pptx: true, docx: true, xlsx: true };
+const TEXT_EXT: Record<string, true> = {
+  txt: true, md: true, csv: true, json: true, xml: true, yaml: true, yml: true, toml: true, py: true, js: true,
+  ts: true, tsx: true, jsx: true, html: true, css: true, sql: true, sh: true, log: true,
+};
+
+/** The kind a file will be stored as, or null when the backend would refuse it. */
+export function attachmentKind(file: { name: string; type: string }): Attachment["kind"] | null {
+  const mime = (file.type || "").toLowerCase();
+  const ext = file.name.toLowerCase().split(".").pop() ?? "";
+  if (mime.startsWith("image/")) return "image";
+  if (mime === "application/pdf" || ext === "pdf") return "pdf";
+  if (OFFICE_EXT[ext]) return "office";
+  if (mime.startsWith("text/") || TEXT_EXT[ext] || mime === "application/json") return "text";
+  return null;
+}
+
+export function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export interface ModelVariant {
