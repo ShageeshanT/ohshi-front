@@ -68,6 +68,11 @@ export default function Privacy() {
       <p>We do not use your content to train models, we do not profile you for advertising, and we do not sell data.</p>
 
       <h2 id="sharing">3. Where your data goes</h2>
+      <p>
+        <strong>Dodo Payments</strong> processes paid-plan checkouts as merchant of record. Your
+        payment details go to Dodo, never to Ohshi; on our side we store only your plan, Dodo&apos;s
+        customer and subscription identifiers, and the signed billing events Dodo sends us.
+      </p>
       <ul>
         <li>
           <strong>Google.</strong> Your prompts, chat history sent as context, and model settings are transmitted to

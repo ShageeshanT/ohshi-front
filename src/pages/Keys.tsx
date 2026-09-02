@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Plus, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../App";
 import { Badge, Button, Card, EmptyState, Field, Input, Modal, Notice, PageHeader, Spinner } from "../components/ui";
 import { copyText, friendly, get, post, timeAgo } from "../lib/api";
 
@@ -10,9 +12,11 @@ interface ApiKeyRow {
   createdMs: number;
   lastUsedMs: number | null;
   revokedMs: number | null;
+  locked?: boolean;
 }
 
 export default function Keys() {
+  const { me } = useAuth();
   const [keys, setKeys] = useState<ApiKeyRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -21,10 +25,13 @@ export default function Keys() {
   const [fresh, setFresh] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showRevoked, setShowRevoked] = useState(false);
+  const [maxKeys, setMaxKeys] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setKeys((await get<{ keys: ApiKeyRow[] }>("/api/keys")).keys);
+      const payload = await get<{ keys: ApiKeyRow[]; maxApiKeys?: number }>("/api/keys");
+      setKeys(payload.keys);
+      setMaxKeys(payload.maxApiKeys ?? null);
       setError(null);
     } catch (e) {
       setError(friendly(e));
@@ -66,6 +73,7 @@ export default function Keys() {
   const visible = (keys ?? []).filter((k) => showRevoked || k.revokedMs === null);
   const revokedCount = (keys ?? []).filter((k) => k.revokedMs !== null).length;
   const activeCount = (keys ?? []).length - revokedCount;
+  const atCap = maxKeys !== null && activeCount >= maxKeys;
 
   return (
     <div className="rise-in space-y-5">
@@ -130,6 +138,8 @@ export default function Keys() {
                     <td>
                       {k.revokedMs !== null ? (
                         <Badge tone="danger">Revoked {timeAgo(k.revokedMs)}</Badge>
+                      ) : k.locked ? (
+                        <Badge tone="warn">Locked on your plan</Badge>
                       ) : (
                         <Badge tone="ok" dot>
                           Active
@@ -152,7 +162,23 @@ export default function Keys() {
         {keys !== null && keys.length > 0 && (
           <div className="flex items-center justify-between border-t border-edge px-4 py-2 text-[11.5px] text-ink-dim">
             <span>
-              {activeCount} active key{activeCount === 1 ? "" : "s"}
+              {maxKeys !== null ? (
+                <>
+                  {activeCount} of {maxKeys} active key{maxKeys === 1 ? "" : "s"} on your plan
+                  {atCap && me?.config.billingEnabled && (
+                    <>
+                      {" · "}
+                      <Link to="/app/billing" className="font-medium text-ink hover:underline">
+                        Upgrade for more
+                      </Link>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {activeCount} active key{activeCount === 1 ? "" : "s"}
+                </>
+              )}
             </span>
             {revokedCount > 0 && (
               <button type="button" onClick={() => setShowRevoked((v) => !v)} className="font-medium hover:text-ink">

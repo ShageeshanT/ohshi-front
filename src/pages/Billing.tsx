@@ -14,7 +14,7 @@ import { useAuth, type Me } from "../App";
 import { ArrowLoopDoodle, StarsDoodle } from "../components/Doodles";
 import { PlanCard } from "../components/PlanCard";
 import { Badge, Button, Card, Notice, PageHeader, Progress, SectionTitle } from "../components/ui";
-import { formatNumber, friendly, get, post, safeExternalUrl } from "../lib/api";
+import { formatNumber, friendly, get, poll, post, safeExternalUrl } from "../lib/api";
 import { fetchPlans, type PlansPayload } from "../lib/plans";
 import { useUsage } from "../lib/workspace";
 
@@ -25,13 +25,30 @@ const FINE_PRINT = [
   "Cancel any time. A paid plan stays active until the period already paid for ends.",
 ];
 
+/** Dodo sends the browser back with `?checkout=done` (plus its own `status`
+ *  and ids); a failed or abandoned checkout is not a payment. */
+function paymentCameBack(params: URLSearchParams): boolean {
+  if (params.get("checkout") !== "done") return false;
+  const status = (params.get("status") ?? "").toLowerCase();
+  return status === "" || status === "succeeded" || status === "active" || status === "processing";
+}
+
+const ACTIVATION_TIMEOUT_MS = 3 * 60_000;
+const RETURN_PARAMS = ["checkout", "status", "payment_id", "subscription_id"];
+
 export default function Billing() {
   const { me, setMe } = useAuth();
-  const [params] = useSearchParams();
-  const { usage } = useUsage(30);
+  const [params, setParams] = useSearchParams();
+  const { usage, reload: reloadUsage } = useUsage(30);
   const [plans, setPlans] = useState<PlansPayload | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Captured once from the return URL; the URL is then cleaned, so a refresh,
+  // the back button or a bookmark never re-announce a payment.
+  const [activating, setActivating] = useState<{ since: number; from: string } | null>(() =>
+    paymentCameBack(params) ? { since: Date.now(), from: me?.user.plan ?? "free" } : null,
+  );
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,7 +60,6 @@ export default function Billing() {
     };
   }, []);
 
-  const justPaid = params.get("checkout") === "done";
   const plan = me?.user.plan ?? "free";
   const paid = plan !== "free";
   const billingEnabled = plans?.billingEnabled ?? me?.config.billingEnabled ?? false;
@@ -54,33 +70,69 @@ export default function Billing() {
   const entitlement = usage?.entitlement;
   const rows = plans?.plans ?? [];
   const current = rows.find((p) => p.code === plan) ?? rows[0];
+  // Between "payment received" and the webhook moving the plan.
+  const waiting = activating !== null && plan === activating.from && !timedOut;
+  const locked = busy !== null || waiting;
 
-  // Back from Dodo: the webhook usually lands a few seconds after the
-  // redirect, so poll /me until the plan flips instead of showing a stale
-  // "Free" next to a success note.
+  // The return-URL parameters are consumed above; take them off the address
+  // bar so nothing downstream reads them twice.
   useEffect(() => {
-    if (!justPaid || paid) return;
-    let tries = 0;
-    const timer = window.setInterval(() => {
-      tries += 1;
-      get<Me>("/api/auth/me")
-        .then(setMe)
-        .catch(() => {});
-      if (tries >= 8) window.clearInterval(timer);
-    }, 2500);
-    return () => window.clearInterval(timer);
-  }, [justPaid, paid, setMe]);
+    if (RETURN_PARAMS.some((key) => params.has(key))) setParams({}, { replace: true });
+  }, [params, setParams]);
+
+  // Restored from the back-forward cache (Back from the Dodo tab): nothing
+  // is in flight any more, whatever the buttons were doing when we left.
+  useEffect(() => {
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setBusy(null);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
+
+  // Ask /me until the webhook has moved the plan (a few seconds, usually; a
+  // few minutes at the very worst before we stop and say so).
+  useEffect(() => {
+    if (!waiting || activating === null) return;
+    const since = activating.since;
+    return poll(async () => {
+      if (Date.now() - since > ACTIVATION_TIMEOUT_MS) {
+        setTimedOut(true);
+        return;
+      }
+      setMe(await get<Me>("/api/auth/me"));
+    }, 3000);
+  }, [waiting, activating, setMe]);
+
+  // The allowance numbers follow the plan.
+  useEffect(() => {
+    void reloadUsage();
+  }, [plan, reloadUsage]);
+
+  const follow = (url: unknown) => {
+    // Only ever to the payment processor, over https — never to a link an
+    // answer could have been made to carry.
+    const safe = safeExternalUrl(url, [".dodopayments.com"]);
+    if (!safe) throw new Error("unexpected billing link");
+    window.location.assign(safe);
+  };
 
   const checkout = (target: string) => {
+    if (locked) return;
     setBusy(target);
     setError(null);
-    post<{ url: string }>("/api/billing/checkout", { plan: target })
-      .then(({ url }) => {
-        // Only ever to the payment processor, over https — never to a link
-        // an answer could have been made to carry.
-        const safe = safeExternalUrl(url, [".dodopayments.com"]);
-        if (!safe) throw new Error("unexpected billing link");
-        window.location.assign(safe);
+    post<{ url?: string | null; changed?: boolean }>("/api/billing/checkout", { plan: target })
+      .then((answer) => {
+        if (answer.changed) {
+          // Changed on the existing subscription: no checkout page, the
+          // webhook flips the plan in a moment.
+          setActivating({ since: Date.now(), from: plan });
+          setTimedOut(false);
+          setBusy(null);
+          if (answer.url) follow(answer.url);
+          return;
+        }
+        follow(answer.url);
       })
       .catch((err) => {
         setError(friendly(err));
@@ -89,16 +141,11 @@ export default function Billing() {
   };
 
   const openPortal = () => {
+    if (busy !== null) return;
     setBusy("portal");
     setError(null);
     post<{ url: string }>("/api/billing/portal")
-      .then(({ url }) => {
-        // Only ever to the payment processor, over https — never to a link
-        // an answer could have been made to carry.
-        const safe = safeExternalUrl(url, [".dodopayments.com"]);
-        if (!safe) throw new Error("unexpected billing link");
-        window.location.assign(safe);
-      })
+      .then(({ url }) => follow(url))
       .catch((err) => {
         setError(friendly(err));
         setBusy(null);
@@ -114,7 +161,13 @@ export default function Billing() {
         description="Ohshi's own allowance on top of the access you connect. The models keep running on your key or your plan; Ohshi never resells model access."
       />
 
-      {justPaid && !paid && <Notice tone="accent">Payment received. Activating your plan, this takes a few seconds.</Notice>}
+      {waiting && <Notice tone="accent">Payment received. Activating your plan, this takes a few seconds.</Notice>}
+      {activating !== null && timedOut && plan === activating.from && (
+        <Notice tone="warn">
+          Still activating. Payments can take a minute to settle. Refresh this page shortly, or contact support if the
+          plan has not changed.
+        </Notice>
+      )}
       {error && (
         <Notice tone="danger" onClose={() => setError(null)}>
           {error}
@@ -151,12 +204,12 @@ export default function Billing() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {billingEnabled && paid && (
-              <Button tone="ghost" busy={busy === "portal"} onClick={openPortal}>
+              <Button tone="ghost" busy={busy === "portal"} disabled={locked} onClick={openPortal}>
                 <CreditCard className="h-3.5 w-3.5" /> Manage billing <ArrowUpRight className="h-3.5 w-3.5 text-ink-dim" />
               </Button>
             )}
             {billingEnabled && !paid && rows[1] && (
-              <Button busy={busy === rows[1].code} onClick={() => checkout(rows[1].code)}>
+              <Button busy={busy === rows[1].code} disabled={locked} onClick={() => checkout(rows[1].code)}>
                 Upgrade to {rows[1].label}
               </Button>
             )}
@@ -189,13 +242,19 @@ export default function Billing() {
               );
             } else if (p.priceUsd === 0) {
               action = (
-                <Button tone="ghost" busy={busy === "portal"} onClick={openPortal} className="w-full">
+                <Button tone="ghost" busy={busy === "portal"} disabled={locked} onClick={openPortal} className="w-full">
                   Move to Free
                 </Button>
               );
             } else {
               action = (
-                <Button tone={upgrade ? "primary" : "ghost"} busy={busy === p.code} onClick={() => checkout(p.code)} className="w-full">
+                <Button
+                  tone={upgrade ? "primary" : "ghost"}
+                  busy={busy === p.code}
+                  disabled={locked}
+                  onClick={() => checkout(p.code)}
+                  className="w-full"
+                >
                   {upgrade ? `Upgrade to ${p.label}` : `Switch to ${p.label}`}
                 </Button>
               );

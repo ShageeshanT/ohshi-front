@@ -131,7 +131,7 @@ export interface LandingCopy {
 export const COPY: LandingCopy = {
   nav: ["Why Ohshi", "How It Works", "Providers", "Pricing", "Developers", "FAQ"],
   hero: {
-    badge: "Free During Beta",
+    badge: "Start Free",
     line1: "One Key.",
     line2: "Chat and API.",
     paragraph:
@@ -296,13 +296,13 @@ export const COPY: LandingCopy = {
       },
       {
         q: "What Does Ohshi Cost?",
-        a: "Nothing during beta. Paid plans, Plus and Pro, are on the way; the pricing section shows what each includes. Google bills your Gemini API key directly for what you use, and the Beta connector runs on the plan you already hold.",
+        a: "The Free plan is $0: 50 successful requests a month, one connected account and one API key. Plus is $6 a month for 200 requests, two accounts and three keys with 90 days of history. Pro is $17 a month for 1,000 requests, five accounts, ten keys and a year of history. The models themselves still run on the Gemini API key or the Google account you connect; Google bills the key for what you use, and Ohshi never resells model access.",
       },
     ],
   },
   cta: {
     title: "Start With the Access You Have.",
-    text: "Sign up, paste a Gemini API key or connect a Google account, and use the same models from chat and from /v1. Free during beta.",
+    text: "Sign up, paste a Gemini API key or connect a Google account, and use the same models from chat and from /v1. The Free plan is ready the moment you sign in.",
     primary: "Create an Account",
     secondary: "Read the Docs",
   },
