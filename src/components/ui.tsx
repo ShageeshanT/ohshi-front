@@ -1,13 +1,11 @@
 /** Shared UI kit — token-only, so it renders correctly on both themes.
- *  Full-radius geometry, buttery expo easing. */
+ *  Flat white panels, hairline borders, 8px radii, one ink primary. */
 
 import { useEffect, useId, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { ArrowUpRight, Loader2, User, X } from "lucide-react";
 
 export type Tone = "accent" | "ok" | "warn" | "danger" | "violet" | "dim";
-
-const EASE = "ease-[cubic-bezier(0.16,1,0.3,1)]";
 
 const toneText: Record<Tone, string> = {
   accent: "text-accent",
@@ -24,7 +22,7 @@ const toneSoft: Record<Tone, string> = {
   warn: "bg-warn-soft text-warn",
   danger: "bg-danger-soft text-danger",
   violet: "bg-violet-soft text-violet",
-  dim: "bg-ink/[0.07] text-ink-dim",
+  dim: "bg-ink/[0.06] text-ink-dim",
 };
 
 const toneBar: Record<Tone, string> = {
@@ -36,8 +34,10 @@ const toneBar: Record<Tone, string> = {
   dim: "bg-ink-dim",
 };
 
+export const toneTextClass = (tone: Tone) => toneText[tone];
+
 /** Keep an overlay mounted briefly after it closes so its exit animation can finish. */
-export function usePresence(open: boolean, exitMs = 180): boolean {
+export function usePresence(open: boolean, exitMs = 160): boolean {
   const [rendered, setRendered] = useState(open);
 
   useEffect(() => {
@@ -63,39 +63,82 @@ export function lockPageScroll(): () => void {
   };
 }
 
+// ── layout ──────────────────────────────────────────────────────────────────
+
+/** The title row at the top of a page's content. */
+export function PageHeader(props: { title: ReactNode; description?: ReactNode; actions?: ReactNode }) {
+  return (
+    <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0">
+        <h1 className="text-[18px] font-semibold tracking-tight">{props.title}</h1>
+        {props.description && <p className="mt-0.5 max-w-2xl text-[13px] text-ink-dim">{props.description}</p>}
+      </div>
+      {props.actions && <div className="flex flex-wrap items-center gap-2">{props.actions}</div>}
+    </header>
+  );
+}
+
+/** A section heading above a card or a group of cards. */
+export function SectionTitle(props: {
+  icon?: ComponentType<{ className?: string }>;
+  title: ReactNode;
+  description?: ReactNode;
+  badge?: ReactNode;
+  aside?: ReactNode;
+}) {
+  const Icon = props.icon;
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          {Icon && <Icon className="h-4 w-4 text-ink-dim" />}
+          <h2 className="text-[14px] font-semibold tracking-tight">{props.title}</h2>
+          {props.badge}
+        </div>
+        {props.description && <p className="mt-0.5 text-[12.5px] text-ink-dim">{props.description}</p>}
+      </div>
+      {props.aside}
+    </div>
+  );
+}
+
 // ── primitives ───────────────────────────────────────────────────────────────
 
 export function Card(props: {
   children: ReactNode;
   className?: string;
   title?: ReactNode;
+  description?: ReactNode;
   aside?: ReactNode;
+  /** No body padding: the content draws its own edges (a table, a list). */
+  flush?: boolean;
   compact?: boolean;
 }) {
+  const hasHeader = props.title || props.aside;
   return (
-    <section className={`glass ${props.compact ? "p-4" : "p-5 sm:p-6"} ${props.className ?? ""}`}>
-      {(props.title || props.aside) && (
-        <header className={`${props.compact ? "mb-3" : "mb-5"} flex items-start justify-between gap-3`}>
-          {props.title && (
-            <h2 className={`${props.compact ? "text-sm" : "text-base"} font-bold tracking-tight text-ink`}>
-              {props.title}
-            </h2>
-          )}
+    <section className={`card ${props.className ?? ""}`}>
+      {hasHeader && (
+        <header className="flex items-start justify-between gap-3 border-b border-edge px-4 py-3">
+          <div className="min-w-0">
+            {props.title && <h2 className="text-[13px] font-semibold tracking-tight text-ink">{props.title}</h2>}
+            {props.description && <p className="mt-0.5 text-[12px] text-ink-dim">{props.description}</p>}
+          </div>
           {props.aside}
         </header>
       )}
-      {props.children}
+      <div className={props.flush ? "" : props.compact ? "p-3" : "p-4"}>{props.children}</div>
     </section>
   );
 }
 
-export function Badge(props: { tone?: Tone; children: ReactNode; className?: string }) {
+export function Badge(props: { tone?: Tone; children: ReactNode; className?: string; dot?: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+      className={`inline-flex h-5 items-center gap-1 whitespace-nowrap rounded-md px-1.5 text-[11px] font-medium ${
         toneSoft[props.tone ?? "dim"]
       } ${props.className ?? ""}`}
     >
+      {props.dot && <span className="h-1.5 w-1.5 rounded-full bg-current" />}
       {props.children}
     </span>
   );
@@ -105,33 +148,57 @@ export function Button(props: {
   children: ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
-  tone?: "primary" | "accent" | "night" | "ghost" | "danger";
+  tone?: "primary" | "accent" | "ghost" | "subtle" | "danger";
   busy?: boolean;
   disabled?: boolean;
   className?: string;
   size?: "sm" | "md";
   arrow?: boolean;
+  title?: string;
 }) {
   const tone = props.tone ?? "primary";
   const tones = {
-    primary:
-      "bg-accent text-accent-ink hover:brightness-110 shadow-[0_2px_16px_-6px_color-mix(in_srgb,var(--color-glow)_60%,transparent)] hover:shadow-[0_10px_26px_-8px_color-mix(in_srgb,var(--color-glow)_70%,transparent)]",
+    primary: "bg-night text-night-ink hover:bg-night/85",
     accent: "bg-accent text-accent-ink hover:brightness-110",
-    night: "bg-night text-white hover:brightness-110",
-    ghost: "border border-edge bg-panel text-ink hover:bg-panel-2",
-    danger: "bg-danger-soft text-danger hover:bg-danger hover:text-white",
+    ghost: "border border-edge bg-panel text-ink hover:border-edge-strong hover:bg-panel-2",
+    subtle: "text-ink-dim hover:bg-ink/[0.06] hover:text-ink",
+    danger: "border border-edge bg-panel text-danger hover:border-danger/40 hover:bg-danger-soft",
   }[tone];
-  const size = props.size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-5 py-2.5 text-sm";
+  const size = props.size === "sm" ? "h-7 px-2.5 text-[12px]" : "h-8 px-3 text-[13px]";
   return (
     <button
       type={props.type ?? "button"}
       onClick={props.onClick}
       disabled={props.disabled || props.busy}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-full font-semibold transition-[transform,box-shadow,background-color,filter,opacity] duration-[250ms] ${EASE} hover:-translate-y-px active:translate-y-0 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${size} ${tones} ${props.className ?? ""}`}
+      title={props.title}
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${size} ${tones} ${props.className ?? ""}`}
     >
-      {props.busy && <Loader2 className={props.size === "sm" ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4 animate-spin"} />}
+      {props.busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
       {props.children}
-      {props.arrow && !props.busy && <ArrowUpRight className="h-4 w-4" />}
+      {props.arrow && !props.busy && <ArrowUpRight className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
+export function IconButton(props: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  onClick?: () => void;
+  className?: string;
+  active?: boolean;
+}) {
+  const Icon = props.icon;
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      aria-label={props.label}
+      title={props.label}
+      className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors ${
+        props.active ? "bg-ink/[0.08] text-ink" : "text-ink-dim hover:bg-ink/[0.06] hover:text-ink"
+      } ${props.className ?? ""}`}
+    >
+      <Icon className="h-4 w-4" />
     </button>
   );
 }
@@ -139,17 +206,15 @@ export function Button(props: {
 export function Field(props: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">
-        {props.label}
-      </span>
+      <span className="mb-1.5 block text-[12.5px] font-medium text-ink">{props.label}</span>
       {props.children}
-      {props.hint && <span className="mt-1.5 block text-xs text-ink-dim/90">{props.hint}</span>}
+      {props.hint && <span className="mt-1.5 block text-[12px] text-ink-dim">{props.hint}</span>}
     </label>
   );
 }
 
 const fieldCls =
-  "w-full rounded-full border border-edge bg-panel-2 px-4 py-2.5 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-accent/60 focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:opacity-50";
+  "w-full rounded-lg border border-edge bg-panel px-2.5 text-[13px] text-ink placeholder:text-ink-faint transition duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15 disabled:opacity-50";
 
 export function Input(props: {
   value: string;
@@ -162,6 +227,7 @@ export function Input(props: {
   mono?: boolean;
   disabled?: boolean;
   className?: string;
+  maxLength?: number;
 }) {
   return (
     <input
@@ -171,6 +237,7 @@ export function Input(props: {
       autoFocus={props.autoFocus}
       autoComplete={props.autoComplete}
       disabled={props.disabled}
+      maxLength={props.maxLength}
       onChange={(e) => props.onChange(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter" && props.onEnter) {
@@ -178,7 +245,7 @@ export function Input(props: {
           props.onEnter();
         }
       }}
-      className={`${fieldCls} ${props.mono ? "font-mono text-[13px]" : ""} ${props.className ?? ""}`}
+      className={`${fieldCls} h-9 ${props.mono ? "font-mono text-[12.5px]" : ""} ${props.className ?? ""}`}
     />
   );
 }
@@ -197,9 +264,7 @@ export function TextArea(props: {
       rows={props.rows ?? 5}
       placeholder={props.placeholder}
       onChange={(e) => props.onChange(e.target.value)}
-      className={`w-full resize-y rounded-2xl border border-edge bg-panel-2 px-4 py-3 text-sm text-ink placeholder:text-ink-dim/60 transition duration-300 focus:border-accent/60 focus:outline-none focus:ring-4 focus:ring-accent/10 ${
-        props.mono ? "font-mono text-[13px]" : ""
-      } ${props.className ?? ""}`}
+      className={`${fieldCls} resize-y py-2 ${props.mono ? "font-mono text-[12.5px]" : ""} ${props.className ?? ""}`}
     />
   );
 }
@@ -211,31 +276,32 @@ export function Toggle(props: {
   disabled?: boolean;
 }) {
   return (
-    <label className="inline-flex cursor-pointer select-none items-center gap-3">
+    <label className="inline-flex cursor-pointer select-none items-center gap-2.5">
       <button
         type="button"
         role="switch"
         aria-checked={props.checked}
         disabled={props.disabled}
         onClick={() => props.onChange(!props.checked)}
-        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] disabled:opacity-50 ${
-          props.checked ? "bg-accent" : "bg-ink/15"
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50 ${
+          props.checked ? "bg-accent" : "bg-ink/20"
         }`}
       >
         <span
-          className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            props.checked ? "left-[26px]" : "left-1"
+          className={`absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+            props.checked ? "translate-x-[18px]" : "translate-x-0.5"
           }`}
         />
       </button>
-      {props.label && <span className="text-sm font-medium text-ink">{props.label}</span>}
+      {props.label && <span className="text-[13px] font-medium text-ink">{props.label}</span>}
     </label>
   );
 }
 
+/** Segmented control. */
 export function Tabs(props: { tabs: string[]; active: string; onChange: (tab: string) => void }) {
   return (
-    <div role="tablist" className="inline-flex gap-1 rounded-full bg-ink/[0.06] p-1">
+    <div role="tablist" className="inline-flex gap-0.5 rounded-lg bg-panel-2 p-0.5">
       {props.tabs.map((t, index) => (
         <button
           key={t}
@@ -251,8 +317,8 @@ export function Tabs(props: { tabs: string[]; active: string; onChange: (tab: st
             const next = (index + delta + props.tabs.length) % props.tabs.length;
             props.onChange(props.tabs[next]);
           }}
-          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            t === props.active ? "bg-accent text-accent-ink shadow-sm" : "text-ink-dim hover:text-ink"
+          className={`h-7 rounded-[6px] px-2.5 text-[12px] font-medium transition-colors ${
+            t === props.active ? "bg-panel text-ink shadow-[0_1px_2px_rgb(0_0_0/0.08)]" : "text-ink-dim hover:text-ink"
           }`}
         >
           {t}
@@ -265,13 +331,13 @@ export function Tabs(props: { tabs: string[]; active: string; onChange: (tab: st
 export function Spinner(props: { size?: number; className?: string; label?: string }) {
   if (props.label !== undefined) {
     return (
-      <div className="flex items-center justify-center gap-2 py-10 text-ink-dim">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span className="text-sm font-medium">{props.label || "Loading…"}</span>
+      <div className="flex items-center justify-center gap-2 py-8 text-ink-dim">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="text-[13px]">{props.label || "Loading…"}</span>
       </div>
     );
   }
-  const size = props.size ?? 18;
+  const size = props.size ?? 16;
   return (
     <span
       aria-label="loading"
@@ -287,28 +353,39 @@ export function Skeleton(props: { className?: string }) {
 
 export function EmptyState(props: { title: string; hint?: string; action?: ReactNode; tone?: Tone }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-edge bg-ink/[0.02] px-6 py-10 text-center">
-      <p className={`text-sm font-bold ${props.tone ? toneText[props.tone] : "text-ink"}`}>{props.title}</p>
-      {props.hint && <p className="max-w-sm text-sm text-ink-dim">{props.hint}</p>}
-      {props.action && <div className="mt-3">{props.action}</div>}
+    <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-edge px-6 py-8 text-center">
+      <p className={`text-[13px] font-semibold ${props.tone ? toneText[props.tone] : "text-ink"}`}>{props.title}</p>
+      {props.hint && <p className="max-w-sm text-[12.5px] text-ink-dim">{props.hint}</p>}
+      {props.action && <div className="mt-2.5">{props.action}</div>}
     </div>
   );
 }
 
-export function StatChip(props: { label: string; value: ReactNode; sub?: string; tone?: Tone }) {
+/** One tile of a `.tiles` grid: a label, a number, a note. */
+export function Stat(props: {
+  label: string;
+  value: ReactNode;
+  sub?: ReactNode;
+  tone?: Tone;
+  icon?: ComponentType<{ className?: string }>;
+}) {
+  const Icon = props.icon;
   return (
-    <div className="glass lift flex flex-col gap-0.5 px-4 py-3">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">{props.label}</span>
-      <span className={`app-display text-xl font-semibold tracking-tight ${props.tone ? toneText[props.tone] : "text-ink"}`}>
+    <div className="flex flex-col gap-1 px-4 py-3.5">
+      <span className="flex items-center gap-1.5 text-[12px] text-ink-dim">
+        {Icon && <Icon className="h-3.5 w-3.5" />}
+        {props.label}
+      </span>
+      <span className={`tnum text-[20px] font-semibold leading-tight tracking-tight ${props.tone ? toneText[props.tone] : "text-ink"}`}>
         {props.value}
       </span>
-      {props.sub && <span className="text-[11px] text-ink-dim">{props.sub}</span>}
+      {props.sub && <span className="truncate text-[12px] text-ink-dim">{props.sub}</span>}
     </div>
   );
 }
 
-/** Initials circle with a deterministic on-brand background. */
-export function Avatar(props: { name: string; size?: "sm" | "md" }) {
+/** Initials circle with a deterministic muted background. */
+export function Avatar(props: { name: string; size?: "xs" | "sm" | "md" | "lg" }) {
   const name = (props.name ?? "").trim();
   const parts = name.split(/\s+/).filter(Boolean);
   let initials = "";
@@ -316,22 +393,28 @@ export function Avatar(props: { name: string; size?: "sm" | "md" }) {
   else if (parts.length === 1) initials = parts[0].slice(0, 2).toUpperCase();
 
   const palette = [
-    "bg-accent text-accent-ink",
-    "bg-night text-white",
+    "bg-accent-soft text-accent",
     "bg-violet-soft text-violet",
     "bg-ok-soft text-ok",
     "bg-warn-soft text-warn",
+    "bg-panel-2 text-ink",
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
   const cls = palette[Math.abs(hash) % palette.length];
-  const dims = props.size === "sm" ? "h-8 w-8 text-[11px]" : "h-10 w-10 text-xs";
+  const dims = {
+    xs: "h-6 w-6 text-[10px]",
+    sm: "h-7 w-7 text-[11px]",
+    md: "h-9 w-9 text-[12px]",
+    lg: "h-14 w-14 text-[17px]",
+  }[props.size ?? "sm"];
+  const icon = { xs: "h-3 w-3", sm: "h-3.5 w-3.5", md: "h-4 w-4", lg: "h-6 w-6" }[props.size ?? "sm"];
   return (
     <span
       aria-hidden
-      className={`flex shrink-0 items-center justify-center rounded-full font-bold tracking-tight ${dims} ${cls}`}
+      className={`flex shrink-0 select-none items-center justify-center rounded-full font-semibold tracking-tight ${dims} ${cls}`}
     >
-      {initials || <User className={props.size === "sm" ? "h-4 w-4" : "h-5 w-5"} />}
+      {initials || <User className={icon} />}
     </span>
   );
 }
@@ -340,9 +423,9 @@ export function Avatar(props: { name: string; size?: "sm" | "md" }) {
 export function Progress(props: { percent: number | null; tone?: Tone; className?: string }) {
   const tone = props.tone ?? "accent";
   return (
-    <div className={`h-2 w-full overflow-hidden rounded-full bg-ink/[0.08] ${props.className ?? ""}`}>
+    <div className={`h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.08] ${props.className ?? ""}`}>
       {props.percent === null ? (
-        <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,color-mix(in_srgb,var(--color-ink)_12%,transparent)_4px,color-mix(in_srgb,var(--color-ink)_12%,transparent)_8px)]" />
+        <div className="h-full w-full bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,color-mix(in_srgb,var(--color-ink)_14%,transparent)_3px,color-mix(in_srgb,var(--color-ink)_14%,transparent)_6px)]" />
       ) : (
         <div
           className={`bar-fill h-full rounded-full ${toneBar[tone]}`}
@@ -362,16 +445,16 @@ export function quotaTone(percent: number | null): Tone {
 
 export function Notice(props: { tone: Tone; children: ReactNode; onClose?: () => void }) {
   return (
-    <div className={`flex items-start justify-between gap-3 rounded-2xl px-4 py-3 text-sm ${toneSoft[props.tone]}`}>
-      <div className="normal-case tracking-normal">{props.children}</div>
+    <div className={`flex items-start justify-between gap-3 rounded-lg px-3 py-2.5 text-[13px] ${toneSoft[props.tone]}`}>
+      <div className="min-w-0 leading-relaxed">{props.children}</div>
       {props.onClose && (
         <button
           type="button"
           onClick={props.onClose}
           aria-label="Dismiss"
-          className="shrink-0 rounded-full p-0.5 opacity-70 transition-opacity hover:opacity-100"
+          className="shrink-0 rounded-md p-0.5 opacity-70 transition-opacity hover:opacity-100"
         >
-          <X className="h-4 w-4" />
+          <X className="h-3.5 w-3.5" />
         </button>
       )}
     </div>
@@ -381,7 +464,7 @@ export function Notice(props: { tone: Tone; children: ReactNode; onClose?: () =>
 export function Code(props: { children: string; className?: string }) {
   return (
     <pre
-      className={`overflow-x-auto rounded-2xl border border-ink/10 bg-code p-4 text-xs leading-relaxed text-[#e6e8eb] ${props.className ?? ""}`}
+      className={`max-w-full overflow-x-auto rounded-lg bg-code p-3.5 text-[12px] leading-relaxed text-[#e6e8eb] ${props.className ?? ""}`}
     >
       <code>{props.children}</code>
     </pre>
@@ -448,7 +531,7 @@ export function Modal(props: {
     <div
       className={`${
         props.open ? "backdrop-in" : "backdrop-out pointer-events-none"
-      } fixed inset-0 z-50 flex items-start justify-center bg-black/55 p-3 pt-[8vh] backdrop-blur-[3px] sm:p-4 sm:pt-[10vh]`}
+      } fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-3 pt-[10vh] sm:p-4 sm:pt-[12vh]`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && props.open) props.onClose();
       }}
@@ -461,26 +544,24 @@ export function Modal(props: {
         aria-labelledby={titleId}
         className={`${
           props.open ? "modal-in" : "modal-out"
-        } flex max-h-[min(78dvh,52rem)] w-full flex-col overflow-hidden rounded-3xl border border-edge bg-panel shadow-2xl ${
-          props.wide ? "max-w-3xl" : "max-w-lg"
+        } flex max-h-[min(78dvh,52rem)] w-full flex-col overflow-hidden rounded-xl border border-edge bg-panel shadow-[0_24px_60px_-24px_rgb(0_0_0/0.45)] ${
+          props.wide ? "max-w-2xl" : "max-w-md"
         }`}
       >
-        <header className="flex shrink-0 items-center justify-between px-5 pb-4 pt-5 sm:px-7 sm:pt-6">
-          <h3 id={titleId} className="text-lg font-bold tracking-tight">
+        <header className="flex shrink-0 items-center justify-between border-b border-edge px-5 py-3.5">
+          <h3 id={titleId} className="text-[14px] font-semibold tracking-tight">
             {props.title}
           </h3>
           <button
             ref={closeRef}
             onClick={props.onClose}
-            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
+            className="rounded-md p-1 text-ink-dim transition-colors hover:bg-ink/[0.06] hover:text-ink"
             aria-label="Close dialog"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
-        <div className="gutter-stable min-h-0 overflow-y-auto overscroll-contain pb-5 pl-5 pr-3 sm:pb-7 sm:pl-7 sm:pr-5">
-          {props.children}
-        </div>
+        <div className="gutter-stable min-h-0 overflow-y-auto overscroll-contain p-5">{props.children}</div>
       </div>
     </div>
   );

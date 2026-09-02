@@ -109,6 +109,32 @@ export const get = <T>(path: string, signal?: AbortSignal) => api<T>(path, { sig
 export const post = <T>(path: string, body?: unknown) =>
   api<T>(path, { method: "POST", body: body ?? {} });
 
+/** Upload one file as the raw request body (no multipart), the way
+ *  POST /api/chats/{id}/attachments expects it. */
+export async function uploadFile<T>(path: string, file: File, signal?: AbortSignal): Promise<T> {
+  const resp = await fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-File-Name": encodeURIComponent(file.name),
+      ...(await authHeader()),
+    },
+    body: file,
+    credentials: "same-origin",
+    signal,
+  });
+  const text = await resp.text();
+  let data: unknown = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  if (resp.status === 401) authListeners.forEach((fn) => fn());
+  if (!resp.ok) throw new ApiError(resp.status, extractMessage(data, resp.status), data);
+  return data as T;
+}
+
 /** POST that returns the raw streaming Response (Server-Sent Events). */
 export async function streamPost(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
   const resp = await fetch(path, {
@@ -170,6 +196,36 @@ export async function readSSE(
   if (buffer.trim()) handleBlock(buffer);
 }
 
+/**
+ * A link the API handed back, safe to hand to `window.location`: https only
+ * and, when `hosts` is given, only on one of them (a host, or a `.suffix`
+ * that also matches the bare domain). Anything else — `javascript:`, a host
+ * nobody expected — is refused rather than followed.
+ */
+export function safeExternalUrl(url: unknown, hosts: string[] = []): string | null {
+  if (typeof url !== "string" || !url) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:") return null;
+  const host = parsed.hostname.toLowerCase();
+  const allowed = (h: string) =>
+    h.startsWith(".") ? host === h.slice(1) || host.endsWith(h) : host === h.toLowerCase();
+  if (hosts.length > 0 && !hosts.some(allowed)) return null;
+  return parsed.href;
+}
+
+/** Text taken from a URL parameter, trimmed to something a page may show. */
+export function paramText(value: string | null | undefined, max = 160): string | null {
+  if (!value) return null;
+  // eslint-disable-next-line no-control-regex
+  const text = value.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+  return text ? text.slice(0, max) : null;
+}
+
 /** Friendly error line for the UI. */
 export function friendly(e: unknown, fallback = "Something went wrong. Please try again."): string {
   if (e instanceof ApiError) return e.message || fallback;
@@ -177,8 +233,12 @@ export function friendly(e: unknown, fallback = "Something went wrong. Please tr
   return fallback;
 }
 
-/** Poll helper: run now, then every `ms` while the tab is visible. */
-export function poll(fn: () => void | Promise<void>, ms: number): () => void {
+/**
+ * Poll helper: run now, then every `ms` while the tab is visible. `jitter` is
+ * a fraction (0.15 = up to 15% later) so many open tabs do not all ask the
+ * provider at the same moment.
+ */
+export function poll(fn: () => void | Promise<void>, ms: number, jitter = 0): () => void {
   let stopped = false;
   let running = false;
   let timer: number | undefined;
@@ -186,7 +246,8 @@ export function poll(fn: () => void | Promise<void>, ms: number): () => void {
   const schedule = () => {
     if (stopped || document.hidden) return;
     window.clearTimeout(timer);
-    timer = window.setTimeout(() => void run(), ms);
+    const delay = jitter > 0 ? ms * (1 + Math.random() * jitter) : ms;
+    timer = window.setTimeout(() => void run(), delay);
   };
   const run = async () => {
     if (stopped || running || document.hidden) return;

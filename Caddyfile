@@ -1,12 +1,35 @@
 {
 	admin off
 	auto_https off
+	servers {
+		# The platform edge (Railway) sits in front of this container on a
+		# private network. Trusting it keeps the real client address in
+		# X-Forwarded-For for the backend's rate limits; a header sent by an
+		# outside client is still replaced, never believed.
+		trusted_proxies static private_ranges
+	}
 }
 
 :{$PORT}
 
 root * /srv
 encode zstd gzip
+
+# Browser-facing hardening on every response. __OHSHI_CSP__ is filled in by
+# the Dockerfile at image build time: with a Clerk key the script, connect,
+# image and frame sources include the Clerk Frontend API; without one the
+# policy is stricter (no inline scripts at all).
+header {
+	Content-Security-Policy "__OHSHI_CSP__"
+	Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	X-Content-Type-Options "nosniff"
+	X-Frame-Options "DENY"
+	Referrer-Policy "strict-origin-when-cross-origin"
+	Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+	Cross-Origin-Opener-Policy "same-origin-allow-popups"
+	-Server
+	defer
+}
 
 # handle blocks are mutually exclusive; the most specific path wins.
 
@@ -17,12 +40,16 @@ handle /healthz {
 
 # Everything the API owns goes to the backend service. flush_interval -1
 # streams Server-Sent Events (chat replies) immediately instead of buffering.
+# Authenticated JSON is never cacheable — the backend says so too, this is
+# the belt to its braces.
 handle /api/* {
+	header Cache-Control "no-store"
 	reverse_proxy {$BACKEND_URL} {
 		flush_interval -1
 	}
 }
 handle /v1/* {
+	header Cache-Control "no-store"
 	reverse_proxy {$BACKEND_URL} {
 		flush_interval -1
 	}

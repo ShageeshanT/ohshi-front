@@ -8,18 +8,9 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import type { ChatModelsPayload, ModelFamily } from "../lib/chat";
 import { countdown, timeAgo } from "../lib/api";
-import { effortLabel, familyName, modelLabel, splitPopular } from "../lib/chat";
+import { effortLabel, familyName, modelLabel, routeLabel, splitPopular } from "../lib/chat";
 import { vendorLogo } from "./logos";
-import { Spinner, quotaTone } from "./ui";
-
-const TONE_TEXT: Record<string, string> = {
-  ok: "text-ok",
-  warn: "text-warn",
-  danger: "text-danger",
-  dim: "text-ink-dim",
-  accent: "text-accent",
-  violet: "text-violet",
-};
+import { Spinner, quotaTone, toneTextClass } from "./ui";
 
 export default function ModelPicker(props: {
   models: ChatModelsPayload | null;
@@ -37,7 +28,7 @@ export default function ModelPicker(props: {
   // open into the larger one, and cap the height to it.
   const [placement, setPlacement] = useState<{ up: boolean; maxHeight: number }>({
     up: true,
-    maxHeight: 420,
+    maxHeight: 400,
   });
   const ref = useRef<HTMLDivElement>(null);
 
@@ -63,7 +54,7 @@ export default function ModelPicker(props: {
   };
 
   const MARGIN = 16;
-  const IDEAL = 420;
+  const IDEAL = 400;
   const toggle = () => {
     if (open) {
       setOpen(false);
@@ -85,7 +76,7 @@ export default function ModelPicker(props: {
   };
 
   const m = props.models;
-  const { popular, other } = splitPopular(m?.families ?? []);
+  const { popular, other } = splitPopular(m?.families ?? [], m?.popular ?? null);
   const selectedInOther = other.some((f) => f.variants.some((v) => v.id === props.value));
 
   return (
@@ -94,45 +85,45 @@ export default function ModelPicker(props: {
         type="button"
         disabled={props.disabled}
         onClick={toggle}
-        className="flex max-w-[200px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink disabled:opacity-50"
+        className="flex h-7 max-w-[200px] items-center gap-1 rounded-md px-2 text-[12.5px] font-medium text-ink-dim transition-colors hover:bg-ink/[0.06] hover:text-ink disabled:opacity-50"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <span className="truncate">{modelLabel(m, props.value)}</span>
-        <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
-        />
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
         <div
-          className={`pop-in absolute z-30 flex w-[330px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-edge bg-panel shadow-2xl ${
+          className={`pop-in absolute z-30 flex w-[320px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-xl border border-edge bg-panel shadow-[0_16px_40px_-16px_rgb(0_0_0/0.35)] ${
             placement.up ? "bottom-full mb-2" : "top-full mt-2"
-          } ${
-            // Mobile: the picker sits at the left of its row, so anchor left or
-            // the menu runs off-screen. From `sm` up it sits at the right.
-            props.align === "left" ? "left-0" : "left-0 sm:left-auto sm:right-0"
-          }`}
+          } ${props.align === "right" ? "right-0" : "left-0"}`}
           style={{ maxHeight: placement.maxHeight }}
           role="listbox"
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-edge px-3.5 py-2.5">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-edge px-3 py-2">
             <div className="min-w-0">
-              <p className="truncate text-[11px] text-ink-dim">
+              <p className="truncate text-[11.5px] text-ink-dim">
                 {m?.connected
-                  ? `${m.email}${m.quotaAvailable && m.fetchedMs ? `, quota ${timeAgo(m.fetchedMs)}` : ""}`
-                  : "Fallback catalog. Connect Google for live quota"}
+                  ? `${routeLabel(m)}${
+                      m.quotaAvailable && m.fetchedMs
+                        ? `, quota ${timeAgo(m.fetchedMs)}`
+                        : m.fetchedMs
+                          ? `, list ${timeAgo(m.fetchedMs)}`
+                          : ""
+                    }`
+                  : "Built-in catalog. Add a Gemini API key or connect Google"}
               </p>
-              {m?.error && <p className="mt-0.5 text-[11px] text-warn">{m.error}</p>}
+              {m?.error && <p className="mt-0.5 text-[11.5px] text-warn">{m.error}</p>}
             </div>
             {m?.connected && (
               <button
                 type="button"
                 onClick={refresh}
-                className="shrink-0 rounded-full p-1.5 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
+                className="shrink-0 rounded-md p-1 text-ink-dim transition-colors hover:bg-ink/[0.06] hover:text-ink"
                 aria-label="Refresh models"
               >
-                {refreshing ? <Spinner size={13} /> : <RefreshCw className="h-3.5 w-3.5" />}
+                {refreshing ? <Spinner size={12} /> : <RefreshCw className="h-3.5 w-3.5" />}
               </button>
             )}
           </div>
@@ -153,7 +144,7 @@ export default function ModelPicker(props: {
                     <button
                       type="button"
                       onClick={() => setShowOther((v) => !v)}
-                      className="mt-1 flex w-full items-center gap-1.5 rounded-lg px-2.5 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim transition-colors hover:bg-ink/[0.06] hover:text-ink"
+                      className="mt-1 flex w-full items-center gap-1 rounded-md px-2 py-1.5 text-[11.5px] font-medium text-ink-dim transition-colors hover:bg-ink/[0.05] hover:text-ink"
                     >
                       {showOther || selectedInOther ? (
                         <ChevronDown className="h-3.5 w-3.5" />
@@ -163,9 +154,7 @@ export default function ModelPicker(props: {
                       Other models ({other.length})
                     </button>
                     {(showOther || selectedInOther) &&
-                      other.map((f) => (
-                        <FamilyRow key={f.id} family={f} value={props.value} onPick={pick} />
-                      ))}
+                      other.map((f) => <FamilyRow key={f.id} family={f} value={props.value} onPick={pick} />)}
                   </>
                 )}
               </>
@@ -185,7 +174,7 @@ function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: str
   const single = f.variants.length === 1;
 
   return (
-    <div className={`rounded-xl px-2.5 py-2 ${selectedHere ? "bg-ink/[0.06]" : "hover:bg-ink/[0.04]"}`}>
+    <div className={`rounded-md px-2 py-1.5 ${selectedHere ? "bg-ink/[0.06]" : "hover:bg-ink/[0.04]"}`}>
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
@@ -194,12 +183,10 @@ function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: str
           className={`flex min-w-0 items-center gap-2 text-left ${single ? "flex-1" : "cursor-default"}`}
         >
           <Logo className="h-3.5 w-3.5 shrink-0 text-ink-dim" />
-          <span className="truncate text-[13px] font-semibold text-ink">{familyName(f)}</span>
-          {single && props.value === f.variants[0].id && (
-            <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
-          )}
+          <span className="truncate text-[12.5px] font-medium text-ink">{familyName(f)}</span>
+          {single && props.value === f.variants[0].id && <Check className="h-3.5 w-3.5 shrink-0 text-ink" />}
         </button>
-        <span className={`shrink-0 text-[11px] font-medium ${TONE_TEXT[tone]}`}>
+        <span className={`tnum shrink-0 text-[11.5px] font-medium ${toneTextClass(tone)}`}>
           {f.remainingPercent === null
             ? ""
             : f.exhausted
@@ -218,19 +205,17 @@ function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: str
                 disabled={v.exhausted}
                 onClick={() => props.onPick(v.id)}
                 title={v.id}
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors ${
                   active
-                    ? "bg-accent text-accent-ink"
+                    ? "bg-ink text-panel"
                     : v.exhausted
                       ? "cursor-not-allowed bg-danger-soft text-danger/70 line-through"
-                      : "bg-ink/[0.07] text-ink-dim hover:bg-ink/15 hover:text-ink"
+                      : "bg-ink/[0.06] text-ink-dim hover:bg-ink/[0.12] hover:text-ink"
                 }`}
               >
                 {active && <Check className="h-3 w-3" />}
                 {effortLabel(v.effort) || v.displayName}
-                {v.remainingPercent !== null && v.remainingPercent !== f.remainingPercent
-                  ? ` ${v.remainingPercent}%`
-                  : ""}
+                {v.remainingPercent !== null && v.remainingPercent !== f.remainingPercent ? ` ${v.remainingPercent}%` : ""}
               </button>
             );
           })}

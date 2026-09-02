@@ -2,10 +2,6 @@
  * The pieces both sign-in engines share, so the page looks identical whether
  * the credential lives in our database or in Clerk: the error line, the Terms
  * checkbox, the social buttons, the "or" rule and the verification code field.
- *
- * Everything here is built from the same `ui.tsx` primitives as the rest of the
- * forms — pill inputs, the accent focus ring, the `.auth-stack` vertical rhythm
- * that keeps sign-up on one screen at 640px tall.
  */
 
 import { Check } from "lucide-react";
@@ -15,7 +11,7 @@ import { GoogleLogo } from "../logos";
 
 export function ErrorLine(props: { children?: ReactNode }) {
   if (!props.children) return null;
-  return <p className="text-sm font-medium text-danger">{props.children}</p>;
+  return <p className="text-[13px] text-danger">{props.children}</p>;
 }
 
 /** One mark per provider in `SOCIAL_PROVIDERS`; Google's is in logos.tsx, in
@@ -36,7 +32,7 @@ export function SocialButton(props: {
       type="button"
       onClick={props.onClick}
       disabled={props.disabled}
-      className="flex w-full items-center justify-center gap-2.5 rounded-full border border-edge bg-panel px-4 py-2.5 text-sm font-semibold text-ink transition duration-200 hover:border-ink/25 hover:bg-panel-2 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/15 disabled:opacity-50"
+      className="flex h-9 w-full items-center justify-center gap-2.5 rounded-lg border border-edge bg-panel text-[13px] font-medium text-ink transition-colors hover:border-edge-strong hover:bg-panel-2 disabled:opacity-50"
     >
       {Icon && <Icon className="h-4 w-4" />}
       {props.label}
@@ -49,9 +45,7 @@ export function OrRule(props: { label?: string }) {
   return (
     <div className="flex items-center gap-3">
       <span className="h-px flex-1 bg-edge" />
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
-        {props.label ?? "or"}
-      </span>
+      <span className="text-[11.5px] font-medium text-ink-faint">{props.label ?? "or"}</span>
       <span className="h-px flex-1 bg-edge" />
     </div>
   );
@@ -63,7 +57,7 @@ export function OrRule(props: { label?: string }) {
  */
 export function TermsCheckbox(props: { checked: boolean; onChange: (next: boolean) => void }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2.5 rounded-2xl border border-edge bg-panel-2/60 px-3.5 py-[clamp(0.5rem,1.6vh,0.875rem)] text-[13px] leading-snug">
+    <label className="flex cursor-pointer items-start gap-2.5 text-[12.5px] leading-snug text-ink-dim">
       <input
         type="checkbox"
         checked={props.checked}
@@ -72,24 +66,20 @@ export function TermsCheckbox(props: { checked: boolean; onChange: (next: boolea
       />
       <span
         aria-hidden
-        className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border border-ink/25 bg-panel transition-colors peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent/40"
+        className="mt-px grid h-4 w-4 shrink-0 place-items-center rounded border border-edge-strong bg-panel transition-colors peer-checked:border-ink peer-checked:bg-ink peer-focus-visible:ring-2 peer-focus-visible:ring-accent/40"
       >
-        <Check
-          className={`h-3.5 w-3.5 text-accent-ink transition-opacity ${
-            props.checked ? "opacity-100" : "opacity-0"
-          }`}
-        />
+        <Check className={`h-3 w-3 text-panel transition-opacity ${props.checked ? "opacity-100" : "opacity-0"}`} />
       </span>
-      <span className="text-ink/85">
+      <span>
         I agree to the{" "}
-        <Link to="/terms" target="_blank" rel="noreferrer" className="font-semibold text-accent hover:underline">
-          Terms and Conditions
+        <Link to="/terms" target="_blank" rel="noreferrer" className="font-medium text-ink hover:underline">
+          Terms
         </Link>{" "}
         and the{" "}
-        <Link to="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-accent hover:underline">
+        <Link to="/privacy" target="_blank" rel="noreferrer" className="font-medium text-ink hover:underline">
           Privacy Policy
         </Link>
-        , and that usage runs on the account I connect.
+        .
       </span>
     </label>
   );
@@ -130,7 +120,7 @@ export function CodeField(props: {
       maxLength={6}
       placeholder="000000"
       aria-label="Verification code"
-      className="mono w-full rounded-2xl border border-edge bg-panel-2 px-4 py-3 text-center text-xl tracking-[0.5em] text-ink placeholder:text-ink-dim/40 transition duration-300 focus:border-accent/60 focus:outline-none focus:ring-4 focus:ring-accent/10 disabled:opacity-50"
+      className="mono h-11 w-full rounded-lg border border-edge bg-panel px-4 text-center text-[18px] tracking-[0.45em] text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15 disabled:opacity-50"
     />
   );
 }

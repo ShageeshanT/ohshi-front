@@ -15,42 +15,31 @@ export function useBrandArt() {
 }
 
 /** The compact spire mark. Height-driven — the art is taller than wide. */
-export function BrandMark(props: { className?: string; glow?: boolean }) {
+export function BrandMark(props: { className?: string }) {
   const { mark } = useBrandArt();
   return (
-    <img
-      src={mark}
-      alt=""
-      aria-hidden
-      draggable={false}
-      className={`w-auto select-none ${props.glow ? "brand-glow" : ""} ${props.className ?? "h-8"}`}
-    />
+    <img src={mark} alt="" aria-hidden draggable={false} className={`w-auto select-none ${props.className ?? "h-6"}`} />
   );
 }
 
 /** The full lock-up: mark + OHSHI. */
-export function Wordmark(props: { className?: string; glow?: boolean }) {
+export function Wordmark(props: { className?: string }) {
   const { wordmark } = useBrandArt();
   return (
-    <img
-      src={wordmark}
-      alt="Ohshi"
-      draggable={false}
-      className={`w-auto select-none ${props.glow ? "brand-glow" : ""} ${props.className ?? "h-8"}`}
-    />
+    <img src={wordmark} alt="Ohshi" draggable={false} className={`w-auto select-none ${props.className ?? "h-6"}`} />
   );
 }
 
 /** Alias kept for older call sites. */
 export function Brand(props: { className?: string }) {
-  return <Wordmark className={props.className ?? "h-9"} />;
+  return <Wordmark className={props.className ?? "h-7"} />;
 }
 
-/** The big landing lock-up for the chat's empty state. */
+/** The lock-up for the chat's empty state. */
 export function BrandHero() {
   return (
     <div className="flex flex-col items-center">
-      <Wordmark className="h-16 md:h-24" />
+      <Wordmark className="h-10 md:h-12" />
     </div>
   );
 }

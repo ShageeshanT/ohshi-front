@@ -1,15 +1,17 @@
 /**
- * Docs — pick a model, get the exact request for it. The catalog comes from
- * GET /api/google/catalog, so the ids here are always the ones the gateway
- * actually accepts.
+ * Docs — pick a model, get the exact request for it. Two paths reach the same
+ * /v1: a Gemini API key (the supported path) and a connected Google account
+ * (Beta). The page opens on whichever the account is set to and lists that
+ * path's models: the key's live list from GET /api/chat/models, or the static
+ * catalogs from /api/gemini/catalog and /api/google/catalog.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Check, Copy, ExternalLink } from "lucide-react";
 import { vendorLogo } from "../components/logos";
-import { Badge, Card, Code, Spinner, Tabs } from "../components/ui";
+import { Badge, Card, Code, PageHeader, Spinner, Tabs } from "../components/ui";
 import { copyText, get } from "../lib/api";
-import { effortLabel } from "../lib/chat";
+import { effortLabel, familyName, routeLabel, type ChatModelsPayload, type RouteKind } from "../lib/chat";
 
 interface Family {
   id: string;
@@ -24,50 +26,162 @@ interface Family {
 
 const VENDOR_LABEL: Record<string, string> = { google: "Gemini", anthropic: "Claude", openai: "GPT-OSS" };
 const LANGS = ["Python", "curl", "JavaScript"];
+const PATHS: { kind: RouteKind; tab: string }[] = [
+  { kind: "gemini_api", tab: "Gemini key" },
+  { kind: "code_assist", tab: "Google (Beta)" },
+];
+const STUDIO_URL = "https://aistudio.google.com/apikey";
+const EFFORTS = ["low", "medium", "high"];
+
+/** Gemini 2.5 and later accept thinkingConfig; earlier ids and Gemma do not. */
+function geminiThinks(id: string): boolean {
+  const hit = /^gemini-(\d+(?:\.\d+)?)/.exec(id.toLowerCase());
+  return hit !== null && Number(hit[1]) >= 2.5;
+}
+
+/** The key's live list, in the static catalog's shape, so one picker serves both. */
+function liveGeminiFamilies(models: ChatModelsPayload): Family[] {
+  return models.families.map((f) => ({
+    id: f.id,
+    label: familyName(f),
+    vendor: "google",
+    efforts: geminiThinks(f.id) ? EFFORTS : [],
+    defaultEffort: "",
+    variants: { "": f.id },
+    description: "",
+    recommended: f.id === models.default,
+  }));
+}
+
+const chip = (active: boolean) =>
+  `rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
+    active ? "bg-ink text-panel" : "bg-ink/[0.05] text-ink-dim hover:bg-ink/10 hover:text-ink"
+  }`;
 
 export default function Docs() {
-  const [families, setFamilies] = useState<Family[] | null>(null);
+  const [geminiCatalog, setGeminiCatalog] = useState<Family[] | null>(null);
+  const [googleCatalog, setGoogleCatalog] = useState<Family[] | null>(null);
+  const [googleDefault, setGoogleDefault] = useState("");
+  const [models, setModels] = useState<ChatModelsPayload | null | undefined>(undefined);
+  const [path, setPath] = useState<RouteKind>("gemini_api");
+  const [pathChosen, setPathChosen] = useState(false);
   const [modelId, setModelId] = useState<string>("");
   const [effort, setEffort] = useState<string>("");
   const [lang, setLang] = useState(LANGS[0]);
   const base = `${window.location.origin}/v1`;
 
   useEffect(() => {
+    get<{ families: Family[]; default: string }>("/api/gemini/catalog")
+      .then((d) => setGeminiCatalog(d.families))
+      .catch(() => setGeminiCatalog([]));
     get<{ families: Family[]; default: string }>("/api/google/catalog")
       .then((d) => {
-        setFamilies(d.families);
-        const first = d.families.find((f) => f.id === d.default) ?? d.families[0];
-        if (first) {
-          setModelId(first.id);
-          setEffort(first.defaultEffort);
-        }
+        setGoogleCatalog(d.families);
+        setGoogleDefault(d.default);
       })
-      .catch(() => setFamilies([]));
+      .catch(() => setGoogleCatalog([]));
+    get<ChatModelsPayload>("/api/chat/models")
+      .then(setModels)
+      .catch(() => setModels(null));
   }, []);
 
+  // Open on the path the account is actually set to (once).
+  useEffect(() => {
+    if (models === undefined || pathChosen) return;
+    setPathChosen(true);
+    if (models?.route) setPath(models.route);
+  }, [models, pathChosen]);
+
+  const families = useMemo<Family[] | null>(() => {
+    if (path === "gemini_api") {
+      if (models && models.route === "gemini_api" && models.families.length > 0) return liveGeminiFamilies(models);
+      return geminiCatalog;
+    }
+    return googleCatalog;
+  }, [path, models, geminiCatalog, googleCatalog]);
+
+  // Keep the selection on a model of the current path.
+  useEffect(() => {
+    if (!families || families.length === 0) return;
+    if (families.some((f) => f.id === modelId)) return;
+    const preferred =
+      path === "gemini_api"
+        ? (families.find((f) => f.recommended) ?? families[0])
+        : (families.find((f) => f.id === googleDefault) ?? families[0]);
+    setModelId(preferred.id);
+    setEffort(preferred.defaultEffort);
+  }, [families, modelId, path, googleDefault]);
+
   const family = useMemo(() => families?.find((f) => f.id === modelId) ?? null, [families, modelId]);
+  const gemini = path === "gemini_api";
   const resolved = family
     ? (family.variants[effort] ?? family.variants[family.defaultEffort] ?? Object.values(family.variants)[0])
     : "";
+  const live = gemini && !!models && models.route === "gemini_api" && models.families.length > 0;
 
   const pick = (f: Family) => {
     setModelId(f.id);
     setEffort(f.defaultEffort);
   };
 
-  return (
-    <div className="rise-in space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          Using the gateway
-        </h1>
-        <p className="mt-1 text-sm text-ink-dim">
-          Any OpenAI compatible client works. Base URL <code className="mono text-accent">{base}</code>, key from
-          the API keys page. Calls run on your default connected Google account.
-        </p>
-      </header>
+  const pathTab = PATHS.find((p) => p.kind === path)?.tab ?? PATHS[0].tab;
+  const onPathTab = (tab: string) => {
+    const next = PATHS.find((p) => p.tab === tab);
+    if (next) setPath(next.kind);
+  };
 
-      <Card title="Step 1. Pick a model">
+  return (
+    <div className="rise-in space-y-5">
+      <PageHeader
+        title="Using the gateway"
+        description={
+          <>
+            Any OpenAI compatible client works. Base URL <code className="mono text-[12px] text-ink">{base}</code>, key
+            from the API keys page.{" "}
+            {models?.route
+              ? `Right now your calls run on ${routeLabel(models)}.`
+              : "Add a Gemini API key or connect a Google account on the Google access page first."}{" "}
+            Nothing in your code says which one; switching the default on the Google access page is enough.
+          </>
+        }
+      />
+
+      <Card title="Before you start" aside={<Tabs tabs={PATHS.map((p) => p.tab)} active={pathTab} onChange={onPathTab} />}>
+        <div className="grid gap-3 md:grid-cols-2">
+          <PathBox active={gemini} title="Gemini API key" badge={<Badge tone="ok" dot>Live</Badge>}>
+            <li>
+              Create a key at{" "}
+              <a href={STUDIO_URL} target="_blank" rel="noreferrer" className="font-medium text-accent underline-offset-2 hover:underline">
+                Google AI Studio <ExternalLink className="inline h-3 w-3 align-[-1px]" />
+              </a>
+              . Google bills it for what you use.
+            </li>
+            <li>Paste it once on the Google access page. It is stored encrypted and never shown again.</li>
+            <li>
+              Create an <code className="mono text-ink">ohs_</code> key and call <code className="mono text-ink">/v1</code>.
+              The Gemini key stays on the server.
+            </li>
+          </PathBox>
+          <PathBox active={!gemini} title="Google account" badge={<Badge tone="violet">Beta</Badge>}>
+            <li>Connect the Google account behind your Google AI plan and paste back the code.</li>
+            <li>Calls run on that plan through Google Code Assist, with live remaining quota per model.</li>
+            <li>Beta: not a guaranteed API entitlement. Keep a Gemini API key for anything that must not break.</li>
+          </PathBox>
+        </div>
+      </Card>
+
+      <Card
+        title="1. Pick a model"
+        description={
+          families === null
+            ? undefined
+            : gemini
+              ? live
+                ? `What your key lists on the Gemini API right now (${families.length} chat models). Anything Google adds appears here by itself.`
+                : "The built-in Gemini API list. Once a key is saved, this shows what that key can actually call."
+              : "The Code Assist families a connected Google account serves. Effort levels are separate backend ids."
+        }
+      >
         {families === null ? (
           <Spinner label="Loading the catalog…" />
         ) : (
@@ -80,21 +194,19 @@ export default function Docs() {
                   key={f.id}
                   type="button"
                   onClick={() => pick(f)}
-                  className={`flex flex-col gap-1 rounded-2xl border px-3.5 py-3 text-left transition-colors ${
-                    active
-                      ? "border-accent/60 bg-accent/[0.12]"
-                      : "border-edge bg-ink/[0.03] hover:bg-ink/[0.06]"
+                  className={`flex flex-col gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                    active ? "border-ink bg-ink/[0.03] ring-1 ring-ink" : "border-edge hover:border-edge-strong"
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <Logo className={`h-4 w-4 shrink-0 ${active ? "text-accent" : "text-ink-dim"}`} />
-                    <span className="truncate text-[13px] font-semibold">{f.label}</span>
+                    <Logo className={`h-3.5 w-3.5 shrink-0 ${active ? "text-ink" : "text-ink-dim"}`} />
+                    <span className="truncate text-[13px] font-medium">{f.label}</span>
                     {f.recommended && <Badge tone="accent">Default</Badge>}
                   </span>
                   <span className="mono truncate text-[11px] text-ink-dim">{f.id}</span>
-                  <span className="text-[11px] text-ink-dim">
+                  <span className="text-[11.5px] text-ink-dim">
                     {VENDOR_LABEL[f.vendor] ?? f.vendor}
-                    {f.efforts.length > 0 && `, ${f.efforts.length} effort levels`}
+                    {f.efforts.length > 0 && (gemini ? ", thinking" : `, ${f.efforts.length} effort levels`)}
                   </span>
                 </button>
               );
@@ -104,64 +216,64 @@ export default function Docs() {
 
         {family && family.efforts.length > 0 && (
           <div className="mt-4 border-t border-edge pt-4">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-dim">
-              Reasoning effort
-            </p>
+            <p className="mb-2 text-[12.5px] font-medium">Reasoning effort</p>
             <div className="flex flex-wrap gap-1.5">
+              {gemini && (
+                <button type="button" onClick={() => setEffort("")} className={chip(effort === "")}>
+                  Model default
+                </button>
+              )}
               {family.efforts.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setEffort(e)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                    e === effort
-                      ? "bg-accent text-accent-ink"
-                      : "bg-ink/[0.07] text-ink-dim hover:bg-ink/15 hover:text-ink"
-                  }`}
-                >
+                <button key={e} type="button" onClick={() => setEffort(e)} className={chip(e === effort)}>
                   {effortLabel(e)}
-                  {e === family.defaultEffort && <Check className="ml-1 inline h-3 w-3 align-[-1px]" />}
+                  {!gemini && e === family.defaultEffort && <Check className="ml-1 inline h-3 w-3 align-[-1px]" />}
                 </button>
               ))}
             </div>
-            <p className="mt-2.5 text-[11px] text-ink-dim">
-              Effort is baked into the model id upstream, so{" "}
-              <code className="mono text-ink">{family.id}</code> +{" "}
-              <code className="mono text-ink">{effort}</code> is served as{" "}
-              <code className="mono text-accent">{resolved}</code>. You can also send that id directly.
+            <p className="mt-2.5 text-[12px] leading-relaxed text-ink-dim">
+              {gemini ? (
+                <>
+                  On the Gemini API the id goes to Google unchanged and{" "}
+                  <code className="mono text-ink">reasoning_effort</code> sets the thinking depth: a token budget
+                  on Gemini 2.5, a thinking level on Gemini 3. Leave it out for the model&apos;s own default.
+                </>
+              ) : (
+                <>
+                  Effort is baked into the model id upstream, so <code className="mono text-ink">{family.id}</code> +{" "}
+                  <code className="mono text-ink">{effort}</code> is served as{" "}
+                  <code className="mono text-accent">{resolved}</code>. You can also send that id directly.
+                </>
+              )}
             </p>
           </div>
         )}
       </Card>
 
       {family && (
-        <Card
-          title="Step 2. Send the request"
-          aside={<Tabs tabs={LANGS} active={lang} onChange={setLang} />}
-        >
+        <Card title="2. Send the request" aside={<Tabs tabs={LANGS} active={lang} onChange={setLang} />}>
           <Snippet code={snippetFor(lang, base, family, effort)} />
-          <p className="mt-3 text-[11px] text-ink-dim">
-            Drop <code className="mono text-ink">stream</code> for a single JSON reply. Tool calling uses the
-            standard OpenAI <code className="mono text-ink">tools</code> array.
+          <p className="mt-2.5 text-[12px] text-ink-dim">
+            Drop <code className="mono text-ink">stream</code> for a single JSON reply. Tool calling uses the standard
+            OpenAI <code className="mono text-ink">tools</code> array.
           </p>
         </Card>
       )}
 
       <Card title="Streaming, tools and everything else">
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="mb-2 text-[13px] font-semibold">Streaming</p>
+          <div className="min-w-0">
+            <p className="mb-1.5 text-[12.5px] font-medium">Streaming</p>
             <Code>{`for chunk in client.chat.completions.create(
-    model="${family?.id ?? "gemini-3.6-flash"}",
+    model="${family?.id ?? "gemini-2.5-flash"}",
     messages=[{"role": "user", "content": "hello"}],
     stream=True,
 ):
     print(chunk.choices[0].delta.content or "", end="")`}</Code>
           </div>
-          <div>
-            <p className="mb-2 text-[13px] font-semibold">Tool calling</p>
+          <div className="min-w-0">
+            <p className="mb-1.5 text-[12.5px] font-medium">Tool calling</p>
             <Code>{`client.chat.completions.create(
-    model="${family?.id ?? "gemini-3.6-flash"}",
+    model="${family?.id ?? "gemini-2.5-flash"}",
     messages=[...],
     tools=[{
         "type": "function",
@@ -176,42 +288,57 @@ export default function Docs() {
         </div>
       </Card>
 
-      <Card title="Errors">
-        <ul className="space-y-2 text-sm text-ink-dim">
-          <li className="flex gap-2">
-            <Badge tone="danger">401</Badge>
-            <span>
-              <code className="mono text-ink">authentication_error</code>: missing, wrong or revoked API key.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <Badge tone="warn">409/403</Badge>
-            <span>
-              <code className="mono text-ink">google_account_error</code>: no Google account connected, or it
-              needs reconnecting. The accounts page shows which.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <Badge tone="warn">429</Badge>
-            <span>
-              <code className="mono text-ink">rate_limit_error</code>: quota exhausted on every Code Assist
-              endpoint. The message lists what was tried, and <code className="mono">Retry-After</code>{" "}
-              is set when Google gives one.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <Badge tone="dim">404</Badge>
-            <span>
-              <code className="mono text-ink">invalid_request_error</code>: that model isn't on this Google plan.
-            </span>
-          </li>
-        </ul>
-        <p className="mt-4 text-[11px] text-ink-dim">
-          <code className="mono text-ink">GET {base}/models</code> lists every family and concrete variant the
-          gateway accepts.
+      <Card title="Errors" flush>
+        <div className="overflow-x-auto">
+        <table className="tbl">
+          <tbody>
+            <ErrorRow code="401" tone="danger" name="authentication_error">
+              Missing, wrong or revoked API key.
+            </ErrorRow>
+            <ErrorRow code="403 / 409" tone="warn" name="gemini_api_key_error">
+              Google rejected your Gemini API key, or you have none saved. Paste a fresh one on the Google access page.
+            </ErrorRow>
+            <ErrorRow code="409 / 403" tone="warn" name="google_account_error">
+              No Google account connected, or it needs reconnecting. The Google access page shows which.
+            </ErrorRow>
+            <ErrorRow code="429" tone="warn" name="rate_limit_error">
+              Google&apos;s limit on your key, quota exhausted on every Code Assist endpoint, or this key over its per
+              minute burst limit. <code className="mono">Retry-After</code> says when to try again.
+            </ErrorRow>
+            <ErrorRow code="404" tone="dim" name="invalid_request_error">
+              That model isn&apos;t available on this key or plan.
+            </ErrorRow>
+          </tbody>
+        </table>
+        </div>
+        <p className="border-t border-edge px-4 py-2 text-[12px] text-ink-dim">
+          <code className="mono text-ink">GET {base}/models</code> lists what your current route accepts.
         </p>
       </Card>
     </div>
+  );
+}
+
+function PathBox(props: { active: boolean; title: string; badge: ReactNode; children: ReactNode }) {
+  return (
+    <div className={`rounded-lg border px-3.5 py-3 ${props.active ? "border-ink ring-1 ring-ink" : "border-edge"}`}>
+      <p className="flex items-center gap-2 text-[13px] font-medium">
+        {props.title} {props.badge}
+      </p>
+      <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-[12.5px] leading-relaxed text-ink-dim">{props.children}</ol>
+    </div>
+  );
+}
+
+function ErrorRow(props: { code: string; tone: "danger" | "warn" | "dim"; name: string; children: ReactNode }) {
+  return (
+    <tr>
+      <td className="w-24 whitespace-nowrap">
+        <Badge tone={props.tone}>{props.code}</Badge>
+      </td>
+      <td className="mono w-56 whitespace-nowrap text-[12px]">{props.name}</td>
+      <td className="text-ink-dim">{props.children}</td>
+    </tr>
   );
 }
 
@@ -227,9 +354,9 @@ function Snippet(props: { code: string }) {
             window.setTimeout(() => setCopied(false), 1500);
           });
         }}
-        className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-ink/10 px-2.5 py-1 text-[11px] font-semibold text-ink-dim transition-colors hover:bg-ink/20 hover:text-ink"
+        className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-md bg-white/10 px-2 py-1 text-[11px] font-medium text-[#d5dae3] transition-colors hover:bg-white/20 hover:text-white"
       >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
         {copied ? "Copied" : "Copy"}
       </button>
       <Code>{props.code}</Code>
@@ -238,7 +365,7 @@ function Snippet(props: { code: string }) {
 }
 
 function snippetFor(lang: string, base: string, f: Family, effort: string): string {
-  const effortLine = f.efforts.length > 0;
+  const effortLine = f.efforts.length > 0 && effort !== "";
   if (lang === "curl") {
     const body = effortLine
       ? `{"model": "${f.id}", "reasoning_effort": "${effort}", "messages": [{"role": "user", "content": "hello"}]}`

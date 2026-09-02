@@ -9,25 +9,27 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
 import { AuthenticateWithRedirectCallback, useAuth as useClerkAuth } from "@clerk/react";
 import { ReactLenis } from "lenis/react";
-import { Menu, SquarePen } from "lucide-react";
 import { get, onAuthRequired, post, setTokenSource } from "./lib/api";
 import { AFTER_AUTH_PATH, CLERK_ENABLED, SSO_CALLBACK_PATH, clerkFrontendApi } from "./lib/clerk";
 import { useClerkReady } from "./pages/auth/useClerkReady";
 import type { ChatSummary } from "./lib/chat";
-import { Wordmark } from "./components/brand";
-import { TilesBackdrop } from "./components/marketing/Backdrop";
-import { ThemeToggle } from "./components/marketing/ThemeToggle";
 import SearchDialog from "./components/SearchDialog";
 import Sidebar from "./components/Sidebar";
+import { Topbar } from "./components/Topbar";
 import { Spinner } from "./components/ui";
+import Accounts from "./pages/Accounts";
+import Billing from "./pages/Billing";
 import Chat from "./pages/Chat";
-import Dashboard from "./pages/Dashboard";
+import Connections from "./pages/Connections";
 import Docs from "./pages/Docs";
 import Keys from "./pages/Keys";
+import Models from "./pages/Models";
+import Overview from "./pages/Overview";
 import Profile from "./pages/Profile";
+import Usage from "./pages/Usage";
 
 // Marketing and auth pages carry framer-motion, Lenis and the hero art — keep
 // them out of the signed-in app's bundle.
@@ -44,6 +46,10 @@ export interface Me {
     displayName: string;
     createdMs: number;
     termsAcceptedMs?: number | null;
+    /** Ohshi's own plan (free / plus / pro), set by the billing backend only. */
+    plan?: string;
+    subscriptionStatus?: string | null;
+    planRenewsMs?: number | null;
   };
   config: {
     allowRegistration: boolean;
@@ -52,6 +58,8 @@ export interface Me {
     termsVersion?: string;
     /** Which engine the backend is running — see lib/clerk.ts. */
     authProvider?: "clerk" | "password";
+    /** Whether the backend has a payment provider configured. */
+    billingEnabled?: boolean;
   };
 }
 
@@ -73,6 +81,16 @@ const AuthContext = createContext<AuthState>({
   authError: null,
 });
 export const useAuth = () => useContext(AuthContext);
+
+// --- shell (sidebar + search, reachable from the top bar) ---------------------------
+
+interface ShellState {
+  openNav: () => void;
+  openSearch: () => void;
+}
+
+const ShellContext = createContext<ShellState>({ openNav: () => {}, openSearch: () => {} });
+export const useShell = () => useContext(ShellContext);
 
 // --- chat list (sidebar history) ---------------------------------------------------
 
@@ -156,6 +174,26 @@ export default function App() {
   return CLERK_ENABLED ? <ClerkAuthGate /> : <SessionAuthGate />;
 }
 
+/** `/login?next=…` for the page the visitor was on, so an expired session
+ *  returns them there; public pages just go to `/login`. */
+function loginPathFor(location: { pathname: string; search: string }): string {
+  const here = `${location.pathname}${location.search}`;
+  return here.startsWith("/app") ? `/login?next=${encodeURIComponent(here)}` : "/login";
+}
+
+/** Run `fn`, once more after a short pause if it failed; true when it succeeded. */
+async function tryTwice(fn: () => Promise<unknown>): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await fn();
+      return true;
+    } catch {
+      if (attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 600));
+    }
+  }
+  return false;
+}
+
 /** Cookie sessions: ask the backend who we are, once, on load. */
 function SessionAuthGate() {
   // undefined = still checking the session; null = signed out
@@ -170,17 +208,20 @@ function SessionAuthGate() {
       .catch(() => setMe(null));
     return onAuthRequired(() => {
       setMe(null);
-      navigate("/login", { replace: true });
+      navigate(loginPathFor(window.location), { replace: true });
     });
   }, [navigate, setMe]);
 
   const signOut = useCallback(async () => {
-    try {
-      await post("/api/auth/logout");
-    } finally {
-      setMe(null);
-      navigate("/", { replace: true });
+    // The cookie has to really be gone: forgetting `me` alone would leave
+    // the next person on this machine signed in. One retry, then keep the
+    // session visible rather than pretend it ended.
+    if (!(await tryTwice(() => post("/api/auth/logout")))) {
+      console.error("sign-out did not reach the server — the session is still active");
+      return;
     }
+    setMe(null);
+    navigate("/", { replace: true });
   }, [navigate, setMe]);
 
   if (me === undefined) return <PageFallback />;
@@ -261,18 +302,18 @@ function ClerkAuthGate() {
     () =>
       onAuthRequired(() => {
         setMe(null);
-        navigate("/login", { replace: true });
+        navigate(loginPathFor(window.location), { replace: true });
       }),
     [navigate, setMe],
   );
 
   const signOut = useCallback(async () => {
-    try {
-      await clerkSignOut();
-    } finally {
-      setMe(null);
-      navigate("/", { replace: true });
+    if (!(await tryTwice(() => clerkSignOut()))) {
+      console.error("sign-out did not reach Clerk — the session is still active");
+      return;
     }
+    setMe(null);
+    navigate("/", { replace: true });
   }, [clerkSignOut, navigate, setMe]);
 
   // Deliberately no early spinner here. Public pages render at once and only
@@ -343,17 +384,57 @@ function AuthedRoutes(props: {
                     <Route index element={<Chat />} />
                     <Route path="c/:chatId" element={<Chat />} />
                     <Route
+                      path="dashboard"
+                      element={
+                        <Page title="Overview">
+                          <Overview />
+                        </Page>
+                      }
+                    />
+                    <Route
+                      path="models"
+                      element={
+                        <Page title="Models">
+                          <Models />
+                        </Page>
+                      }
+                    />
+                    <Route
+                      path="usage"
+                      element={
+                        <Page title="Usage">
+                          <Usage />
+                        </Page>
+                      }
+                    />
+                    <Route
+                      path="connections"
+                      element={
+                        <Page title="Connections">
+                          <Connections />
+                        </Page>
+                      }
+                    />
+                    <Route
                       path="accounts"
                       element={
-                        <Page>
-                          <Dashboard />
+                        <Page title="Google access">
+                          <Accounts />
+                        </Page>
+                      }
+                    />
+                    <Route
+                      path="billing"
+                      element={
+                        <Page title="Plan and billing">
+                          <Billing />
                         </Page>
                       }
                     />
                     <Route
                       path="profile"
                       element={
-                        <Page>
+                        <Page title="Account">
                           <Profile />
                         </Page>
                       }
@@ -361,7 +442,7 @@ function AuthedRoutes(props: {
                     <Route
                       path="keys"
                       element={
-                        <Page>
+                        <Page title="API keys">
                           <Keys />
                         </Page>
                       }
@@ -369,7 +450,7 @@ function AuthedRoutes(props: {
                     <Route
                       path="docs"
                       element={
-                        <Page>
+                        <Page title="Docs">
                           <Docs />
                         </Page>
                       }
@@ -392,7 +473,7 @@ function AuthedRoutes(props: {
 const COLLAPSED_KEY = "ohshi.sidebar.collapsed";
 
 function Shell(props: { children: ReactNode }) {
-  const { me, signOut } = useAuth();
+  const { me } = useAuth();
   const { chats, rename, remove } = useChatList();
   const navigate = useNavigate();
   const location = useLocation();
@@ -438,66 +519,53 @@ function Shell(props: { children: ReactNode }) {
     if (id === activeChatId) navigate("/app");
   };
 
+  const shell = useMemo<ShellState>(
+    () => ({
+      openNav: () => setMobileOpen(true),
+      openSearch: () => {
+        setMobileOpen(false);
+        setSearchOpen(true);
+      },
+    }),
+    [],
+  );
+
   return (
-    <div className="app-shell relative flex h-screen overflow-hidden bg-surface">
-      <TilesBackdrop />
-      <Sidebar
-        chats={chats}
-        activeChatId={activeChatId}
-        collapsed={collapsed}
-        onToggleCollapsed={toggleCollapsed}
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
-        onSearch={() => {
-          setMobileOpen(false);
-          setSearchOpen(true);
-        }}
-        onRename={rename}
-        onDelete={onDelete}
-        user={{ email: me?.user.email ?? "", displayName: me?.user.displayName ?? "" }}
-        onSignOut={() => void signOut()}
-      />
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-edge/70 bg-rail/60 px-3 py-2 backdrop-blur-2xl md:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            className="rounded-full p-2 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <Link to="/app" aria-label="Ohshi">
-            <Wordmark className="h-8" />
-          </Link>
-          <div className="flex items-center gap-0.5">
-            <ThemeToggle compact />
-            <Link
-              to="/app"
-              className="rounded-full p-2 text-ink-dim transition-colors hover:bg-ink/10 hover:text-ink"
-              aria-label="New chat"
-            >
-              <SquarePen className="h-5 w-5" />
-            </Link>
-          </div>
-        </header>
-        <main key={routeKey} className="route-fade flex min-h-0 flex-1 flex-col">
+    <ShellContext.Provider value={shell}>
+      <div className="app-shell relative flex h-screen overflow-hidden bg-panel">
+        <Sidebar
+          chats={chats}
+          activeChatId={activeChatId}
+          collapsed={collapsed}
+          onToggleCollapsed={toggleCollapsed}
+          mobileOpen={mobileOpen}
+          onMobileClose={() => setMobileOpen(false)}
+          onSearch={shell.openSearch}
+          onRename={rename}
+          onDelete={onDelete}
+          user={{ email: me?.user.email ?? "", displayName: me?.user.displayName ?? "" }}
+        />
+        <main key={routeKey} className="route-fade flex min-h-0 min-w-0 flex-1 flex-col">
           {props.children}
         </main>
+        <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       </div>
-      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-    </div>
+    </ShellContext.Provider>
   );
 }
 
-function Page(props: { children: ReactNode }) {
+/** A scrolling page under the top bar. Chat draws its own bar and pane. */
+function Page(props: { title: string; children: ReactNode }) {
   return (
-    <ReactLenis
-      id="main-content"
-      className="app-smooth-scroll min-h-0 flex-1 overflow-y-auto"
-      options={{ lerp: 0.1, duration: 1.4, smoothWheel: true, syncTouch: false }}
-    >
-      <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 md:px-8 md:py-8">{props.children}</div>
-    </ReactLenis>
+    <>
+      <Topbar title={props.title} />
+      <ReactLenis
+        id="main-content"
+        className="app-smooth-scroll min-h-0 flex-1 overflow-y-auto"
+        options={{ lerp: 0.1, duration: 1.4, smoothWheel: true, syncTouch: false }}
+      >
+        <div className="mx-auto w-full max-w-[1120px] px-4 py-5 sm:px-6 md:px-8 md:py-6">{props.children}</div>
+      </ReactLenis>
+    </>
   );
 }

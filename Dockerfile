@@ -26,9 +26,25 @@ RUN if [ -n "$VITE_CLERK_PUBLISHABLE_KEY" ]; then \
       echo ">> sign-in: EMAIL + PASSWORD (no VITE_CLERK_PUBLISHABLE_KEY at build)"; \
     fi && npm run build
 
+# The Content-Security-Policy depends on the same decision. Clerk's browser
+# SDK loads from the Frontend API host encoded in the publishable key and
+# needs inline scripts; a password-only build allows neither. The finished
+# policy is written into the Caddyfile that ships in the runtime image.
+RUN set -e; \
+    COMMON="style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"; \
+    if [ -n "$VITE_CLERK_PUBLISHABLE_KEY" ]; then \
+      FAPI="$(printf '%s' "${VITE_CLERK_PUBLISHABLE_KEY#pk_*_}" | base64 -d 2>/dev/null | tr -d '$')"; \
+      CSP="default-src 'self'; script-src 'self' 'unsafe-inline' https://${FAPI} https://challenges.cloudflare.com; img-src 'self' data: blob: https://img.clerk.com https://${FAPI}; connect-src 'self' https://${FAPI} https://*.clerk.com https://clerk-telemetry.com; frame-src https://challenges.cloudflare.com https://${FAPI}; ${COMMON}"; \
+      echo ">> csp: Clerk mode (${FAPI})"; \
+    else \
+      CSP="default-src 'self'; script-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'none'; ${COMMON}"; \
+      echo ">> csp: strict (no inline scripts)"; \
+    fi; \
+    sed "s#__OHSHI_CSP__#${CSP}#" Caddyfile > Caddyfile.out
+
 # ── Stage 2: serve ────────────────────────────────────────────────────────────
 FROM caddy:2-alpine
-COPY Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/Caddyfile.out /etc/caddy/Caddyfile
 COPY --from=build /app/dist /srv
 # Railway injects PORT; BACKEND_URL is the backend service on the private network
 # (the service name is the hostname — set it explicitly in the service variables).

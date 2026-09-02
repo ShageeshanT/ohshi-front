@@ -6,7 +6,8 @@
 
 import { useState } from "react";
 import { ExternalLink } from "lucide-react";
-import { friendly, post } from "../lib/api";
+import { friendly, post, safeExternalUrl } from "../lib/api";
+import { GoogleLogo } from "./logos";
 import { Button, Field, Input, Modal } from "./ui";
 
 interface StartResponse {
@@ -43,12 +44,16 @@ export default function ConnectGoogleModal(props: {
     setNote(null);
     post<StartResponse>("/api/google/connect/start")
       .then((d) => {
+        // Only an https address is ever handed to the browser, whatever the
+        // API answered — never a javascript: or a look-alike scheme.
+        const authorizeUrl = safeExternalUrl(d.authorizeUrl);
+        if (!authorizeUrl) throw new Error("unexpected sign-in address");
         if (d.redirectMode === "callback") {
-          window.location.assign(d.authorizeUrl);
+          window.location.assign(authorizeUrl);
           return;
         }
-        setStart(d);
-        window.open(d.authorizeUrl, "_blank", "noopener");
+        setStart({ ...d, authorizeUrl });
+        window.open(authorizeUrl, "_blank", "noopener");
       })
       .catch((e) => setNote(friendly(e, "Couldn't start the sign in. Please try again.")))
       .finally(() => setStarting(false));
@@ -82,23 +87,23 @@ export default function ConnectGoogleModal(props: {
       title="Connect a Google account"
     >
       <div className="space-y-4">
-        <p className="text-sm text-ink-dim">
-          Sign in with the Google account whose plan you want to use (Google AI Pro / Ultra
-          unlocks the full model list). Google shows a code at the end. Paste it below and
-          your agents can use Gemini, Claude and GPT-OSS on that account.
+        <p className="text-[13px] leading-relaxed text-ink-dim">
+          Sign in with the Google account whose plan you want to use (Google AI Pro or Ultra unlocks the full
+          model list). Google shows a code at the end; paste it below and your agents can use Gemini, Claude and
+          GPT-OSS on that account. This connector is in Beta; a Gemini API key is the supported path.
         </p>
 
         {!start ? (
-          <Button onClick={begin} busy={starting}>
-            <ExternalLink className="h-4 w-4" /> Sign in with Google
+          <Button tone="ghost" onClick={begin} busy={starting}>
+            <GoogleLogo className="h-3.5 w-3.5" /> Sign in with Google <ExternalLink className="h-3.5 w-3.5 text-ink-dim" />
           </Button>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-xl bg-panel-2 px-3.5 py-3 text-xs text-ink-dim">
+            <div className="rounded-lg bg-panel-2 px-3 py-2.5 text-[12.5px] text-ink-dim">
               A Google sign in tab was opened.{" "}
               <button
                 type="button"
-                className="font-semibold text-accent underline-offset-2 hover:underline"
+                className="font-medium text-accent underline-offset-2 hover:underline"
                 onClick={() => window.open(start.authorizeUrl, "_blank", "noopener")}
               >
                 Open it again
@@ -129,7 +134,7 @@ export default function ConnectGoogleModal(props: {
           </div>
         )}
 
-        {note && <p className="text-sm text-warn">{note}</p>}
+        {note && <p className="text-[13px] text-warn">{note}</p>}
       </div>
     </Modal>
   );

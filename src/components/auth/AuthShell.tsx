@@ -1,17 +1,14 @@
 /**
- * AuthShell — the two-up sign in layout, after the AlcaNest CAGS pattern.
+ * AuthShell — the two-up sign in layout.
  *
- *   • The page is locked to one screen — 100svh, no scroll — and every measure
- *     in the card is clamped against the window height so the whole form fits.
- *   • The hexagon tiles fill the viewport behind it.
- *   • The brand artwork takes one half of the screen on desktop, its inner edge
- *     feathered so it dissolves into the tiles instead of butting against them.
- *   • The form lives on the other half inside a glass card, with the theme
- *     toggle in its header rather than floating over its corner.
+ *   • The painting takes one half of the screen on desktop, whole and
+ *     unwashed, with a hairline where it meets the form.
+ *   • The form lives on the other half: the lock-up, one bordered card and a
+ *     line under it, on the plain page colour.
  *
  * Sign in carries the art on the right, sign up on the left, so moving between
  * the two pages reads as a flip rather than a reload. Each page has its own
- * painting in each theme, so the flip changes the view as well as the side.
+ * painting in each theme, so the theme switch changes the view too.
  *
  * The artwork is not rendered below lg, so phones never fetch it.
  */
@@ -26,7 +23,6 @@ import signupDark from "../../assets/auth-signup-dark.webp";
 import signupLight from "../../assets/auth-signup-light.webp";
 import { useTheme } from "../../lib/theme";
 import { Wordmark } from "../brand";
-import { TilesBackdrop } from "../marketing/Backdrop";
 import { ThemeToggle } from "../marketing/ThemeToggle";
 
 const EASE_EXPO = [0.16, 1, 0.3, 1] as const;
@@ -51,11 +47,8 @@ const ART = {
 export function AuthShell(props: {
   /** Picks the painting and, with it, the half the artwork takes. */
   page: "login" | "signup";
-  caption: string;
-  captionSub: string;
-  eyebrow: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
 }) {
@@ -65,106 +58,53 @@ export function AuthShell(props: {
   const art = ART[props.page][theme === "dark" ? "dark" : "light"];
 
   return (
-    <div className="auth-shell relative">
-      <TilesBackdrop />
-
-      <Link
-        to="/"
-        className="mk-nav absolute left-4 top-4 z-30 inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-xs font-semibold text-ink transition-colors hover:text-accent sm:left-6 sm:top-5"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to Site
-      </Link>
-
-      <div className="relative z-10 grid h-full lg:grid-cols-2">
-        {showArt && (
-          <motion.aside
-            className={`relative hidden h-full overflow-hidden lg:block ${artOnLeft ? "" : "lg:order-2"}`}
-            initial={{ opacity: 0, x: artOnLeft ? -48 : 48 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 1.1, ease: EASE_EXPO }}
-          >
-            {/* The painting, its inner edge feathered into the tiles. */}
-            <div
-              className="absolute inset-0"
-              style={{
-                maskImage: `linear-gradient(to ${artOnLeft ? "left" : "right"}, transparent 0%, #000 24%)`,
-                WebkitMaskImage: `linear-gradient(to ${artOnLeft ? "left" : "right"}, transparent 0%, #000 24%)`,
-              }}
-            >
-              <img
-                src={art}
-                alt=""
-                aria-hidden
-                draggable={false}
-                className="absolute inset-0 h-full w-full object-cover object-center"
-              />
-              {/* Reading scrim for the caption. A gradient, not a backdrop
-                  filter, so it costs nothing per frame. */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    theme === "dark"
-                      ? "linear-gradient(to top, rgba(6,10,22,0.94) 0%, rgba(6,10,22,0.64) 24%, rgba(6,10,22,0.14) 46%, rgba(6,10,22,0) 66%)"
-                      : "linear-gradient(to top, rgba(247,247,249,0.96) 0%, rgba(247,247,249,0.78) 24%, rgba(247,247,249,0.22) 46%, rgba(247,247,249,0) 66%)",
-                }}
-              />
-            </div>
-
-            <motion.div
-              className="absolute inset-x-10 bottom-[clamp(1.5rem,5vh,2.5rem)] max-w-[27rem]"
-              initial={{ opacity: 0, y: 22 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.5, ease: EASE_EXPO }}
-            >
-              <p className="auth-title font-extrabold tracking-tight text-ink">{props.caption}</p>
-              <p className="auth-gap-sm text-[13px] leading-relaxed text-ink-dim">{props.captionSub}</p>
-            </motion.div>
-          </motion.aside>
-        )}
-
-        {/* justify-center plus my-auto on the card: centred when it fits, and
-            still scrollable from the top on a window too small to hold it. */}
-        <main
-          className={`auth-main relative flex h-full flex-col justify-center overflow-y-auto px-5 sm:px-8 lg:px-10 ${
-            artOnLeft ? "auth-main-free" : ""
+    <div className="min-h-screen bg-surface lg:grid lg:grid-cols-2">
+      {showArt && (
+        <motion.aside
+          key={`${props.page}-${theme}`}
+          className={`auth-art relative hidden min-h-screen overflow-hidden lg:block ${
+            artOnLeft ? "border-r border-edge" : "border-l border-edge lg:order-2"
           }`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, ease: EASE_EXPO }}
         >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[540px] w-[540px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-3xl"
-          />
-          <motion.div
-            className="relative my-auto w-full max-w-md"
-            initial={{ opacity: 0, y: 26, scale: 0.985 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.85, delay: 0.12, ease: EASE_EXPO }}
+          <img src={art} alt="" aria-hidden draggable={false} />
+        </motion.aside>
+      )}
+
+      <main className="relative flex min-h-screen flex-col">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] font-medium text-ink-dim transition-colors hover:text-ink"
           >
-            <div className="glass auth-card">
-              <div className="flex items-start justify-between gap-3">
-                <Link to="/" aria-label="Ohshi home" className="inline-block">
-                  <Wordmark className="h-[clamp(24px,4.2vh,36px)]" />
-                </Link>
-                <ThemeToggle compact />
-              </div>
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to site
+          </Link>
+          <ThemeToggle compact />
+        </div>
 
-              <p className="auth-gap text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
-                {props.eyebrow}
-              </p>
-              <h1 className="auth-gap-sm auth-title font-extrabold tracking-tight">{props.title}</h1>
-              <p className="auth-gap-sm text-[13px] leading-snug text-ink-dim">{props.subtitle}</p>
-
-              <div className="auth-gap">{props.children}</div>
-
-              {props.footer && (
-                <div className="auth-gap border-t border-edge pt-[clamp(0.6rem,1.8vh,1.25rem)] text-center text-[13px] text-ink-dim">
-                  {props.footer}
-                </div>
-              )}
+        <div className="flex flex-1 items-start justify-center px-4 pb-16 pt-[6vh] sm:items-center sm:pt-0">
+          <motion.div
+            className="w-full max-w-[400px]"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: EASE_EXPO }}
+          >
+            <div className="mb-6 flex justify-center">
+              <Link to="/" aria-label="Ohshi home">
+                <Wordmark className="h-7" />
+              </Link>
             </div>
+            <div className="card p-6 sm:p-7">
+              <h1 className="text-[20px] font-semibold tracking-tight">{props.title}</h1>
+              {props.subtitle && <p className="mt-1 text-[13px] text-ink-dim">{props.subtitle}</p>}
+              <div className="mt-5">{props.children}</div>
+            </div>
+            {props.footer && <p className="mt-5 text-center text-[13px] text-ink-dim">{props.footer}</p>}
           </motion.div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

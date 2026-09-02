@@ -1,18 +1,24 @@
 /**
- * App sidebar in the Grok style: brand + collapse, Search, New Chat, the
- * workspace links, date-grouped chat history, and the user chip.
+ * App sidebar: brand and collapse, New chat and Search, the workspace and
+ * manage links, date-grouped chat history, and the account chip at the
+ * bottom. Collapsed it is a 56px rail of centred icons with the expand
+ * control above the account chip.
  */
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
+  Activity,
   BookOpen,
-  ChevronsLeft,
-  ChevronsRight,
+  CreditCard,
   KeyRound,
+  Layers,
   LayoutDashboard,
-  LogOut,
+  Network,
+  PanelLeftClose,
+  PanelLeftOpen,
   Pencil,
+  Plug,
   Search,
   SquarePen,
   Trash2,
@@ -21,7 +27,6 @@ import {
 import type { ChatSummary } from "../lib/chat";
 import { groupChatsByDate } from "../lib/chat";
 import { BrandMark, Wordmark } from "./brand";
-import { ThemeToggle } from "./marketing/ThemeToggle";
 import { Avatar } from "./ui";
 
 export interface SidebarProps {
@@ -35,91 +40,96 @@ export interface SidebarProps {
   onRename: (id: string, title: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   user: { email: string; displayName: string };
-  onSignOut: () => void;
 }
 
 type Icon = ComponentType<{ className?: string }>;
+
+const WORKSPACE: { to: string; icon: Icon; label: string }[] = [
+  { to: "/app/dashboard", icon: LayoutDashboard, label: "Overview" },
+  { to: "/app/models", icon: Layers, label: "Models" },
+  { to: "/app/usage", icon: Activity, label: "Usage" },
+];
+
+const MANAGE: { to: string; icon: Icon; label: string }[] = [
+  { to: "/app/connections", icon: Network, label: "Connections" },
+  { to: "/app/accounts", icon: Plug, label: "Google access" },
+  { to: "/app/keys", icon: KeyRound, label: "API keys" },
+  { to: "/app/billing", icon: CreditCard, label: "Plan and billing" },
+  { to: "/app/docs", icon: BookOpen, label: "Docs" },
+];
 
 export default function Sidebar(p: SidebarProps) {
   const location = useLocation();
   const onNewChat = location.pathname === "/app";
   const groups = groupChatsByDate(p.chats);
   const name = p.user.displayName || p.user.email.split("@")[0];
+  const c = p.collapsed;
 
   return (
     <>
-      {p.mobileOpen && (
-        <div
-          className="backdrop-in fixed inset-0 z-30 bg-black/50 backdrop-blur-[2px] md:hidden"
-          onClick={p.onMobileClose}
-        />
-      )}
+      {p.mobileOpen && <div className="backdrop-in fixed inset-0 z-30 bg-black/40 md:hidden" onClick={p.onMobileClose} />}
       <aside
-        className={`sidebar-rail fixed inset-y-0 left-0 z-40 flex w-[264px] flex-col border-r border-edge/70 bg-rail/60 backdrop-blur-2xl transition-[transform,width] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:static md:translate-x-0 ${
-          p.collapsed ? "md:w-[64px]" : "md:w-[264px]"
+        className={`sidebar-rail fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-edge bg-surface transition-[transform,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:static md:translate-x-0 ${
+          c ? "cursor-pointer md:w-[56px]" : "md:w-[236px]"
         } ${p.mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        title={c ? "Expand sidebar" : undefined}
+        onClick={(e) => {
+          // On the rail, a click on empty space expands; links and buttons keep their own job.
+          if (!c) return;
+          if ((e.target as HTMLElement).closest("a, button, input")) return;
+          p.onToggleCollapsed();
+        }}
       >
-        <div className={`flex items-center px-3 pb-1 pt-4 ${p.collapsed ? "justify-center" : "justify-between"}`}>
-          <Link to="/app" className="flex items-center gap-2.5" title="Ohshi" onClick={p.onMobileClose}>
-            {p.collapsed ? <BrandMark className="h-8" /> : <Wordmark className="h-8" />}
+        {/* Brand row. */}
+        <div className={`flex h-12 shrink-0 items-center ${c ? "justify-center" : "justify-between pl-3.5 pr-2"}`}>
+          <Link to="/app" className="flex items-center" title="Ohshi" onClick={p.onMobileClose}>
+            {c ? <BrandMark className="h-6" /> : <Wordmark className="h-6" />}
           </Link>
-          {!p.collapsed && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={p.onToggleCollapsed}
-                className="hidden rounded-lg p-1.5 text-ink-dim hover:bg-panel-2 hover:text-ink md:inline-flex"
-                aria-label="Collapse sidebar"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={p.onMobileClose}
-                className="rounded-lg p-1.5 text-ink-dim hover:bg-panel-2 md:hidden"
-                aria-label="Close menu"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+          {!c && (
+            <button
+              type="button"
+              onClick={p.onMobileClose}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-dim hover:bg-ink/[0.06] md:hidden"
+              aria-label="Close menu"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
-        {p.collapsed && (
-          <button
-            type="button"
-            onClick={p.onToggleCollapsed}
-            className="mx-auto mb-1 hidden rounded-lg p-1.5 text-ink-dim hover:bg-panel-2 hover:text-ink md:inline-flex"
-            aria-label="Expand sidebar"
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </button>
-        )}
 
-        <nav className="mt-2 space-y-1 px-3">
-          <SideButton icon={Search} label="Search" hint="Ctrl K" collapsed={p.collapsed} onClick={p.onSearch} />
-          <SideLink icon={SquarePen} label="New Chat" to="/app" active={onNewChat} collapsed={p.collapsed} onClick={p.onMobileClose} />
+        <nav className={`space-y-0.5 ${c ? "px-2" : "px-2"}`}>
+          <SideLink icon={SquarePen} label="New chat" to="/app" active={onNewChat} collapsed={c} onClick={p.onMobileClose} />
+          <SideButton icon={Search} label="Search" hint="Ctrl K" collapsed={c} onClick={p.onSearch} />
         </nav>
 
-        <div className="mt-5 space-y-1 px-3">
-          {!p.collapsed && <SectionLabel>Workspace</SectionLabel>}
-          <SideLink icon={LayoutDashboard} label="Dashboard" to="/app/accounts" collapsed={p.collapsed} onClick={p.onMobileClose} />
-          <SideLink icon={KeyRound} label="API keys" to="/app/keys" collapsed={p.collapsed} onClick={p.onMobileClose} />
-          <SideLink icon={BookOpen} label="Docs" to="/app/docs" collapsed={p.collapsed} onClick={p.onMobileClose} />
-        </div>
+        <Divider collapsed={c} label="Workspace" />
+        <nav className="space-y-0.5 px-2">
+          {WORKSPACE.map((item) => (
+            <SideLink key={item.to} icon={item.icon} label={item.label} to={item.to} collapsed={c} onClick={p.onMobileClose} />
+          ))}
+        </nav>
 
+        <Divider collapsed={c} label="Manage" />
+        <nav className="space-y-0.5 px-2">
+          {MANAGE.map((item) => (
+            <SideLink key={item.to} icon={item.icon} label={item.label} to={item.to} collapsed={c} onClick={p.onMobileClose} />
+          ))}
+        </nav>
+
+        {/* History: hidden on the rail. */}
         <div
-          className={`sidebar-history mt-5 min-h-0 flex-1 overflow-y-auto px-3 pb-2 transition-[opacity,transform] duration-300 ease-out ${
-            p.collapsed ? "pointer-events-none -translate-x-1 opacity-0" : "translate-x-0 opacity-100"
+          className={`mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-2 transition-opacity duration-200 ${
+            c ? "pointer-events-none opacity-0" : "opacity-100"
           }`}
-          aria-hidden={p.collapsed}
+          aria-hidden={c}
         >
-          <SectionLabel>History</SectionLabel>
+          <p className="px-2.5 pb-1 text-[11px] font-medium text-ink-faint">History</p>
           {groups.length === 0 ? (
-            <p className="px-3 py-2 text-[12px] text-ink-dim">Your chats will show up here.</p>
+            <p className="px-2.5 py-1.5 text-[12px] text-ink-faint">Your chats will show up here.</p>
           ) : (
             groups.map((g) => (
-              <div key={g.label} className="mb-3">
-                <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-dim/60">{g.label}</p>
+              <div key={g.label} className="mb-2.5">
+                <p className="px-2.5 pb-1 pt-1 text-[11px] font-medium text-ink-faint">{g.label}</p>
                 {g.chats.map((chat) => (
                   <HistoryRow
                     key={chat.id}
@@ -135,42 +145,45 @@ export default function Sidebar(p: SidebarProps) {
           )}
         </div>
 
-        <div
-          className={`border-t border-edge/70 p-3 ${
-            p.collapsed ? "flex flex-col items-center gap-2" : "flex items-center gap-2.5"
-          }`}
-        >
-          {p.collapsed && <ThemeToggle compact />}
+        {/* Bottom: the collapse/expand control, then the account chip. Same
+            spot in both states so the hand knows where to go. */}
+        <div className={`mt-auto border-t border-edge p-2 ${c ? "flex flex-col items-center gap-1" : "flex items-center gap-1"}`}>
+          {c ? (
+            <button
+              type="button"
+              onClick={p.onToggleCollapsed}
+              className="hidden h-8 w-8 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink md:inline-flex"
+              aria-label="Expand sidebar"
+              title="Expand sidebar"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          ) : null}
           <Link
             to="/app/profile"
-            title="Open profile and settings"
-            aria-label="Open profile and settings"
+            title="Account settings"
+            aria-label="Account settings"
             onClick={p.onMobileClose}
-            className="rounded-full transition-transform hover:scale-105 focus-visible:outline-none"
+            className={`flex min-w-0 items-center gap-2.5 rounded-lg transition-colors hover:bg-ink/[0.05] ${c ? "p-1" : "flex-1 px-2 py-1.5"}`}
           >
             <Avatar name={name} size="sm" />
+            {!c && (
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-semibold leading-tight">{name}</span>
+                <span className="block truncate text-[11.5px] leading-tight text-ink-dim">{p.user.email}</span>
+              </span>
+            )}
           </Link>
-          {!p.collapsed && (
-            <>
-              <Link
-                to="/app/profile"
-                onClick={p.onMobileClose}
-                className="min-w-0 flex-1 rounded-md outline-none hover:text-accent focus-visible:ring-2 focus-visible:ring-accent/40"
-              >
-                <p className="truncate text-[13px] font-semibold">{name}</p>
-                <p className="truncate text-[11px] text-ink-dim">{p.user.email}</p>
-              </Link>
-              <ThemeToggle compact />
-              <button
-                type="button"
-                onClick={p.onSignOut}
-                className="rounded-lg p-1.5 text-ink-dim hover:bg-ink/10 hover:text-ink"
-                aria-label="Sign out"
-                title="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </>
+          {!c && (
+            <button
+              type="button"
+              onClick={p.onToggleCollapsed}
+              className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink md:inline-flex"
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
           )}
         </div>
       </aside>
@@ -178,11 +191,14 @@ export default function Sidebar(p: SidebarProps) {
   );
 }
 
-function SectionLabel(props: { children: string }) {
-  return <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-dim/70">{props.children}</p>;
+function Divider(props: { collapsed: boolean; label: string }) {
+  if (props.collapsed) return <div className="mx-3 my-2 h-px bg-edge" />;
+  return <p className="mt-4 px-4 pb-1 text-[11px] font-medium text-ink-faint">{props.label}</p>;
 }
 
-const itemBase = "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors";
+const itemBase = "flex items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors";
+const expanded = "w-full px-2.5 py-[6px]";
+const rail = "mx-auto h-9 w-9 justify-center";
 
 function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed: boolean; onClick: () => void }) {
   return (
@@ -190,11 +206,15 @@ function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed
       type="button"
       onClick={props.onClick}
       title={props.label}
-      className={`${itemBase} text-ink-dim hover:bg-ink/[0.06] hover:text-ink ${props.collapsed ? "justify-center px-0" : ""}`}
+      className={`${itemBase} text-ink-dim hover:bg-ink/[0.05] hover:text-ink ${props.collapsed ? rail : expanded}`}
     >
-      <props.icon className="h-[17px] w-[17px] shrink-0" />
-      <span className={`sidebar-label text-left ${props.collapsed ? "sidebar-label-hidden" : "flex-1"}`}>{props.label}</span>
-      {props.hint && <kbd className={`sidebar-label text-[10px] font-medium text-ink-dim/70 ${props.collapsed ? "sidebar-label-hidden" : ""}`}>{props.hint}</kbd>}
+      <props.icon className="h-4 w-4 shrink-0" />
+      {!props.collapsed && (
+        <>
+          <span className="flex-1 text-left">{props.label}</span>
+          {props.hint && <kbd className="kbd">{props.hint}</kbd>}
+        </>
+      )}
     </button>
   );
 }
@@ -215,13 +235,13 @@ function SideLink(props: {
       title={props.label}
       className={({ isActive }) => {
         const active = props.active ?? isActive;
-        return `${itemBase} ${active ? "bg-accent-soft text-accent" : "text-ink-dim hover:bg-ink/[0.06] hover:text-ink"} ${
-          props.collapsed ? "justify-center px-0" : ""
+        return `${itemBase} ${active ? "bg-ink/[0.07] text-ink" : "text-ink-dim hover:bg-ink/[0.05] hover:text-ink"} ${
+          props.collapsed ? rail : expanded
         }`;
       }}
     >
-      <props.icon className="h-[17px] w-[17px] shrink-0" />
-      <span className={`sidebar-label ${props.collapsed ? "sidebar-label-hidden" : ""}`}>{props.label}</span>
+      <props.icon className="h-4 w-4 shrink-0" />
+      {!props.collapsed && <span className="truncate">{props.label}</span>}
     </NavLink>
   );
 }
@@ -262,44 +282,44 @@ function HistoryRow(props: {
             setEditing(false);
           }
         }}
-        className="w-full rounded-lg border border-accent bg-panel px-2.5 py-1.5 text-sm outline-none"
+        className="w-full rounded-md border border-accent bg-panel px-2 py-1 text-[13px] outline-none"
       />
     );
   }
 
   return (
-    <div
-      className={`group flex items-center rounded-xl pr-1 ${props.active ? "bg-ink/[0.07]" : "hover:bg-ink/[0.05]"}`}
-    >
+    <div className={`group flex items-center rounded-md pr-1 ${props.active ? "bg-ink/[0.07]" : "hover:bg-ink/[0.05]"}`}>
       <Link
         to={`/app/c/${props.chat.id}`}
         onClick={props.onNavigate}
-        className="min-w-0 flex-1 truncate px-3 py-1.5 text-[13px] text-ink-dim transition-colors group-hover:text-ink"
+        className={`min-w-0 flex-1 truncate px-2.5 py-[5px] text-[13px] transition-colors ${
+          props.active ? "text-ink" : "text-ink-dim group-hover:text-ink"
+        }`}
         title={props.chat.title || "New chat"}
       >
         {props.chat.title || "New chat"}
       </Link>
-      <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+      <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
         <button
           type="button"
           onClick={() => {
             setTitle(props.chat.title);
             setEditing(true);
           }}
-          className="rounded-md p-1 text-ink-dim hover:bg-ink/10 hover:text-ink"
+          className="rounded p-1 text-ink-dim hover:bg-ink/10 hover:text-ink"
           aria-label="Rename chat"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-3 w-3" />
         </button>
         <button
           type="button"
           onClick={() => {
             if (window.confirm(`Delete "${props.chat.title || "New chat"}"?`)) void props.onDelete();
           }}
-          className="rounded-md p-1 text-ink-dim hover:bg-danger-soft hover:text-danger"
+          className="rounded p-1 text-ink-dim hover:bg-danger-soft hover:text-danger"
           aria-label="Delete chat"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Trash2 className="h-3 w-3" />
         </button>
       </div>
     </div>

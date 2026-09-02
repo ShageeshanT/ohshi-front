@@ -6,6 +6,9 @@ import { defineConfig } from "vite";
 // Dockerfile + Caddyfile); for a single-service setup the backend can serve it
 // too. In development the API runs on :8000 and Vite proxies the API paths to
 // it, so the browser sees one origin and the session cookie just works.
+// OHSHI_API_URL points the proxy elsewhere (a second backend on another port).
+const api = process.env.OHSHI_API_URL || "http://127.0.0.1:8000";
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
@@ -29,9 +32,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
-      "/v1": { target: "http://127.0.0.1:8000", changeOrigin: true },
-      "/health": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      "/api": { target: api, changeOrigin: true, ws: true },
+      "/v1": { target: api, changeOrigin: true },
+      "/health": { target: api, changeOrigin: true },
     },
   },
 });
