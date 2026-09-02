@@ -1,14 +1,16 @@
 /**
- * Account — who you are, how the workspace looks, what is attached to the
- * account, and the way out. Display name saves through POST /api/auth/profile
- * on password accounts; on Clerk it comes from the sign-in provider.
+ * Account — who you are, how the workspace looks, the password, what is
+ * attached to the account, and the way out. Display name saves through
+ * POST /api/auth/profile on password accounts; on Clerk it comes from the
+ * sign-in provider.
  */
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Check, ChevronRight, KeyRound, LogOut, Plug } from "lucide-react";
+import { BookOpen, Check, ChevronRight, CreditCard, KeyRound, Layers, LogOut, Plug } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth, type Me } from "../App";
+import { ChangePassword } from "../components/ChangePassword";
 import { Avatar, Badge, Button, Card, Input, Toggle } from "../components/ui";
 import { friendly, get, post } from "../lib/api";
 import { useTheme, type Theme } from "../lib/theme";
@@ -28,6 +30,7 @@ export default function Profile() {
   const joined = me?.user.createdMs
     ? new Date(me.user.createdMs).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })
     : "recently";
+  const plan = me?.user.plan ?? "free";
 
   const [name, setName] = useState(me?.user.displayName ?? "");
   const [saving, setSaving] = useState(false);
@@ -128,6 +131,26 @@ export default function Profile() {
         </div>
       </Card>
 
+      <Card title="Security" description="Your password, and the browsers signed in with it.">
+        <div className="divide-y divide-edge">
+          <Row
+            label="Password"
+            hint={
+              clerk
+                ? "We email you a one-time code first, then you choose the new password."
+                : "Prove the current password, then choose a new one."
+            }
+          >
+            <ChangePassword />
+          </Row>
+          <Row label="Sessions" hint="Changing the password signs every other browser out. This one stays.">
+            <Button tone="ghost" onClick={() => void signOut()}>
+              <LogOut className="h-3.5 w-3.5" /> Sign out of this browser
+            </Button>
+          </Row>
+        </div>
+      </Card>
+
       <Card title="Appearance" description="Saved in this browser only.">
         <div className="divide-y divide-edge">
           <Row label="Theme" hint="Light is the default. Your pick sticks on this device.">
@@ -145,11 +168,18 @@ export default function Profile() {
       <Card title="Workspace" description="Everything attached to this account." flush>
         <div className="divide-y divide-edge">
           <LinkRow
+            to="/app/billing"
+            icon={CreditCard}
+            title="Plan and billing"
+            sub={`${plan[0].toUpperCase()}${plan.slice(1)} plan`}
+          />
+          <LinkRow
             to="/app/accounts"
             icon={Plug}
-            title="Model sources"
+            title="Connected accounts"
             sub={`${plural(counts.geminiKeys, "Gemini key")}, ${plural(counts.accounts, "Google account")}`}
           />
+          <LinkRow to="/app/models" icon={Layers} title="Models" sub="Quota per model and what each key can call" />
           <LinkRow to="/app/keys" icon={KeyRound} title="API keys" sub={`${plural(counts.apiKeys, "active key")}`} />
           <LinkRow to="/app/docs" icon={BookOpen} title="Docs" sub="A request snippet for every model on your route" />
         </div>
@@ -177,8 +207,8 @@ export default function Profile() {
 
 function Row(props: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <div className="grid gap-2 py-3.5 first:pt-0 last:pb-0 sm:grid-cols-[200px_1fr] sm:items-center sm:gap-6">
-      <div>
+    <div className="grid gap-2 py-3.5 first:pt-0 last:pb-0 sm:grid-cols-[200px_1fr] sm:items-start sm:gap-6">
+      <div className="sm:pt-1">
         <p className="text-[13px] font-medium">{props.label}</p>
         {props.hint && <p className="mt-0.5 text-[12px] leading-snug text-ink-dim">{props.hint}</p>}
       </div>

@@ -23,6 +23,7 @@ export function MarketingFooter() {
             { label: "How it works", to: "/#how" },
             { label: "Providers", to: "/#models" },
             { label: "Live quota", to: "/#quota" },
+            { label: "Pricing", to: "/#pricing" },
             { label: "Developers", to: "/#developers" },
           ]}
         />

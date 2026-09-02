@@ -29,7 +29,10 @@ import heroDark from "../assets/hero-dark.webp";
 import heroLight from "../assets/hero-light.webp";
 import heroMobileDark from "../assets/hero-mobile-dark.webp";
 import heroMobileLight from "../assets/hero-mobile-light.webp";
-import { ClaudeLogo, GeminiLogo, OpenAILogo } from "../components/logos";
+import { BrandMark } from "../components/brand";
+import { SparkleDoodle, SquiggleDoodle } from "../components/Doodles";
+import { ClaudeLogo, GeminiLogo, OpenAILogo, XaiLogo } from "../components/logos";
+import { PlanCard } from "../components/PlanCard";
 import {
   PayTwiceDiagram,
   ProviderCard,
@@ -42,6 +45,7 @@ import { MarketingNav } from "../components/marketing/MarketingNav";
 import { Reveal } from "../components/marketing/Reveal";
 import { SmoothScroll } from "../components/marketing/SmoothScroll";
 import { COPY, PROVIDERS } from "../content/landing";
+import { PLAN_FALLBACK, fetchPlans, type PlanRow } from "../lib/plans";
 import { useTheme } from "../lib/theme";
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -62,6 +66,7 @@ export default function Landing() {
         <HowItWorks />
         <Providers />
         <Quota />
+        <Pricing />
         <Developers />
         <Faq />
         <CallToAction />
@@ -331,6 +336,55 @@ function Quota() {
   );
 }
 
+function Pricing() {
+  const p = COPY.pricing;
+  const [plans, setPlans] = useState<PlanRow[]>(PLAN_FALLBACK);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPlans().then((data) => {
+      if (!cancelled) setPlans(data.plans);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <section id="pricing" className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-8 md:py-28">
+      <SectionHeader eyebrow={p.eyebrow} title={p.title} text={p.intro} />
+      <div className="mt-12 grid gap-3 md:grid-cols-3">
+        {plans.map((plan, i) => {
+          const popular = plan.code === "plus";
+          return (
+            <Reveal key={plan.code} delay={i * 70} className="min-w-0">
+              <PlanCard
+                plan={plan}
+                popular={popular}
+                action={
+                  <Link to="/signup" className={`${popular ? "btn-primary" : "btn-ghost"} w-full`}>
+                    {plan.priceUsd > 0 ? `${p.paidCta} ${plan.label}` : p.freeCta}
+                  </Link>
+                }
+              />
+            </Reveal>
+          );
+        })}
+      </div>
+      <Reveal className="mx-auto mt-8 max-w-3xl">
+        <ul className="grid gap-x-8 gap-y-1.5 text-[12.5px] text-ink-dim sm:grid-cols-2">
+          {p.fine.map((line) => (
+            <li key={line} className="flex items-start gap-2">
+              <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-current opacity-60" />
+              {line}
+            </li>
+          ))}
+        </ul>
+      </Reveal>
+    </section>
+  );
+}
+
 const SNIPPET = `from openai import OpenAI
 
 client = OpenAI(
@@ -432,24 +486,100 @@ function Faq() {
   );
 }
 
+/** The closing card: the pitch on the left, and on the right the four
+ *  providers wired into the Ohshi mark, drawn live. The last two words of the
+ *  title get a pen underline. */
 function CallToAction() {
   const c = COPY.cta;
+  const words = c.title.split(" ");
+  const head = words.slice(0, -2).join(" ");
+  const tail = words.slice(-2).join(" ");
   return (
     <section className="relative z-10 mx-auto max-w-6xl px-5 pb-20 sm:px-8 md:pb-28">
       <Reveal>
-        <div className="card px-6 py-14 text-center sm:px-12 sm:py-16">
-          <h2 className="mk-h2">{c.title}</h2>
-          <p className="mx-auto mt-3.5 max-w-xl text-[15px] leading-relaxed text-ink-dim">{c.text}</p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
-            <Link to="/signup" className="btn-primary">
-              {c.primary} <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link to="/app/docs" className="btn-ghost">
-              {c.secondary}
-            </Link>
+        <div className="card relative overflow-hidden">
+          <div className="cta-dots" aria-hidden />
+          <div className="relative grid items-center gap-10 px-6 py-12 sm:px-10 sm:py-14 md:grid-cols-[1.05fr_0.95fr]">
+            <div>
+              <p className="eyebrow">Get started</p>
+              <h2 className="mk-h2 mt-3">
+                {head}{" "}
+                <span className="relative inline-block whitespace-nowrap">
+                  {tail}
+                  <SquiggleDoodle className="absolute -bottom-1 left-0 h-2.5 w-full text-accent" />
+                </span>
+              </h2>
+              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-ink-dim">{c.text}</p>
+              <div className="mt-7 flex flex-wrap items-center gap-2.5">
+                <Link to="/signup" className="btn-primary">
+                  {c.primary} <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link to="/app/docs" className="btn-ghost">
+                  {c.secondary}
+                </Link>
+              </div>
+              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-[12.5px] text-ink-dim">
+                {["No card needed", "Your own key or plan", "Keys encrypted at rest"].map((t) => (
+                  <li key={t} className="flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-accent" /> {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Constellation />
           </div>
         </div>
       </Reveal>
     </section>
   );
+}
+
+const CONSTELLATION = [
+  { id: "google", label: "Gemini", sub: "Live", live: true, Logo: GeminiLogo, x: 14, y: 22 },
+  { id: "anthropic", label: "Claude", sub: "Next", live: false, Logo: ClaudeLogo, x: 86, y: 18 },
+  { id: "openai", label: "GPT", sub: "Next", live: false, Logo: OpenAILogo, x: 12, y: 80 },
+  { id: "xai", label: "Grok", sub: "Next", live: false, Logo: XaiLogo, x: 88, y: 78 },
+];
+
+/** Four providers around the mark, joined by drifting wires. */
+function Constellation() {
+  return (
+    <div className="relative mx-auto h-64 w-full max-w-[26rem] md:h-72">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden className="absolute inset-0 h-full w-full overflow-visible">
+        {CONSTELLATION.map((n) => {
+          const d = `M ${n.x} ${n.y} C ${(n.x + 50) / 2} ${n.y}, ${(n.x + 50) / 2} 50, 50 50`;
+          return (
+            <g key={n.id} fill="none" strokeWidth={1.5}>
+              <path d={d} className="wire" vectorEffect="non-scaling-stroke" />
+              <path d={d} className="wire-flow" vectorEffect="non-scaling-stroke" />
+            </g>
+          );
+        })}
+      </svg>
+      <span className="dg-hub absolute left-1/2 top-1/2 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full">
+        <BrandMarkInline />
+      </span>
+      {CONSTELLATION.map((n) => (
+        <span
+          key={n.id}
+          className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-lg border border-edge bg-panel py-1.5 pl-1.5 pr-2.5 shadow-[0_1px_2px_rgb(0_0_0/0.05)]"
+          style={{ left: `${n.x}%`, top: `${n.y}%` }}
+        >
+          <span className="grid h-7 w-7 place-items-center rounded-md border border-edge bg-panel text-ink">
+            <n.Logo className="h-3.5 w-3.5" />
+          </span>
+          <span className="leading-tight">
+            <span className="block text-[12.5px] font-medium">{n.label}</span>
+            <span className={`block text-[10.5px] ${n.live ? "text-ok" : "text-ink-faint"}`}>{n.sub}</span>
+          </span>
+        </span>
+      ))}
+      <SparkleDoodle className="absolute left-[38%] top-[8%] h-9 w-9 text-accent" />
+      <SparkleDoodle className="absolute right-[30%] bottom-[6%] h-7 w-7 text-ink-faint" />
+    </div>
+  );
+}
+
+function BrandMarkInline() {
+  return <BrandMark className="h-7" />;
 }

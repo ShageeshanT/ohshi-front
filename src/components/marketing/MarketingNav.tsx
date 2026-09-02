@@ -17,7 +17,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 const spring = { type: "spring" as const, stiffness: 260, damping: 32, mass: 0.8 };
 
-const HASHES = ["#features", "#how", "#models", "#developers", "#faq"];
+const HASHES = ["#features", "#how", "#models", "#pricing", "#developers", "#faq"];
 export const NAV_LINKS = HASHES.map((hash, i) => ({ hash, label: COPY.nav[i] ?? hash.slice(1) }));
 
 function useMediaQuery(query: string) {

@@ -1,17 +1,23 @@
 /**
- * App sidebar: brand and collapse, New chat and Search, the workspace links,
- * date-grouped chat history, and the account chip at the bottom.
+ * App sidebar: brand and collapse, New chat and Search, the workspace and
+ * manage links, date-grouped chat history, and the account chip at the
+ * bottom. Collapsed it is a 56px rail of centred icons with the expand
+ * control above the account chip.
  */
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
+  Activity,
   BookOpen,
+  CreditCard,
   KeyRound,
+  Layers,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
+  Plug,
   Search,
   SquarePen,
   Trash2,
@@ -37,40 +43,54 @@ export interface SidebarProps {
 
 type Icon = ComponentType<{ className?: string }>;
 
+const WORKSPACE: { to: string; icon: Icon; label: string }[] = [
+  { to: "/app/dashboard", icon: LayoutDashboard, label: "Overview" },
+  { to: "/app/models", icon: Layers, label: "Models" },
+  { to: "/app/usage", icon: Activity, label: "Usage" },
+];
+
+const MANAGE: { to: string; icon: Icon; label: string }[] = [
+  { to: "/app/accounts", icon: Plug, label: "Connected accounts" },
+  { to: "/app/keys", icon: KeyRound, label: "API keys" },
+  { to: "/app/billing", icon: CreditCard, label: "Plan and billing" },
+  { to: "/app/docs", icon: BookOpen, label: "Docs" },
+];
+
 export default function Sidebar(p: SidebarProps) {
   const location = useLocation();
   const onNewChat = location.pathname === "/app";
   const groups = groupChatsByDate(p.chats);
   const name = p.user.displayName || p.user.email.split("@")[0];
+  const c = p.collapsed;
 
   return (
     <>
-      {p.mobileOpen && (
-        <div className="backdrop-in fixed inset-0 z-30 bg-black/40 md:hidden" onClick={p.onMobileClose} />
-      )}
+      {p.mobileOpen && <div className="backdrop-in fixed inset-0 z-30 bg-black/40 md:hidden" onClick={p.onMobileClose} />}
       <aside
         className={`sidebar-rail fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-edge bg-surface transition-[transform,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:static md:translate-x-0 ${
-          p.collapsed ? "md:w-[56px]" : "md:w-[228px]"
+          c ? "md:w-[56px]" : "md:w-[236px]"
         } ${p.mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className={`flex h-12 shrink-0 items-center ${p.collapsed ? "justify-center px-2" : "justify-between pl-3.5 pr-2"}`}>
+        {/* Brand row. */}
+        <div className={`flex h-12 shrink-0 items-center ${c ? "justify-center" : "justify-between pl-3.5 pr-2"}`}>
           <Link to="/app" className="flex items-center" title="Ohshi" onClick={p.onMobileClose}>
-            {p.collapsed ? <BrandMark className="h-6" /> : <Wordmark className="h-6" />}
+            {c ? <BrandMark className="h-6" /> : <Wordmark className="h-6" />}
           </Link>
-          {!p.collapsed && (
+          {!c && (
             <>
               <button
                 type="button"
                 onClick={p.onToggleCollapsed}
-                className="hidden rounded-md p-1.5 text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink md:inline-flex"
+                className="hidden h-7 w-7 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink md:inline-flex"
                 aria-label="Collapse sidebar"
+                title="Collapse sidebar"
               >
                 <PanelLeftClose className="h-4 w-4" />
               </button>
               <button
                 type="button"
                 onClick={p.onMobileClose}
-                className="rounded-md p-1.5 text-ink-dim hover:bg-ink/[0.06] md:hidden"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-dim hover:bg-ink/[0.06] md:hidden"
                 aria-label="Close menu"
               >
                 <X className="h-4 w-4" />
@@ -78,36 +98,34 @@ export default function Sidebar(p: SidebarProps) {
             </>
           )}
         </div>
-        {p.collapsed && (
-          <button
-            type="button"
-            onClick={p.onToggleCollapsed}
-            className="mx-auto mb-1 hidden rounded-md p-1.5 text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink md:inline-flex"
-            aria-label="Expand sidebar"
-          >
-            <PanelLeftOpen className="h-4 w-4" />
-          </button>
-        )}
 
-        <nav className="space-y-0.5 px-2">
-          <SideLink icon={SquarePen} label="New chat" to="/app" active={onNewChat} collapsed={p.collapsed} onClick={p.onMobileClose} />
-          <SideButton icon={Search} label="Search" hint="Ctrl K" collapsed={p.collapsed} onClick={p.onSearch} />
+        <nav className={`space-y-0.5 ${c ? "px-2" : "px-2"}`}>
+          <SideLink icon={SquarePen} label="New chat" to="/app" active={onNewChat} collapsed={c} onClick={p.onMobileClose} />
+          <SideButton icon={Search} label="Search" hint="Ctrl K" collapsed={c} onClick={p.onSearch} />
         </nav>
 
-        <div className="mt-4 space-y-0.5 px-2">
-          {!p.collapsed && <SectionLabel>Workspace</SectionLabel>}
-          <SideLink icon={LayoutDashboard} label="Dashboard" to="/app/accounts" collapsed={p.collapsed} onClick={p.onMobileClose} />
-          <SideLink icon={KeyRound} label="API keys" to="/app/keys" collapsed={p.collapsed} onClick={p.onMobileClose} />
-          <SideLink icon={BookOpen} label="Docs" to="/app/docs" collapsed={p.collapsed} onClick={p.onMobileClose} />
-        </div>
+        <Divider collapsed={c} label="Workspace" />
+        <nav className="space-y-0.5 px-2">
+          {WORKSPACE.map((item) => (
+            <SideLink key={item.to} icon={item.icon} label={item.label} to={item.to} collapsed={c} onClick={p.onMobileClose} />
+          ))}
+        </nav>
 
+        <Divider collapsed={c} label="Manage" />
+        <nav className="space-y-0.5 px-2">
+          {MANAGE.map((item) => (
+            <SideLink key={item.to} icon={item.icon} label={item.label} to={item.to} collapsed={c} onClick={p.onMobileClose} />
+          ))}
+        </nav>
+
+        {/* History: hidden on the rail. */}
         <div
           className={`mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-2 transition-opacity duration-200 ${
-            p.collapsed ? "pointer-events-none opacity-0" : "opacity-100"
+            c ? "pointer-events-none opacity-0" : "opacity-100"
           }`}
-          aria-hidden={p.collapsed}
+          aria-hidden={c}
         >
-          <SectionLabel>History</SectionLabel>
+          <p className="px-2.5 pb-1 text-[11px] font-medium text-ink-faint">History</p>
           {groups.length === 0 ? (
             <p className="px-2.5 py-1.5 text-[12px] text-ink-faint">Your chats will show up here.</p>
           ) : (
@@ -129,18 +147,28 @@ export default function Sidebar(p: SidebarProps) {
           )}
         </div>
 
-        <div className={`border-t border-edge p-2 ${p.collapsed ? "flex justify-center" : ""}`}>
+        {/* Bottom: expand control on the rail, then the account chip. */}
+        <div className={`mt-auto border-t border-edge p-2 ${c ? "flex flex-col items-center gap-1" : ""}`}>
+          {c && (
+            <button
+              type="button"
+              onClick={p.onToggleCollapsed}
+              className="hidden h-8 w-8 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink md:inline-flex"
+              aria-label="Expand sidebar"
+              title="Expand sidebar"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          )}
           <Link
             to="/app/profile"
             title="Account settings"
             aria-label="Account settings"
             onClick={p.onMobileClose}
-            className={`flex items-center gap-2.5 rounded-lg transition-colors hover:bg-ink/[0.05] ${
-              p.collapsed ? "p-1" : "px-2 py-1.5"
-            }`}
+            className={`flex items-center gap-2.5 rounded-lg transition-colors hover:bg-ink/[0.05] ${c ? "p-1" : "px-2 py-1.5"}`}
           >
             <Avatar name={name} size="sm" />
-            {!p.collapsed && (
+            {!c && (
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[12.5px] font-semibold leading-tight">{name}</span>
                 <span className="block truncate text-[11.5px] leading-tight text-ink-dim">{p.user.email}</span>
@@ -153,11 +181,14 @@ export default function Sidebar(p: SidebarProps) {
   );
 }
 
-function SectionLabel(props: { children: string }) {
-  return <p className="px-2.5 pb-1 text-[11px] font-medium text-ink-faint">{props.children}</p>;
+function Divider(props: { collapsed: boolean; label: string }) {
+  if (props.collapsed) return <div className="mx-3 my-2 h-px bg-edge" />;
+  return <p className="mt-4 px-4 pb-1 text-[11px] font-medium text-ink-faint">{props.label}</p>;
 }
 
-const itemBase = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-[6px] text-[13px] font-medium transition-colors";
+const itemBase = "flex items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors";
+const expanded = "w-full px-2.5 py-[6px]";
+const rail = "mx-auto h-9 w-9 justify-center";
 
 function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed: boolean; onClick: () => void }) {
   return (
@@ -165,12 +196,14 @@ function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed
       type="button"
       onClick={props.onClick}
       title={props.label}
-      className={`${itemBase} text-ink-dim hover:bg-ink/[0.05] hover:text-ink ${props.collapsed ? "justify-center px-0" : ""}`}
+      className={`${itemBase} text-ink-dim hover:bg-ink/[0.05] hover:text-ink ${props.collapsed ? rail : expanded}`}
     >
       <props.icon className="h-4 w-4 shrink-0" />
-      <span className={`sidebar-label text-left ${props.collapsed ? "sidebar-label-hidden" : "flex-1"}`}>{props.label}</span>
-      {props.hint && (
-        <kbd className={`sidebar-label kbd ${props.collapsed ? "sidebar-label-hidden" : ""}`}>{props.hint}</kbd>
+      {!props.collapsed && (
+        <>
+          <span className="flex-1 text-left">{props.label}</span>
+          {props.hint && <kbd className="kbd">{props.hint}</kbd>}
+        </>
       )}
     </button>
   );
@@ -193,12 +226,12 @@ function SideLink(props: {
       className={({ isActive }) => {
         const active = props.active ?? isActive;
         return `${itemBase} ${active ? "bg-ink/[0.07] text-ink" : "text-ink-dim hover:bg-ink/[0.05] hover:text-ink"} ${
-          props.collapsed ? "justify-center px-0" : ""
+          props.collapsed ? rail : expanded
         }`;
       }}
     >
       <props.icon className="h-4 w-4 shrink-0" />
-      <span className={`sidebar-label ${props.collapsed ? "sidebar-label-hidden" : ""}`}>{props.label}</span>
+      {!props.collapsed && <span className="truncate">{props.label}</span>}
     </NavLink>
   );
 }

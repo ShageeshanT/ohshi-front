@@ -454,6 +454,17 @@ pre,
   line-height: 1.08;
 }
 
+/* A fine dot grid that fades in towards the right half of the closing card. */
+.cta-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--color-ink) 14%, transparent) 1px, transparent 1.2px);
+  background-size: 18px 18px;
+  -webkit-mask-image: radial-gradient(ellipse 60% 90% at 78% 50%, #000 10%, transparent 70%);
+  mask-image: radial-gradient(ellipse 60% 90% at 78% 50%, #000 10%, transparent 70%);
+}
+
 /* ── landing diagrams ──────────────────────────────────────────────────────── */
 .wire {
   stroke: color-mix(in srgb, var(--color-ink) 16%, transparent);

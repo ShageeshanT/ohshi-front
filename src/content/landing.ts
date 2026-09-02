@@ -107,6 +107,14 @@ export interface LandingCopy {
     modelsLabel: string;
   };
   models: { eyebrow: string; title: string; intro: string };
+  pricing: {
+    eyebrow: string;
+    title: string;
+    intro: string;
+    freeCta: string;
+    paidCta: string;
+    fine: string[];
+  };
   quota: { eyebrow: string; title: string; paragraph: string; bullets: string[] };
   developers: {
     eyebrow: string;
@@ -121,7 +129,7 @@ export interface LandingCopy {
 }
 
 export const COPY: LandingCopy = {
-  nav: ["Why Ohshi", "How It Works", "Providers", "Developers", "FAQ"],
+  nav: ["Why Ohshi", "How It Works", "Providers", "Pricing", "Developers", "FAQ"],
   hero: {
     badge: "Free During Beta",
     line1: "One Key.",
@@ -220,6 +228,20 @@ export const COPY: LandingCopy = {
     intro:
       "With a Gemini API key the picker lists every chat model that key can call, Gemini 2.5 and Gemini 3 included, and new ones appear by themselves. With a Google account in Beta it shows Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.1 Pro, Claude Sonnet 4.6, Claude Opus 4.6 with thinking and GPT-OSS 120B, each with its remaining percentage and reset countdown.",
   },
+  pricing: {
+    eyebrow: "Pricing",
+    title: "Start Free. Upgrade When You Outgrow It.",
+    intro:
+      "Every plan is an Ohshi allowance on top of the access you connect. The models themselves keep running on your own key or account, and Ohshi never resells model access. Paid plans open soon; everything is free until then.",
+    freeCta: "Start Free",
+    paidCta: "Start with",
+    fine: [
+      "Only successful requests count. A failed call hands its slot back.",
+      "Downgrading locks extras instead of deleting them. Upgrade again and they wake up.",
+      "Chat and usage history outside your plan's window is pruned.",
+      "Cancel any time. A paid plan stays active until the period already paid for ends.",
+    ],
+  },
   quota: {
     eyebrow: "Live Quota",
     title: "See What Is Left Before You Send.",
@@ -274,7 +296,7 @@ export const COPY: LandingCopy = {
       },
       {
         q: "What Does Ohshi Cost?",
-        a: "Nothing during beta. Google bills your Gemini API key directly for what you use, and the Beta connector runs on the plan you already hold.",
+        a: "Nothing during beta. Paid plans, Plus and Pro, are on the way; the pricing section shows what each includes. Google bills your Gemini API key directly for what you use, and the Beta connector runs on the plan you already hold.",
       },
     ],
   },

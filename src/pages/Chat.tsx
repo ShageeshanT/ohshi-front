@@ -355,7 +355,7 @@ export default function Chat() {
                 <Notice tone="warn">
                   Add a Gemini API key or connect a Google account first. Every reply runs on your own key or plan.{" "}
                   <Link to="/app/accounts" className="inline-flex items-center gap-1 font-medium underline underline-offset-2">
-                    Open the dashboard <ArrowRight className="h-3.5 w-3.5" />
+                    Connected accounts <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </Notice>
               </div>
@@ -730,7 +730,7 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
                 <Spinner size={14} />
               </div>
             ) : keys.length === 0 ? (
-              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No keys yet. Add one on the dashboard.</p>
+              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No keys yet. Add one on the Connected accounts page.</p>
             ) : (
               keys.map((row) => (
                 <SourceRow

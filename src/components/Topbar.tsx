@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Search, Settings, Sun } from "lucide-react";
+import { BookOpen, CreditCard, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Search, Settings, Sun } from "lucide-react";
 import { useAuth, useShell } from "../App";
 import { useTheme } from "../lib/theme";
 import { Avatar, IconButton } from "./ui";
@@ -91,8 +91,11 @@ function UserMenu() {
           <Link to="/app/profile" className={item} onClick={() => setOpen(false)} role="menuitem">
             <Settings className="h-4 w-4 text-ink-dim" /> Account settings
           </Link>
-          <Link to="/app/accounts" className={item} onClick={() => setOpen(false)} role="menuitem">
-            <LayoutDashboard className="h-4 w-4 text-ink-dim" /> Dashboard
+          <Link to="/app/dashboard" className={item} onClick={() => setOpen(false)} role="menuitem">
+            <LayoutDashboard className="h-4 w-4 text-ink-dim" /> Overview
+          </Link>
+          <Link to="/app/billing" className={item} onClick={() => setOpen(false)} role="menuitem">
+            <CreditCard className="h-4 w-4 text-ink-dim" /> Plan and billing
           </Link>
           <Link to="/app/keys" className={item} onClick={() => setOpen(false)} role="menuitem">
             <KeyRound className="h-4 w-4 text-ink-dim" /> API keys

@@ -20,11 +20,15 @@ import SearchDialog from "./components/SearchDialog";
 import Sidebar from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { Spinner } from "./components/ui";
+import Accounts from "./pages/Accounts";
+import Billing from "./pages/Billing";
 import Chat from "./pages/Chat";
-import Dashboard from "./pages/Dashboard";
 import Docs from "./pages/Docs";
 import Keys from "./pages/Keys";
+import Models from "./pages/Models";
+import Overview from "./pages/Overview";
 import Profile from "./pages/Profile";
+import Usage from "./pages/Usage";
 
 // Marketing and auth pages carry framer-motion, Lenis and the hero art — keep
 // them out of the signed-in app's bundle.
@@ -41,6 +45,10 @@ export interface Me {
     displayName: string;
     createdMs: number;
     termsAcceptedMs?: number | null;
+    /** Ohshi's own plan (free / plus / pro), set by the billing backend only. */
+    plan?: string;
+    subscriptionStatus?: string | null;
+    planRenewsMs?: number | null;
   };
   config: {
     allowRegistration: boolean;
@@ -49,6 +57,8 @@ export interface Me {
     termsVersion?: string;
     /** Which engine the backend is running — see lib/clerk.ts. */
     authProvider?: "clerk" | "password";
+    /** Whether the backend has a payment provider configured. */
+    billingEnabled?: boolean;
   };
 }
 
@@ -350,10 +360,42 @@ function AuthedRoutes(props: {
                     <Route index element={<Chat />} />
                     <Route path="c/:chatId" element={<Chat />} />
                     <Route
+                      path="dashboard"
+                      element={
+                        <Page title="Overview">
+                          <Overview />
+                        </Page>
+                      }
+                    />
+                    <Route
+                      path="models"
+                      element={
+                        <Page title="Models">
+                          <Models />
+                        </Page>
+                      }
+                    />
+                    <Route
+                      path="usage"
+                      element={
+                        <Page title="Usage">
+                          <Usage />
+                        </Page>
+                      }
+                    />
+                    <Route
                       path="accounts"
                       element={
-                        <Page title="Dashboard">
-                          <Dashboard />
+                        <Page title="Connected accounts">
+                          <Accounts />
+                        </Page>
+                      }
+                    />
+                    <Route
+                      path="billing"
+                      element={
+                        <Page title="Plan and billing">
+                          <Billing />
                         </Page>
                       }
                     />
