@@ -11,6 +11,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 
 export type Theme = "light" | "dark";
 
@@ -75,8 +76,33 @@ export function ThemeProvider(props: { children: ReactNode }) {
     }
   }, [reducedMotion]);
 
-  const setTheme = useCallback((next: Theme) => setThemeState(next), []);
-  const toggle = useCallback(() => setThemeState((t) => (t === "dark" ? "light" : "dark")), []);
+  /**
+   * Switch with a curtain: going dark, the new screen drops from the top;
+   * going light, it rises from the bottom (index.css, `data-theme-flip`).
+   * Browsers without View Transitions, and anyone who asked for less
+   * motion, get a plain swap.
+   */
+  const flip = useCallback((next: Theme) => {
+    const root = document.documentElement;
+    if (root.getAttribute("data-theme") === next) return;
+    const reduce =
+      root.getAttribute("data-reduce-motion") === "true" ||
+      (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+    const start = (document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void> } })
+      .startViewTransition;
+    if (reduce || typeof start !== "function") {
+      setThemeState(next);
+      return;
+    }
+    root.setAttribute("data-theme-flip", next === "dark" ? "down" : "up");
+    const transition = start.call(document, () => {
+      root.setAttribute("data-theme", next);
+      flushSync(() => setThemeState(next));
+    });
+    transition.finished.finally(() => root.removeAttribute("data-theme-flip"));
+  }, []);
+  const setTheme = useCallback((next: Theme) => flip(next), [flip]);
+  const toggle = useCallback(() => flip(theme === "dark" ? "light" : "dark"), [flip, theme]);
   const setReducedMotion = useCallback((next: boolean) => setReducedMotionState(next), []);
   const value = useMemo(
     () => ({ theme, setTheme, toggle, reducedMotion, setReducedMotion }),

@@ -495,9 +495,18 @@ export default function Chat() {
         const created = await post<{ chat: ChatSummary }>("/api/chats", { model: modelRef.current });
         upsert(created.chat);
         const ids: string[] = [];
+        let failed = false;
         for (const f of usable) {
           const id = await uploadOne(created.chat.id, f.key, f.file);
           if (id) ids.push(id);
+          else failed = true;
+        }
+        if (failed) {
+          // Keep the text and the files (the failed chip says why); drop the empty chat.
+          setInput(text);
+          setTurnError("A file could not be uploaded. Remove it or try again, then send.");
+          void post(`/api/chats/${created.chat.id}/delete`).catch(() => {});
+          return;
         }
         navigate(`/app/c/${created.chat.id}`, { state: { pending: text, attachments: ids } satisfies PendingState });
       } catch (e) {

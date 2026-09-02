@@ -70,8 +70,15 @@ export default function Sidebar(p: SidebarProps) {
       {p.mobileOpen && <div className="backdrop-in fixed inset-0 z-30 bg-black/40 md:hidden" onClick={p.onMobileClose} />}
       <aside
         className={`sidebar-rail fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-edge bg-surface transition-[transform,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:static md:translate-x-0 ${
-          c ? "md:w-[56px]" : "md:w-[236px]"
+          c ? "cursor-pointer md:w-[56px]" : "md:w-[236px]"
         } ${p.mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        title={c ? "Expand sidebar" : undefined}
+        onClick={(e) => {
+          // On the rail, a click on empty space expands; links and buttons keep their own job.
+          if (!c) return;
+          if ((e.target as HTMLElement).closest("a, button, input")) return;
+          p.onToggleCollapsed();
+        }}
       >
         {/* Brand row. */}
         <div className={`flex h-12 shrink-0 items-center ${c ? "justify-center" : "justify-between pl-3.5 pr-2"}`}>
@@ -79,25 +86,14 @@ export default function Sidebar(p: SidebarProps) {
             {c ? <BrandMark className="h-6" /> : <Wordmark className="h-6" />}
           </Link>
           {!c && (
-            <>
-              <button
-                type="button"
-                onClick={p.onToggleCollapsed}
-                className="hidden h-7 w-7 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink md:inline-flex"
-                aria-label="Collapse sidebar"
-                title="Collapse sidebar"
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={p.onMobileClose}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-dim hover:bg-ink/[0.06] md:hidden"
-                aria-label="Close menu"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={p.onMobileClose}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-dim hover:bg-ink/[0.06] md:hidden"
+              aria-label="Close menu"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
 
@@ -149,9 +145,10 @@ export default function Sidebar(p: SidebarProps) {
           )}
         </div>
 
-        {/* Bottom: expand control on the rail, then the account chip. */}
-        <div className={`mt-auto border-t border-edge p-2 ${c ? "flex flex-col items-center gap-1" : ""}`}>
-          {c && (
+        {/* Bottom: the collapse/expand control, then the account chip. Same
+            spot in both states so the hand knows where to go. */}
+        <div className={`mt-auto border-t border-edge p-2 ${c ? "flex flex-col items-center gap-1" : "flex items-center gap-1"}`}>
+          {c ? (
             <button
               type="button"
               onClick={p.onToggleCollapsed}
@@ -161,13 +158,13 @@ export default function Sidebar(p: SidebarProps) {
             >
               <PanelLeftOpen className="h-4 w-4" />
             </button>
-          )}
+          ) : null}
           <Link
             to="/app/profile"
             title="Account settings"
             aria-label="Account settings"
             onClick={p.onMobileClose}
-            className={`flex items-center gap-2.5 rounded-lg transition-colors hover:bg-ink/[0.05] ${c ? "p-1" : "px-2 py-1.5"}`}
+            className={`flex min-w-0 items-center gap-2.5 rounded-lg transition-colors hover:bg-ink/[0.05] ${c ? "p-1" : "flex-1 px-2 py-1.5"}`}
           >
             <Avatar name={name} size="sm" />
             {!c && (
@@ -177,6 +174,17 @@ export default function Sidebar(p: SidebarProps) {
               </span>
             )}
           </Link>
+          {!c && (
+            <button
+              type="button"
+              onClick={p.onToggleCollapsed}
+              className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink md:inline-flex"
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </aside>
     </>
