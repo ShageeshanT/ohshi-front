@@ -2,7 +2,7 @@ import { CalendarDays, ChevronRight, CreditCard, KeyRound, LogOut, Palette, Plug
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth, type Me } from "../App";
-import { formatNumber, friendly, get, post } from "../lib/api";
+import { formatNumber, friendly, get, poll, post, safeExternalUrl } from "../lib/api";
 import { Avatar, Button, Card, Toggle } from "../components/ui";
 import { useTheme } from "../lib/theme";
 
@@ -103,22 +103,40 @@ interface Entitlement {
   requestsUsed: number;
 }
 
+/** Dodo sends the browser back with `?checkout=done` (plus its own `status`
+ *  and ids); a failed or abandoned checkout is not a payment. */
+function paymentCameBack(params: URLSearchParams): boolean {
+  if (params.get("checkout") !== "done") return false;
+  const status = (params.get("status") ?? "").toLowerCase();
+  return status === "" || status === "succeeded" || status === "active" || status === "processing";
+}
+
+const ACTIVATION_TIMEOUT_MS = 3 * 60_000;
+const RETURN_PARAMS = ["checkout", "status", "payment_id", "subscription_id"];
+
 /**
  * Ohshi's own plan — separate from any connected provider account. The card
- * only ever *asks*: upgrades go to Dodo's hosted checkout and the plan itself
- * flips when Dodo's signed webhook reaches the backend, so coming back from a
- * payment can be a few seconds ahead of the plan. That window is the polling
- * below, keyed off the ?checkout=done return URL.
+ * only ever *asks*: a purchase goes to Dodo's hosted checkout, a switch
+ * between paid plans is a change on the existing subscription, and the plan
+ * itself flips only when Dodo's signed webhook reaches the backend. Coming
+ * back from a payment can therefore be ahead of the plan by a few seconds;
+ * that window is the "activating" state below. It is captured once from the
+ * return URL and the URL is cleaned, so a refresh, the back button or a
+ * bookmark never re-announce a payment, and the buttons stay out of reach
+ * while it lasts — nobody can buy the same plan twice by clicking again.
  */
 function PlanBillingCard() {
   const { me, setMe } = useAuth();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [prices, setPrices] = useState<Record<string, number>>({ plus: 6, pro: 17 });
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activating, setActivating] = useState<{ since: number; from: string } | null>(() =>
+    paymentCameBack(params) ? { since: Date.now(), from: me?.user.plan ?? "free" } : null,
+  );
+  const [timedOut, setTimedOut] = useState(false);
 
-  const justPaid = params.get("checkout") === "done";
   const plan = me?.user.plan ?? "free";
   const paid = plan !== "free";
   const billingEnabled = me?.config.billingEnabled ?? false;
@@ -130,6 +148,23 @@ function PlanBillingCard() {
         year: "numeric",
       })
     : null;
+  const waiting = activating !== null && plan === activating.from && !timedOut;
+
+  // The return-URL parameters are consumed above; take them off the address
+  // bar so nothing downstream reads them twice.
+  useEffect(() => {
+    if (RETURN_PARAMS.some((key) => params.has(key))) setParams({}, { replace: true });
+  }, [params, setParams]);
+
+  // Restored from the back-forward cache (Back from the Dodo tab): nothing
+  // is in flight any more, whatever the buttons were doing when we left.
+  useEffect(() => {
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setBusy(null);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,28 +186,44 @@ function PlanBillingCard() {
     };
   }, [plan]);
 
-  // Back from Dodo: the webhook usually lands a few seconds after the
-  // redirect, so poll /me until the plan flips instead of showing a stale
-  // "Free" next to a success note.
+  // Ask /me until the webhook has moved the plan (a few seconds, usually; a
+  // few minutes at the very worst before we stop and say so).
   useEffect(() => {
-    if (!justPaid || paid) return;
-    let tries = 0;
-    const timer = window.setInterval(() => {
-      tries += 1;
-      get<Me>("/api/auth/me")
-        .then(setMe)
-        .catch(() => {});
-      if (tries >= 8) window.clearInterval(timer);
-    }, 2500);
-    return () => window.clearInterval(timer);
-  }, [justPaid, paid, setMe]);
+    if (!waiting || activating === null) return;
+    const since = activating.since;
+    return poll(async () => {
+      if (Date.now() - since > ACTIVATION_TIMEOUT_MS) {
+        setTimedOut(true);
+        return;
+      }
+      setMe(await get<Me>("/api/auth/me"));
+    }, 3000);
+  }, [waiting, activating, setMe]);
+
+  const follow = (url: unknown) => {
+    // Only ever to the payment processor, over https — never to a link an
+    // answer could have been made to carry.
+    const safe = safeExternalUrl(url, [".dodopayments.com"]);
+    if (!safe) throw new Error("unexpected billing link");
+    window.location.assign(safe);
+  };
 
   const checkout = (target: "plus" | "pro") => {
+    if (busy !== null || waiting) return;
     setBusy(target);
     setError(null);
-    post<{ url: string }>("/api/billing/checkout", { plan: target })
-      .then(({ url }) => {
-        window.location.href = url;
+    post<{ url?: string | null; changed?: boolean }>("/api/billing/checkout", { plan: target })
+      .then((answer) => {
+        if (answer.changed) {
+          // Changed on the existing subscription: no checkout page, the
+          // webhook flips the plan in a moment.
+          setActivating({ since: Date.now(), from: plan });
+          setTimedOut(false);
+          setBusy(null);
+          if (answer.url) follow(answer.url);
+          return;
+        }
+        follow(answer.url);
       })
       .catch((err) => {
         setError(friendly(err));
@@ -181,12 +232,11 @@ function PlanBillingCard() {
   };
 
   const openPortal = () => {
+    if (busy !== null) return;
     setBusy("portal");
     setError(null);
     post<{ url: string }>("/api/billing/portal")
-      .then(({ url }) => {
-        window.location.href = url;
-      })
+      .then(({ url }) => follow(url))
       .catch((err) => {
         setError(friendly(err));
         setBusy(null);
@@ -195,13 +245,20 @@ function PlanBillingCard() {
 
   const label = entitlement?.label ?? (paid ? plan[0].toUpperCase() + plan.slice(1) : "Free");
   const price = (code: string) => (prices[code] != null ? ` · $${prices[code]}/mo` : "");
+  const locked = busy !== null || waiting;
 
   return (
     <Card title="Plan & billing" aside={<CreditCard className="h-4 w-4 text-ink-dim" />}>
       <div className="space-y-4">
-        {justPaid && !paid && (
+        {waiting && (
           <p className="rounded-2xl bg-accent-soft px-4 py-3 text-sm font-medium text-accent">
             Payment received — activating your plan. This takes a few seconds.
+          </p>
+        )}
+        {activating !== null && timedOut && plan === activating.from && (
+          <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+            Still activating. Payments can take a minute to settle — refresh this page shortly, or
+            contact support if the plan has not changed.
           </p>
         )}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -217,28 +274,33 @@ function PlanBillingCard() {
           <div className="flex flex-wrap items-center gap-2">
             {billingEnabled && plan === "free" && (
               <>
-                <Button busy={busy === "plus"} onClick={() => checkout("plus")}>
+                <Button busy={busy === "plus"} disabled={locked} onClick={() => checkout("plus")}>
                   Upgrade to Plus{price("plus")}
                 </Button>
-                <Button tone="ghost" busy={busy === "pro"} onClick={() => checkout("pro")}>
+                <Button tone="ghost" busy={busy === "pro"} disabled={locked} onClick={() => checkout("pro")}>
                   Go Pro{price("pro")}
                 </Button>
               </>
             )}
             {billingEnabled && plan === "plus" && (
               <>
-                <Button busy={busy === "pro"} onClick={() => checkout("pro")}>
+                <Button busy={busy === "pro"} disabled={locked} onClick={() => checkout("pro")}>
                   Switch to Pro{price("pro")}
                 </Button>
-                <Button tone="ghost" busy={busy === "portal"} onClick={openPortal}>
+                <Button tone="ghost" busy={busy === "portal"} disabled={locked} onClick={openPortal}>
                   Manage billing
                 </Button>
               </>
             )}
             {billingEnabled && plan === "pro" && (
-              <Button busy={busy === "portal"} onClick={openPortal}>
-                Manage billing
-              </Button>
+              <>
+                <Button busy={busy === "portal"} disabled={locked} onClick={openPortal}>
+                  Manage billing
+                </Button>
+                <Button tone="ghost" busy={busy === "plus"} disabled={locked} onClick={() => checkout("plus")}>
+                  Switch to Plus{price("plus")}
+                </Button>
+              </>
             )}
           </div>
         </div>

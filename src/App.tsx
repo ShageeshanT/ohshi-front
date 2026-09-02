@@ -162,6 +162,26 @@ export default function App() {
   return CLERK_ENABLED ? <ClerkAuthGate /> : <SessionAuthGate />;
 }
 
+/** `/login?next=…` for the page the visitor was on, so an expired session
+ *  returns them there; public pages just go to `/login`. */
+function loginPathFor(location: { pathname: string; search: string }): string {
+  const here = `${location.pathname}${location.search}`;
+  return here.startsWith("/app") ? `/login?next=${encodeURIComponent(here)}` : "/login";
+}
+
+/** Run `fn`, once more after a short pause if it failed; true when it succeeded. */
+async function tryTwice(fn: () => Promise<unknown>): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await fn();
+      return true;
+    } catch {
+      if (attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 600));
+    }
+  }
+  return false;
+}
+
 /** Cookie sessions: ask the backend who we are, once, on load. */
 function SessionAuthGate() {
   // undefined = still checking the session; null = signed out
@@ -176,17 +196,20 @@ function SessionAuthGate() {
       .catch(() => setMe(null));
     return onAuthRequired(() => {
       setMe(null);
-      navigate("/login", { replace: true });
+      navigate(loginPathFor(window.location), { replace: true });
     });
   }, [navigate, setMe]);
 
   const signOut = useCallback(async () => {
-    try {
-      await post("/api/auth/logout");
-    } finally {
-      setMe(null);
-      navigate("/", { replace: true });
+    // The cookie has to really be gone: forgetting `me` alone would leave
+    // the next person on this machine signed in. One retry, then keep the
+    // session visible rather than pretend it ended.
+    if (!(await tryTwice(() => post("/api/auth/logout")))) {
+      console.error("sign-out did not reach the server — the session is still active");
+      return;
     }
+    setMe(null);
+    navigate("/", { replace: true });
   }, [navigate, setMe]);
 
   if (me === undefined) return <PageFallback />;
@@ -267,18 +290,18 @@ function ClerkAuthGate() {
     () =>
       onAuthRequired(() => {
         setMe(null);
-        navigate("/login", { replace: true });
+        navigate(loginPathFor(window.location), { replace: true });
       }),
     [navigate, setMe],
   );
 
   const signOut = useCallback(async () => {
-    try {
-      await clerkSignOut();
-    } finally {
-      setMe(null);
-      navigate("/", { replace: true });
+    if (!(await tryTwice(() => clerkSignOut()))) {
+      console.error("sign-out did not reach Clerk — the session is still active");
+      return;
     }
+    setMe(null);
+    navigate("/", { replace: true });
   }, [clerkSignOut, navigate, setMe]);
 
   // Deliberately no early spinner here. Public pages render at once and only

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, KeyRound, Plus, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../App";
 import { Badge, Button, Card, EmptyState, Field, Input, Modal, Notice, Spinner } from "../components/ui";
 import { copyText, friendly, get, post, timeAgo } from "../lib/api";
 
@@ -15,6 +16,7 @@ interface ApiKeyRow {
 }
 
 export default function Keys() {
+  const { me } = useAuth();
   const [keys, setKeys] = useState<ApiKeyRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -78,7 +80,7 @@ export default function Keys() {
             <p className="mt-1 text-xs text-ink-dim">
               {keys.filter((k) => k.revokedMs === null).length} of {maxKeys} active key
               {maxKeys === 1 ? "" : "s"} on your plan
-              {keys.filter((k) => k.revokedMs === null).length >= maxKeys && (
+              {keys.filter((k) => k.revokedMs === null).length >= maxKeys && me?.config.billingEnabled && (
                 <>
                   {" · "}
                   <Link to="/app/profile" className="font-semibold text-accent hover:underline">

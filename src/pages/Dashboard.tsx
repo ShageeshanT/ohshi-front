@@ -46,7 +46,7 @@ import {
   quotaTone,
   type Tone,
 } from "../components/ui";
-import { ApiError, countdown, formatNumber, friendly, get, poll, post, timeAgo } from "../lib/api";
+import { ApiError, countdown, formatNumber, friendly, get, paramText, poll, post, timeAgo } from "../lib/api";
 
 // --- payload shapes (match ohshi/db/models.py + ohshi/google/quota.py) -------
 
@@ -205,8 +205,10 @@ export default function Dashboard() {
   const [flash, setFlash] = useState<{ tone: Tone; text: string } | null>(() => {
     const connected = params.get("connected");
     const error = params.get("connect_error");
-    if (connected) return { tone: "ok", text: `Connected ${connected}.` };
-    if (error) return { tone: "danger", text: error };
+    // Both come from the address bar: cut to size, and labelled as a note
+    // about the connect attempt rather than shown as this page's own words.
+    if (connected) return { tone: "ok", text: `Connected ${paramText(connected, 120) ?? ""}.` };
+    if (error) return { tone: "danger", text: `Connecting Google did not finish: ${paramText(error) ?? ""}` };
     return null;
   });
 
@@ -363,9 +365,11 @@ export default function Dashboard() {
               {planUsage.requestsRemaining === 0
                 ? " — new requests are paused until the month resets. "
                 : ". "}
-              <Link to="/app/profile" className="font-semibold underline">
-                Upgrade for more headroom
-              </Link>
+              {me?.config.billingEnabled && (
+                <Link to="/app/profile" className="font-semibold underline">
+                  Upgrade for more headroom
+                </Link>
+              )}
             </span>
           </Notice>
         )}

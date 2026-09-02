@@ -18,20 +18,9 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.ohshi.space/" />
-    <script>
-      // Paint the right theme before React mounts — no flash of the wrong one.
-      (function () {
-        try {
-          // Light is the default; dark is opt-in through the toggle, so the
-          // OS preference is deliberately not consulted.
-          var t = localStorage.getItem("ohshi.theme");
-          if (t !== "light" && t !== "dark") t = "light";
-          document.documentElement.setAttribute("data-theme", t);
-        } catch (e) {
-          document.documentElement.setAttribute("data-theme", "light");
-        }
-      })();
-    </script>
+    <!-- Paints the stored theme before React mounts (public/theme-init.js);
+         an external file so the CSP can forbid inline scripts. -->
+    <script src="/theme-init.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
