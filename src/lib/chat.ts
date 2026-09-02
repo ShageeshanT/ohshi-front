@@ -50,8 +50,18 @@ export interface ModelFamily {
   variants: ModelVariant[];
 }
 
+/** Which credential the picker's list came from. */
+export type RouteKind = "gemini_api" | "code_assist";
+
 export interface ChatModelsPayload {
   connected: boolean;
+  /** null when nothing usable is configured (the built-in list is shown). */
+  route: RouteKind | null;
+  /** The key's label or the Google account's email. */
+  routeLabel: string | null;
+  /** The Google account connector is Beta; the Gemini API key is not. */
+  beta: boolean;
+  /** The key id or the connection id behind the list. */
   connectionId: string | null;
   email: string | null;
   quotaAvailable: boolean;
@@ -59,6 +69,8 @@ export interface ChatModelsPayload {
   fetchedMs: number | null;
   endpointLabel: string | null;
   default: string;
+  /** Ids to show first (Gemini API route); null = use POPULAR_FAMILIES. */
+  popular: string[] | null;
   families: ModelFamily[];
 }
 
@@ -66,7 +78,7 @@ export type ChatEvent =
   | { type: "user"; message: ChatMessage; chat: ChatSummary }
   | { type: "delta"; content: string }
   | { type: "reasoning"; content: string }
-  | { type: "done"; message: ChatMessage; chat: ChatSummary; usage: Record<string, number> }
+  | { type: "done"; message: ChatMessage; chat: ChatSummary; usage: Record<string, number>; route?: RouteKind }
   | { type: "error"; message: string; code?: string; status?: number };
 
 /** Shown first in the picker; everything else hides under "Other models". */
@@ -77,9 +89,14 @@ export const POPULAR_FAMILIES = [
   "gpt-oss-120b-medium",
 ];
 
-/** Split a model list into the famous few and the long tail (order preserved). */
-export function splitPopular<T extends { id: string }>(families: T[]): { popular: T[]; other: T[] } {
-  const rank = new Map(POPULAR_FAMILIES.map((id, i) => [id, i]));
+/** Split a model list into the famous few and the long tail (order preserved).
+ *  The backend names the top section on the Gemini API route; the Code Assist
+ *  list falls back to POPULAR_FAMILIES. */
+export function splitPopular<T extends { id: string }>(
+  families: T[],
+  popularIds: string[] | null = null,
+): { popular: T[]; other: T[] } {
+  const rank = new Map((popularIds ?? POPULAR_FAMILIES).map((id, i) => [id, i]));
   const popular = families
     .filter((f) => rank.has(f.id))
     .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
@@ -135,6 +152,15 @@ export function modelLabel(models: ChatModelsPayload | null, id: string): string
   if (!hit) return id;
   const effort = hit.variant.effort ? `, ${effortLabel(hit.variant.effort)}` : "";
   return `${familyName(hit.family)}${effort}`;
+}
+
+/** "Gemini API key ‘personal’" / "me@gmail.com (Beta)" for the picker header and route pill. */
+export function routeLabel(models: ChatModelsPayload | null): string {
+  if (!models || !models.route) return "";
+  if (models.route === "gemini_api") {
+    return models.routeLabel ? `Gemini API key ‘${models.routeLabel}’` : "Gemini API key";
+  }
+  return `${models.email ?? models.routeLabel ?? "Google account"} (Beta)`;
 }
 
 const DAY_MS = 86_400_000;

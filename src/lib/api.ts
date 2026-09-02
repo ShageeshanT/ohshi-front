@@ -177,8 +177,12 @@ export function friendly(e: unknown, fallback = "Something went wrong. Please tr
   return fallback;
 }
 
-/** Poll helper: run now, then every `ms` while the tab is visible. */
-export function poll(fn: () => void | Promise<void>, ms: number): () => void {
+/**
+ * Poll helper: run now, then every `ms` while the tab is visible. `jitter` is
+ * a fraction (0.15 = up to 15% later) so many open tabs do not all ask the
+ * provider at the same moment.
+ */
+export function poll(fn: () => void | Promise<void>, ms: number, jitter = 0): () => void {
   let stopped = false;
   let running = false;
   let timer: number | undefined;
@@ -186,7 +190,8 @@ export function poll(fn: () => void | Promise<void>, ms: number): () => void {
   const schedule = () => {
     if (stopped || document.hidden) return;
     window.clearTimeout(timer);
-    timer = window.setTimeout(() => void run(), ms);
+    const delay = jitter > 0 ? ms * (1 + Math.random() * jitter) : ms;
+    timer = window.setTimeout(() => void run(), delay);
   };
   const run = async () => {
     if (stopped || running || document.hidden) return;

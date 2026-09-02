@@ -17,6 +17,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, ArrowUp, Check, ChevronDown, ChevronRight, Copy, Plug, RefreshCw, Square } from "lucide-react";
 import { useChatList } from "../App";
 import { BrandHero, BrandMark } from "../components/brand";
+import { GeminiLogo } from "../components/logos";
 import Markdown from "../components/Markdown";
 import ModelPicker from "../components/ModelPicker";
 import { Button, Notice, Spinner } from "../components/ui";
@@ -25,6 +26,7 @@ import {
   allVariantIds,
   loadStoredModel,
   modelLabel,
+  routeLabel,
   storeModel,
   type ChatEvent,
   type ChatMessage,
@@ -347,7 +349,7 @@ export default function Chat() {
           </p>
         )}
         <div className="pointer-events-auto ml-auto">
-          <AccountsBar models={models} onAccountChange={() => void loadModels(true)} />
+          <RouteBar models={models} onRouteChange={() => void loadModels(true)} />
         </div>
       </div>
 
@@ -362,12 +364,13 @@ export default function Chat() {
               <div className="mt-8 w-full max-w-xl">
                 <Notice tone="warn">
                   <span className="normal-case">
-                    Connect a Google account first. Every reply runs on your own Google plan.{" "}
+                    Add a Gemini API key or connect a Google account first. Every reply runs on your own key or
+                    plan.{" "}
                     <Link
                       to="/app/accounts"
                       className="inline-flex items-center gap-1 font-semibold underline underline-offset-2"
                     >
-                      Google accounts <ArrowRight className="h-3.5 w-3.5" />
+                      Open the dashboard <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </span>
                 </Notice>
@@ -497,7 +500,7 @@ function Composer(props: {
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
         onKeyDown={onKeyDown}
-        placeholder={props.disabled ? "Connect a Google account to start chatting" : "What do you want to know?"}
+        placeholder={props.disabled ? "Add a Gemini API key or connect Google to start chatting" : "What do you want to know?"}
         rows={1}
         autoFocus={props.autoFocus}
         disabled={props.disabled}
@@ -639,12 +642,21 @@ interface AccountRow {
   status: "active" | "needs_reconnect" | "revoked";
 }
 
-/** Compact "accounts" pill: no email on the bar itself — click it to see and
- *  switch between connected Google accounts. */
-function AccountsBar(props: { models: ChatModelsPayload | null; onAccountChange?: () => void }) {
+interface KeyRow {
+  id: string;
+  label: string;
+  prefix: string;
+  isDefault: boolean;
+  status: "active" | "invalid";
+}
+
+/** Compact route pill: which Gemini API key or Google account replies come
+ *  from. Click it to see every source and move the default. */
+function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () => void }) {
   const m = props.models;
   const [open, setOpen] = useState(false);
   const [accounts, setAccounts] = useState<AccountRow[] | null>(null);
+  const [keys, setKeys] = useState<KeyRow[] | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -669,6 +681,9 @@ function AccountsBar(props: { models: ChatModelsPayload | null; onAccountChange?
     get<{ connections: AccountRow[] }>("/api/google/connections")
       .then((d) => setAccounts(d.connections))
       .catch((e) => setError(friendly(e)));
+    get<{ keys: KeyRow[] }>("/api/gemini/keys")
+      .then((d) => setKeys(d.keys))
+      .catch((e) => setError(friendly(e)));
   }, []);
 
   const toggle = () => {
@@ -681,14 +696,14 @@ function AccountsBar(props: { models: ChatModelsPayload | null; onAccountChange?
     });
   };
 
-  const makeDefault = (row: AccountRow) => {
-    if (row.isDefault || switchingId) return;
-    setSwitchingId(row.id);
+  const choose = (path: string, id: string) => {
+    if (switchingId) return;
+    setSwitchingId(id);
     setError(null);
-    post(`/api/google/connections/${row.id}/default`)
+    post(path)
       .then(() => {
         load();
-        props.onAccountChange?.();
+        props.onRouteChange?.();
       })
       .catch((e) => setError(friendly(e)))
       .finally(() => setSwitchingId(null));
@@ -701,10 +716,13 @@ function AccountsBar(props: { models: ChatModelsPayload | null; onAccountChange?
         to="/app/accounts"
         className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-ink shadow-sm hover:brightness-105"
       >
-        <Plug className="h-4 w-4" /> Connect Google
+        <Plug className="h-4 w-4" /> Add a key or account
       </Link>
     );
   }
+
+  const gemini = m.route === "gemini_api";
+  const isCurrent = (kind: "gemini_api" | "code_assist", id: string) => m.route === kind && m.connectionId === id;
 
   return (
     <div ref={ref} className="relative">
@@ -712,51 +730,74 @@ function AccountsBar(props: { models: ChatModelsPayload | null; onAccountChange?
         type="button"
         onClick={toggle}
         className="inline-flex items-center gap-2 rounded-full border border-edge bg-panel-2 px-3 py-1.5 text-sm font-medium text-ink-dim hover:text-ink"
-        title="Google accounts"
+        title={routeLabel(m)}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={`h-2 w-2 rounded-full ${m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
-        <Plug className="h-4 w-4" />
+        <span className={`h-2 w-2 rounded-full ${gemini || m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
+        {gemini ? <GeminiLogo className="h-4 w-4" /> : <Plug className="h-4 w-4" />}
+        <span className="hidden max-w-[11rem] truncate lg:inline">{gemini ? "Gemini API" : m.email}</span>
+        {m.beta && (
+          <span className="rounded-full bg-violet-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet">
+            Beta
+          </span>
+        )}
         <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
         <div
-          className="pop-in absolute right-0 top-full z-30 mt-2 w-[21rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-edge bg-panel shadow-2xl"
+          className="pop-in absolute right-0 top-full z-30 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-edge bg-panel shadow-2xl"
           role="listbox"
         >
           <p className="border-b border-edge px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim">
-            Google accounts
+            Gemini API keys
           </p>
-          <div className="max-h-72 overflow-y-auto p-1.5">
-            {accounts === null ? (
-              <div className="flex justify-center py-6 text-ink-dim">
+          <div className="max-h-40 overflow-y-auto p-1.5">
+            {keys === null ? (
+              <div className="flex justify-center py-4 text-ink-dim">
                 <Spinner size={16} />
               </div>
+            ) : keys.length === 0 ? (
+              <p className="px-2.5 py-2 text-[12px] text-ink-dim">No keys yet. Add one on the dashboard.</p>
+            ) : (
+              keys.map((row) => (
+                <SourceRow
+                  key={row.id}
+                  label={row.label || row.prefix}
+                  sub={row.label ? row.prefix : ""}
+                  ok={row.status === "active"}
+                  current={isCurrent("gemini_api", row.id)}
+                  switching={switchingId === row.id}
+                  disabled={row.status !== "active" || switchingId !== null}
+                  onPick={() => choose(`/api/gemini/keys/${row.id}/default`, row.id)}
+                />
+              ))
+            )}
+          </div>
+          <p className="flex items-center gap-2 border-y border-edge px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-dim">
+            Google accounts
+            <span className="rounded-full bg-violet-soft px-1.5 py-0.5 text-[10px] text-violet">Beta</span>
+          </p>
+          <div className="max-h-40 overflow-y-auto p-1.5">
+            {accounts === null ? (
+              <div className="flex justify-center py-4 text-ink-dim">
+                <Spinner size={16} />
+              </div>
+            ) : accounts.length === 0 ? (
+              <p className="px-2.5 py-2 text-[12px] text-ink-dim">No Google account connected.</p>
             ) : (
               accounts.map((row) => (
-                <button
+                <SourceRow
                   key={row.id}
-                  type="button"
-                  disabled={row.isDefault || switchingId !== null}
-                  onClick={() => makeDefault(row)}
-                  className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] ${
-                    row.isDefault ? "bg-accent-soft" : "hover:bg-ink/[0.04] disabled:opacity-60"
-                  }`}
-                >
-                  <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${
-                      row.status === "active" ? "bg-ok" : row.status === "needs_reconnect" ? "bg-warn" : "bg-danger"
-                    }`}
-                  />
-                  <span className="min-w-0 flex-1 truncate font-medium text-ink">{row.email}</span>
-                  {switchingId === row.id ? (
-                    <Spinner size={13} />
-                  ) : row.isDefault ? (
-                    <span className="shrink-0 text-[11px] font-semibold text-accent">Default</span>
-                  ) : null}
-                </button>
+                  label={row.email}
+                  sub=""
+                  ok={row.status === "active"}
+                  current={isCurrent("code_assist", row.id)}
+                  switching={switchingId === row.id}
+                  disabled={row.status !== "active" || switchingId !== null}
+                  onPick={() => choose(`/api/google/connections/${row.id}/default`, row.id)}
+                />
               ))
             )}
           </div>
@@ -766,10 +807,42 @@ function AccountsBar(props: { models: ChatModelsPayload | null; onAccountChange?
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 border-t border-edge px-3.5 py-2.5 text-[13px] font-medium text-ink-dim hover:text-ink"
           >
-            <Plug className="h-3.5 w-3.5" /> Manage accounts
+            <Plug className="h-3.5 w-3.5" /> Manage sources
           </Link>
         </div>
       )}
     </div>
+  );
+}
+
+function SourceRow(props: {
+  label: string;
+  sub: string;
+  ok: boolean;
+  current: boolean;
+  switching: boolean;
+  disabled: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={props.current || props.disabled}
+      onClick={props.onPick}
+      className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] ${
+        props.current ? "bg-accent-soft" : "hover:bg-ink/[0.04] disabled:opacity-60"
+      }`}
+    >
+      <span className={`h-2 w-2 shrink-0 rounded-full ${props.ok ? "bg-ok" : "bg-danger"}`} />
+      <span className="min-w-0 flex-1 truncate font-medium text-ink">
+        {props.label}
+        {props.sub && <span className="mono ml-1.5 text-[11px] font-normal text-ink-dim">{props.sub}</span>}
+      </span>
+      {props.switching ? (
+        <Spinner size={13} />
+      ) : props.current ? (
+        <span className="shrink-0 text-[11px] font-semibold text-accent">Default</span>
+      ) : null}
+    </button>
   );
 }

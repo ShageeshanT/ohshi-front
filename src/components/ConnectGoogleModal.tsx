@@ -79,13 +79,14 @@ export default function ConnectGoogleModal(props: {
         reset();
         props.onClose();
       }}
-      title="Connect a Google account"
+      title="Connect a Google account (Beta)"
     >
       <div className="space-y-4">
         <p className="text-sm text-ink-dim">
           Sign in with the Google account whose plan you want to use (Google AI Pro / Ultra
           unlocks the full model list). Google shows a code at the end. Paste it below and
-          your agents can use Gemini, Claude and GPT-OSS on that account.
+          your agents can use Gemini, Claude and GPT-OSS on that account. This connector is in
+          Beta; a Gemini API key is the supported path.
         </p>
 
         {!start ? (

@@ -4,6 +4,7 @@
  * gateway.
  *
  * Data:
+ *   GET  /api/gemini/keys                            -> {keys, route, studioUrl, maxKeys} (see GeminiKeysCard)
  *   GET  /api/google/connections                     -> {connections, redirectMode, endpoints}
  *   GET  /api/google/connections/:id/quota[?force=1] -> QuotaSnapshot (or 502 {error, stale})
  *   POST /api/google/connections/:id/test            -> {ok, latencyMs, endpointLabel, error, health}
@@ -35,7 +36,8 @@ import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../App";
 import ConnectGoogleModal from "../components/ConnectGoogleModal";
 import ConnectorCard, { type RunnerStatus } from "../components/ConnectorCard";
-import { GoogleLogo, vendorLogo } from "../components/logos";
+import GeminiKeysCard, { type GeminiKeysPayload } from "../components/GeminiKeysCard";
+import { GeminiLogo, GoogleLogo, vendorLogo } from "../components/logos";
 import {
   Badge,
   Button,
@@ -219,6 +221,9 @@ export default function Dashboard() {
   const [runner, setRunner] = useState<RunnerStatus | null>(null);
   const [runnerError, setRunnerError] = useState<string | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [gemini, setGemini] = useState<GeminiKeysPayload | null>(null);
+  const [geminiError, setGeminiError] = useState<string | null>(null);
+  const [addKeyOpen, setAddKeyOpen] = useState(false);
   const [flash, setFlash] = useState<{ tone: Tone; text: string } | null>(() => {
     const connected = params.get("connected");
     const error = params.get("connect_error");
@@ -258,6 +263,16 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Keys and the route are local rows (no Google call), cheap to re-read.
+  const loadGemini = useCallback(async () => {
+    try {
+      setGemini(await get<GeminiKeysPayload>("/api/gemini/keys"));
+      setGeminiError(null);
+    } catch (e) {
+      setGeminiError(friendly(e, "Couldn't read your Gemini API keys."));
+    }
+  }, []);
+
   const loadQuota = useCallback(async (id: string, force = false) => {
     setQuotas((q) => ({ ...q, [id]: { snapshot: q[id]?.snapshot ?? null, error: null, loading: true } }));
     try {
@@ -273,9 +288,11 @@ export default function Dashboard() {
     }
   }, []);
 
-  useEffect(() => poll(loadConnections, 20_000), [loadConnections]);
-  useEffect(() => poll(loadUsage, 30_000), [loadUsage]);
-  // Online / last seen changes fast when a laptop wakes; poll() pauses while the tab is hidden.
+  // Health rows are local: once a minute is plenty. poll() pauses while the tab is hidden.
+  useEffect(() => poll(loadConnections, 60_000), [loadConnections]);
+  useEffect(() => poll(loadGemini, 60_000), [loadGemini]);
+  useEffect(() => poll(loadUsage, 60_000), [loadUsage]);
+  // Online / last seen changes fast when a laptop wakes.
   useEffect(() => poll(loadRunner, 15_000), [loadRunner]);
 
   const connectionIds = useMemo(
@@ -286,18 +303,25 @@ export default function Dashboard() {
         .join(","),
     [connections],
   );
+  // Quota is a real call to Google per account: every 15 minutes, spread by up
+  // to 15% so open tabs do not all ask at once. Refresh is the manual override.
   useEffect(() => {
     if (!connectionIds) return;
     const ids = connectionIds.split(",");
-    return poll(async () => {
-      await Promise.all(ids.map((id) => loadQuota(id)));
-    }, 60_000);
+    return poll(
+      async () => {
+        await Promise.all(ids.map((id) => loadQuota(id)));
+      },
+      15 * 60_000,
+      0.15,
+    );
   }, [connectionIds, loadQuota]);
 
   const onConnected = (email: string) => {
     setConnectOpen(false);
     setFlash({ tone: "ok", text: `Connected ${email}.` });
     void loadConnections();
+    void loadGemini();
   };
 
   const disconnect = async (c: Connection) => {
@@ -309,7 +333,7 @@ export default function Dashboard() {
         delete next[c.id];
         return next;
       });
-      await loadConnections();
+      await Promise.all([loadConnections(), loadGemini()]);
     } catch (e) {
       setFlash({ tone: "danger", text: friendly(e) });
     }
@@ -318,7 +342,8 @@ export default function Dashboard() {
   const makeDefault = async (c: Connection) => {
     try {
       await post(`/api/google/connections/${c.id}/default`);
-      await loadConnections();
+      setFlash({ tone: "ok", text: `Chat and /v1 now run on ${c.email} (Beta).` });
+      await Promise.all([loadConnections(), loadGemini()]);
     } catch (e) {
       setFlash({ tone: "danger", text: friendly(e) });
     }
@@ -342,9 +367,18 @@ export default function Dashboard() {
 
   const activeConnections = (connections ?? []).filter((connection) => connection.status === "active");
   const preferLocalCount = activeConnections.filter((connection) => connection.executeMode === "prefer_local").length;
-  const needsAttention = (connections ?? []).filter(
-    (connection) => connection.status !== "active" || connection.health?.status === "error",
-  );
+  const keys = gemini?.keys ?? [];
+  const activeKeys = keys.filter((k) => k.status === "active");
+  const route = gemini?.route ?? null;
+  const sourcesKnown = connections !== null && gemini !== null;
+  const activeSources = activeConnections.length + activeKeys.length;
+  const totalSources = (connections?.length ?? 0) + keys.length;
+  const needsAttention: unknown[] = [
+    ...(connections ?? []).filter(
+      (connection) => connection.status !== "active" || connection.health?.status === "error",
+    ),
+    ...keys.filter((k) => k.status !== "active" || k.health?.status === "error"),
+  ];
   const availableFamilies = new Set(
     Object.values(quotas).flatMap((quota) => quota.snapshot?.families.map((family) => family.id) ?? []),
   ).size;
@@ -356,6 +390,7 @@ export default function Dashboard() {
   const refreshWorkspace = async () => {
     await Promise.all([
       loadConnections(),
+      loadGemini(),
       loadUsage(),
       loadRunner(),
       ...activeConnections.map((connection) => loadQuota(connection.id, true)),
@@ -370,15 +405,18 @@ export default function Dashboard() {
             <p className="workspace-overline">Workspace</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Welcome back, {firstName}.</h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-dim">
-              Manage your model connections, usage and API access.
+              Manage your model sources, usage and API access.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to="/app" className="dashboard-primary-action">
               <MessageSquare className="h-4 w-4" /> New chat
             </Link>
+            <Button tone="ghost" onClick={() => setAddKeyOpen(true)}>
+              <KeyRound className="h-4 w-4" /> Add key
+            </Button>
             <Button tone="ghost" onClick={() => setConnectOpen(true)}>
-              <Plug className="h-4 w-4" /> Connect
+              <Plug className="h-4 w-4" /> Connect Google
             </Button>
             <Button tone="ghost" onClick={() => void refreshWorkspace()}>
               <RefreshCw className="h-4 w-4" /> Refresh
@@ -397,16 +435,32 @@ export default function Dashboard() {
       <section className="workspace-stats grid grid-cols-2 gap-px overflow-hidden border-y border-edge bg-edge lg:grid-cols-4">
         <OverviewStat
           icon={Plug}
-          label="Model connections"
-          value={connections === null ? "—" : `${activeConnections.length}/${connections.length}`}
-          detail={connections === null ? "Checking status" : activeConnections.length ? "Ready to use" : "Connect an account"}
-          tone={activeConnections.length ? "ok" : "accent"}
+          label="Model sources"
+          value={!sourcesKnown ? "—" : `${activeSources}/${totalSources}`}
+          detail={
+            !sourcesKnown
+              ? "Checking status"
+              : route
+                ? route.kind === "gemini_api"
+                  ? `Route: Gemini API key ${route.label}`
+                  : `Route: ${route.label} (Beta)`
+                : "Add a key or connect an account"
+          }
+          tone={activeSources ? "ok" : "accent"}
         />
         <OverviewStat
           icon={CircleGauge}
-          label="Available families"
+          label="Quota families"
           value={availableFamilies || (activeConnections.length ? "…" : "0")}
-          detail={availableFamilies ? "Across your plan" : activeConnections.length ? "Reading quota" : "After you connect"}
+          detail={
+            availableFamilies
+              ? "Google accounts, live"
+              : activeConnections.length
+                ? "Reading quota"
+                : activeKeys.length
+                  ? "API keys report no meter"
+                  : "After you connect"
+          }
           tone="accent"
         />
         <OverviewStat
@@ -434,27 +488,27 @@ export default function Dashboard() {
             </div>
             {needsAttention.length > 0 && <Badge tone="warn">Needs attention</Badge>}
           </div>
-          {connections === null ? (
+          {!sourcesKnown ? (
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               <Skeleton className="h-20 w-full rounded-2xl" />
               <Skeleton className="h-20 w-full rounded-2xl" />
             </div>
-          ) : activeConnections.length === 0 ? (
+          ) : activeSources === 0 ? (
             <NextMove
               to="/app/accounts"
-              icon={Plug}
-              title="Connect the plan that powers your models"
-              copy="Add a Google account once, then access its supported models from chat and the API gateway."
-              action="Connect a model account"
-              onClick={() => setConnectOpen(true)}
+              icon={KeyRound}
+              title="Add a Gemini API key"
+              copy="Paste a key from Google AI Studio, the supported path, and chat and the API gateway run on it. You can also connect a Google account in Beta."
+              action="Add a key"
+              onClick={() => setAddKeyOpen(true)}
             />
           ) : needsAttention.length > 0 ? (
             <NextMove
-              to="#connections"
+              to="#sources"
               icon={TriangleAlert}
-              title="A connection needs a quick check"
-              copy="Run a health test or reconnect it before your agents hit a failed request."
-              action="Review connections"
+              title="A model source needs a quick check"
+              copy="Run a test, paste a fresh key or reconnect the account before your agents hit a failed request."
+              action="Review sources"
             />
           ) : requestCount === 0 ? (
             <NextMove
@@ -485,33 +539,59 @@ export default function Dashboard() {
         </div>
       </section>
 
+      <section id="sources" className="scroll-mt-4 space-y-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <GeminiLogo className="h-4 w-4 text-ink-dim" />
+            <h2 className="text-lg font-bold tracking-tight">Gemini API</h2>
+          </div>
+          <p className="mt-1 text-xs text-ink-dim">
+            Your own key from Google AI Studio. The supported path: Google bills the key, Ohshi routes to it.
+          </p>
+        </div>
+        <GeminiKeysCard
+          payload={gemini}
+          error={geminiError}
+          addOpen={addKeyOpen}
+          onAddOpen={setAddKeyOpen}
+          onChanged={() => {
+            void loadGemini();
+            void loadConnections();
+          }}
+          onFlash={setFlash}
+        />
+      </section>
+
       <section id="connections" className="scroll-mt-4 space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <Plug className="h-4 w-4 text-ink-dim" />
-              <h2 className="text-lg font-bold tracking-tight">Model connections</h2>
+              <h2 className="text-lg font-bold tracking-tight">Google accounts</h2>
+              <Badge tone="violet">Beta</Badge>
             </div>
-            <p className="mt-1 text-xs text-ink-dim">Connection health, quota and default routing — all in one place.</p>
+            <p className="mt-1 text-xs text-ink-dim">
+              Sign in with the account behind your Google AI plan. Health, live quota and default routing in one place.
+            </p>
           </div>
           {connections && connections.length > 0 && (
             <Button size="sm" tone="ghost" onClick={() => setConnectOpen(true)}>
-              <Plug className="h-3.5 w-3.5" /> Add connection
+              <Plug className="h-3.5 w-3.5" /> Add account
             </Button>
           )}
         </div>
 
         {connections === null ? (
           <Card>
-            <Spinner label="Checking your model connections…" />
+            <Spinner label="Checking your Google accounts…" />
           </Card>
         ) : connections.length === 0 ? (
           <Card>
             <EmptyState
-              title="Your AI workspace is ready for a model connection"
-              hint="Sign in with the Google account whose plan you want to use. You’ll get live health and quota visibility here once it is connected."
+              title="No Google account connected"
+              hint="Optional, and in Beta: sign in with the Google account whose plan you want to use and paste back the code. Live health and quota show up here once it is connected."
               action={
-                <Button onClick={() => setConnectOpen(true)} arrow>
+                <Button tone="ghost" onClick={() => setConnectOpen(true)} arrow>
                   <Plug className="h-4 w-4" /> Connect account
                 </Button>
               }
@@ -524,7 +604,7 @@ export default function Dashboard() {
               connection={c}
               quota={quotas[c.id] ?? { snapshot: null, error: null, loading: true }}
               runner={runner}
-              soloAccount={connections.length === 1}
+              canMakeDefault={!c.isDefault && (connections.length > 1 || route?.kind === "gemini_api")}
               onRefreshQuota={() => loadQuota(c.id, true)}
               onDisconnect={() => disconnect(c)}
               onMakeDefault={() => makeDefault(c)}
@@ -647,7 +727,8 @@ function ConnectionCard(props: {
   connection: Connection;
   quota: QuotaState;
   runner: RunnerStatus | null;
-  soloAccount: boolean;
+  /** Hidden for the only account unless a Gemini key currently holds the route. */
+  canMakeDefault: boolean;
   onRefreshQuota: () => void;
   onDisconnect: () => void;
   onMakeDefault: () => void;
@@ -730,7 +811,7 @@ function ConnectionCard(props: {
               <Plug className="h-3.5 w-3.5" /> Reconnect
             </Button>
           )}
-          {!c.isDefault && !props.soloAccount && connected && (
+          {props.canMakeDefault && connected && (
             <Button size="sm" tone="ghost" onClick={props.onMakeDefault}>
               <Star className="h-3.5 w-3.5" /> Make default
             </Button>

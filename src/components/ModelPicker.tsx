@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import type { ChatModelsPayload, ModelFamily } from "../lib/chat";
 import { countdown, timeAgo } from "../lib/api";
-import { effortLabel, familyName, modelLabel, splitPopular } from "../lib/chat";
+import { effortLabel, familyName, modelLabel, routeLabel, splitPopular } from "../lib/chat";
 import { vendorLogo } from "./logos";
 import { Spinner, quotaTone } from "./ui";
 
@@ -85,7 +85,7 @@ export default function ModelPicker(props: {
   };
 
   const m = props.models;
-  const { popular, other } = splitPopular(m?.families ?? []);
+  const { popular, other } = splitPopular(m?.families ?? [], m?.popular ?? null);
   const selectedInOther = other.some((f) => f.variants.some((v) => v.id === props.value));
 
   return (
@@ -120,8 +120,14 @@ export default function ModelPicker(props: {
             <div className="min-w-0">
               <p className="truncate text-[11px] text-ink-dim">
                 {m?.connected
-                  ? `${m.email}${m.quotaAvailable && m.fetchedMs ? `, quota ${timeAgo(m.fetchedMs)}` : ""}`
-                  : "Fallback catalog. Connect Google for live quota"}
+                  ? `${routeLabel(m)}${
+                      m.quotaAvailable && m.fetchedMs
+                        ? `, quota ${timeAgo(m.fetchedMs)}`
+                        : m.fetchedMs
+                          ? `, list ${timeAgo(m.fetchedMs)}`
+                          : ""
+                    }`
+                  : "Built-in catalog. Add a Gemini API key or connect Google"}
               </p>
               {m?.error && <p className="mt-0.5 text-[11px] text-warn">{m.error}</p>}
             </div>
