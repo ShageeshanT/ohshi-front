@@ -1,7 +1,7 @@
 /** Shared UI kit — token-only, so it renders correctly on both themes.
  *  Flat white panels, hairline borders, 8px radii, one ink primary. */
 
-import { useEffect, useId, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import { ArrowUpRight, Loader2, User, X } from "lucide-react";
 
@@ -441,6 +441,34 @@ export function quotaTone(percent: number | null): Tone {
   if (percent <= 0) return "danger";
   if (percent < 25) return "warn";
   return "ok";
+}
+
+/** Plain text with its https links made clickable, shown by host name so a
+ *  long sign-in URL does not swallow the sentence around it. */
+export function LinkText(props: { text: string }) {
+  const parts = props.text.split(/(https?:\/\/[^\s]+)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (!/^https?:\/\//.test(part)) return <Fragment key={i}>{part}</Fragment>;
+        const clean = part.replace(/[.,;:)]+$/, "");
+        let label = clean;
+        try {
+          label = new URL(clean).hostname;
+        } catch {
+          /* keep the raw text */
+        }
+        return (
+          <Fragment key={i}>
+            <a href={clean} target="_blank" rel="noreferrer noopener" className="font-medium underline underline-offset-2">
+              {label}
+            </a>
+            {part.slice(clean.length)}
+          </Fragment>
+        );
+      })}
+    </>
+  );
 }
 
 export function Notice(props: { tone: Tone; children: ReactNode; onClose?: () => void }) {

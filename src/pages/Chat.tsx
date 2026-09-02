@@ -52,7 +52,7 @@ import { GeminiLogo } from "../components/logos";
 import Markdown from "../components/Markdown";
 import ModelPicker from "../components/ModelPicker";
 import { Topbar } from "../components/Topbar";
-import { Button, Notice, Spinner } from "../components/ui";
+import { Button, LinkText, Notice, Spinner } from "../components/ui";
 import { copyText, friendly, get, post, readSSE, streamPost, uploadFile } from "../lib/api";
 import {
   ATTACHMENT_ACCEPT,
@@ -612,7 +612,7 @@ export default function Chat() {
             {turnError && (
               <div className="mt-4 w-full max-w-lg">
                 <Notice tone="danger" onClose={() => setTurnError(null)}>
-                  {turnError}
+                  <LinkText text={turnError} />
                 </Notice>
               </div>
             )}
@@ -665,7 +665,9 @@ export default function Chat() {
                 {stream && <AssistantMessage streaming={stream} models={models} modelId={model} />}
                 {turnError && !busy && (
                   <div className="msg-in flex items-center justify-between gap-3 rounded-lg bg-danger-soft px-3.5 py-2.5 text-[13px] text-danger">
-                    <span>{turnError}</span>
+                    <span>
+                      <LinkText text={turnError} />
+                    </span>
                     <div className="flex shrink-0 items-center gap-2">
                       {canRegenerate && (
                         <Button size="sm" tone="ghost" onClick={regenerate}>

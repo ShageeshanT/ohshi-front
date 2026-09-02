@@ -16,7 +16,7 @@ import {
   type QuotaState,
 } from "../lib/workspace";
 import { GoogleLogo, vendorLogo } from "./logos";
-import { Badge, Button, Card, Toggle, quotaTone, toneTextClass } from "./ui";
+import { Badge, Button, Card, LinkText, Toggle, quotaTone, toneTextClass } from "./ui";
 
 export function ConnectionCard(props: {
   connection: Connection;
@@ -88,12 +88,14 @@ export function ConnectionCard(props: {
               )}
               {c.tier && <Badge>{c.tier === "free" ? "Code Assist free tier" : `${c.tier} tier`}</Badge>}
             </div>
-            <p className={`mt-1 text-[12px] ${toneTextClass(line.tone)}`}>{line.text}</p>
+            <p className={`mt-1 text-[12px] ${toneTextClass(line.tone)}`}>
+              <LinkText text={line.text} />
+            </p>
             {test && !testing && (
               <p className={`mt-0.5 text-[12px] ${test.ok ? "text-ok" : "text-danger"}`}>
                 {test.ok
                   ? `Test passed, “${test.reply}” from ${test.model} via ${test.endpointLabel} in ${(test.latencyMs / 1000).toFixed(1)}s`
-                  : `Test failed, ${test.error}${test.tried?.length ? ` (tried ${test.tried.join(", ")})` : ""}`}
+                  : <LinkText text={`Test failed, ${test.error}${test.tried?.length ? ` (tried ${test.tried.join(", ")})` : ""}`} />}
               </p>
             )}
             <p className="mt-0.5 text-[12px] text-ink-dim">
