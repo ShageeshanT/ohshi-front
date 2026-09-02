@@ -20,6 +20,7 @@ export default function Signup() {
 
   return (
     <AuthShell
+      page="signup"
       title="Create your account"
       subtitle="Chat and an API on your own Google AI access."
       footer={

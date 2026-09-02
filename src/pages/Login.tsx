@@ -21,6 +21,7 @@ export default function Login() {
 
   return (
     <AuthShell
+      page="login"
       title="Sign in"
       subtitle={CLERK_ENABLED ? "Continue with Google, or use your email." : "Welcome back."}
       footer={

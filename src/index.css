@@ -318,42 +318,123 @@ pre,
   background: var(--color-accent);
 }
 
-/* ── hero ─────────────────────────────────────────────────────────────────── */
+/* ── hero ───────────────────────────────────────────────────────────────────
+   The painting fills the first screen, uncut and unwashed. The copy sits on
+   it and carries its own contrast with a tight halo in the page colour (it
+   reads as haze already in the picture, not as a box). The only gradient is
+   a short fade at the bottom so the section below meets the painting. */
+.hero-art {
+  position: absolute;
+  inset: 0;
+  z-index: -20;
+  overflow: hidden;
+  background: var(--color-panel-2);
+}
+.hero-art img {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  user-select: none;
+}
+.hero-art::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 18%;
+  background: linear-gradient(180deg, transparent, var(--color-surface));
+  pointer-events: none;
+}
+.hero-shell {
+  padding-top: clamp(5.5rem, 13vh, 9rem);
+  padding-bottom: clamp(3.5rem, 10vh, 6.5rem);
+}
+/* The copy sits in one solid panel on the painting: fully opaque, a
+   hairline edge and a deep soft shadow so it reads as placed on the picture
+   rather than washed over it. Every measure breathes with the window height
+   so the panel still fits a 640px tall viewport. */
+.hero-card {
+  max-width: 34rem;
+  border-radius: 18px;
+  padding: clamp(1.3rem, 3.6vh, 2.3rem) clamp(1.3rem, 2.6vw, 2.4rem);
+  background: var(--color-panel);
+  border: 1px solid var(--color-edge);
+  box-shadow: 0 30px 70px -36px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.hero-copy {
+  text-shadow:
+    0 0 3px color-mix(in srgb, var(--color-surface) 94%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-surface) 90%, transparent),
+    0 0 8px color-mix(in srgb, var(--color-surface) 80%, transparent),
+    0 0 20px color-mix(in srgb, var(--color-surface) 62%, transparent),
+    0 0 40px color-mix(in srgb, var(--color-surface) 40%, transparent);
+}
+[data-theme="dark"] .hero-copy {
+  text-shadow:
+    0 1px 1px color-mix(in srgb, var(--color-surface) 70%, transparent),
+    0 0 14px color-mix(in srgb, var(--color-surface) 55%, transparent),
+    0 0 34px color-mix(in srgb, var(--color-surface) 36%, transparent);
+}
+.hero-copy .btn-primary,
+.hero-copy .btn-ghost {
+  text-shadow: none;
+}
+.hero-copy .eyebrow {
+  color: color-mix(in srgb, var(--color-ink) 90%, transparent);
+}
 .hero-title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(2.4rem, min(5.6vw, 11vh), 4.75rem);
+  font-size: clamp(2.1rem, min(4.6vw, 9vh), 4.2rem);
   letter-spacing: -0.005em;
-  line-height: 0.96;
+  line-height: 0.94;
   text-transform: uppercase;
 }
 .hero-lede {
-  font-size: clamp(14.5px, 1.2vw, 16.5px);
-  line-height: 1.6;
+  font-size: clamp(14px, min(1.2vw, 2.4vh), 16px);
+  line-height: 1.55;
   color: var(--color-ink-dim);
 }
-/* The painting sits in a frame under the copy; on a short window the frame
-   still starts above the fold. */
-.hero-frame {
-  position: relative;
-  overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid var(--color-edge);
-  background: var(--color-panel-2);
-  aspect-ratio: 16 / 8.2;
+.hero-trust {
+  font-weight: 500;
+  color: var(--color-ink-dim);
 }
-@media (max-width: 767px) {
-  .hero-frame {
-    aspect-ratio: 4 / 5;
+.hero-gap {
+  margin-top: clamp(0.9rem, 2.6vh, 1.6rem);
+}
+.hero-gap-lg {
+  margin-top: clamp(1.1rem, 3.4vh, 2.1rem);
+}
+.hero-cue {
+  bottom: clamp(1rem, 3vh, 1.8rem);
+}
+@keyframes cue-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(5px);
+    opacity: 1;
   }
 }
-.hero-frame img {
+.scroll-cue {
+  animation: cue-bounce 1.8s ease-in-out infinite;
+}
+
+/* ── auth art ──────────────────────────────────────────────────────────────
+   Sign in and sign up show their painting on one half of the screen, whole
+   and unwashed, with a hairline where it meets the form. */
+.auth-art img {
   position: absolute;
   inset: 0;
-  width: 100%;
   height: 100%;
+  width: 100%;
   object-fit: cover;
-  object-position: 50% 42%;
+  object-position: center;
   user-select: none;
 }
 

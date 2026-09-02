@@ -1,6 +1,7 @@
 /**
- * The public landing page at ohshi.space. A plain hero — headline, lede, two
- * buttons, the painting in a frame — then the pitch: why one source beats a
+ * The public landing page at ohshi.space. The hero is the painting, full
+ * frame, with the copy in one solid panel on it; then the pitch: why one
+ * source beats a
  * subscription plus API credits (a before and after wiring diagram), how it
  * works with a mock of each step, the providers and their plans (a hub
  * diagram) with the model line-up, a live quota board, a developer snippet,
@@ -98,32 +99,55 @@ function Hero() {
   const h = COPY.hero;
 
   return (
-    <section className="relative pt-[5.75rem] sm:pt-[6.5rem]">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <motion.div {...rise(0.05)} className="flex justify-center">
+    <section className="relative isolate min-h-[100svh] overflow-hidden">
+      {/* The painting fills the frame. Two plates: a 16:9 one for landscape
+          windows and a portrait one below md, so a phone downloads the cut
+          that fits it. Each theme has its own painting. */}
+      <div className="hero-art">
+        <picture key={theme}>
+          <source media="(max-width: 767px)" srcSet={theme === "dark" ? heroMobileDark : heroMobileLight} />
+          <img
+            src={theme === "dark" ? heroDark : heroLight}
+            alt=""
+            aria-hidden
+            draggable={false}
+            fetchPriority="high"
+            onLoad={() => setLoaded(true)}
+            className={`transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
+          />
+        </picture>
+      </div>
+
+      <div className="hero-shell mx-auto flex min-h-[100svh] max-w-[1460px] flex-col justify-center px-5 sm:px-10 lg:px-[5.5%]">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease }}
+          className="hero-card"
+        >
+          <motion.div {...rise(0.05)}>
             <span className="eyebrow">
               <span className="eyebrow-dot" />
               {h.badge}
             </span>
           </motion.div>
-          <motion.h1 {...rise(0.12)} className="hero-title mt-5">
+          <motion.h1 {...rise(0.15)} className="hero-title hero-gap">
             {h.line1}
             <br />
             {h.line2}
           </motion.h1>
-          <motion.p {...rise(0.22)} className="hero-lede mx-auto mt-5 max-w-[34rem]">
+          <motion.p {...rise(0.28)} className="hero-lede hero-gap max-w-[30rem]">
             {h.paragraph}
           </motion.p>
-          <motion.div {...rise(0.32)} className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
-            <Link to="/signup" className="btn-primary">
+          <motion.div {...rise(0.4)} className="hero-gap-lg flex flex-wrap items-center gap-2.5">
+            <Link to="/signup" className="btn-primary btn-lg">
               {h.primaryCta} <ArrowRight className="h-4 w-4" />
             </Link>
-            <button type="button" onClick={() => scrollToHash(lenis, "#developers")} className="btn-ghost">
+            <button type="button" onClick={() => scrollToHash(lenis, "#developers")} className="btn-ghost btn-lg">
               {h.secondaryCta}
             </button>
           </motion.div>
-          <motion.ul {...rise(0.42)} className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] text-ink-dim">
+          <motion.ul {...rise(0.52)} className="hero-trust hero-gap-lg flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px]">
             {h.trust.map((label) => (
               <li key={label} className="flex items-center gap-1.5">
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-accent" />
@@ -131,30 +155,17 @@ function Hero() {
               </li>
             ))}
           </motion.ul>
-        </div>
-
-        {/* The painting, framed. Two plates: a wide one for landscape windows
-            and a portrait one below md, so a phone downloads the cut that fits. */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease, delay: 0.5 }}
-          className="hero-frame mt-10 sm:mt-12"
-        >
-          <picture key={theme}>
-            <source media="(max-width: 767px)" srcSet={theme === "dark" ? heroMobileDark : heroMobileLight} />
-            <img
-              src={theme === "dark" ? heroDark : heroLight}
-              alt=""
-              aria-hidden
-              draggable={false}
-              fetchPriority="high"
-              onLoad={() => setLoaded(true)}
-              className={`transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
-            />
-          </picture>
         </motion.div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => scrollToHash(lenis, "#features")}
+        className="hero-copy hero-cue absolute left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 text-[11.5px] font-medium uppercase tracking-[0.14em] text-ink/85 transition-colors hover:text-ink"
+      >
+        Scroll to explore
+        <ChevronDown className="scroll-cue h-4.5 w-4.5" />
+      </button>
     </section>
   );
 }
