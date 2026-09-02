@@ -63,7 +63,8 @@ export default function Docs() {
         </h1>
         <p className="mt-1 text-sm text-ink-dim">
           Any OpenAI compatible client works. Base URL <code className="mono text-accent">{base}</code>, key from
-          the API keys page. Calls run on your default connected Google account.
+          the API keys page. Calls run on your default connected Google account, from Ohshi's servers or, if you
+          switch on the connector on the dashboard, from your own computer, with nothing to change here.
         </p>
       </header>
 

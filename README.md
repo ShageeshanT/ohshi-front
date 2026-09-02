@@ -11,7 +11,7 @@ The API lives in **[ohshi-back](https://github.com/ShageeshanT/ohshi-back)**.
 | Route | What it does |
 |---|---|
 | `/` · `/c/:chatId` | The chat: collapsible sidebar (search, new chat, date-grouped history with rename/delete), a pill composer with a **model picker showing live remaining quota per model**, streaming replies rendered as Markdown with copyable code blocks, collapsible reasoning, stop (keeps the partial reply) and regenerate |
-| `/accounts` | Connected Google accounts: connect / disconnect / make default, a real **Test** call, per-model remaining-usage bars with reset countdowns, and what your agents used through the gateway |
+| `/accounts` | Connected Google accounts: connect / disconnect / make default, a real **Test** call, per-model remaining-usage bars with reset countdowns, a per-account **Run on my machine** switch, the **Connector** card (Beta: tokens, online status, the one-liner to run on your computer), and what your agents used through the gateway |
 | `/keys` | Create and revoke `ohs_…` API keys (shown once) |
 | `/docs` | Copy-paste snippets for the OpenAI SDK, curl and JS, plus the live model table |
 

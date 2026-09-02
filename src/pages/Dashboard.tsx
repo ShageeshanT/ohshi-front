@@ -7,6 +7,8 @@
  *   GET  /api/google/connections                     -> {connections, redirectMode, endpoints}
  *   GET  /api/google/connections/:id/quota[?force=1] -> QuotaSnapshot (or 502 {error, stale})
  *   POST /api/google/connections/:id/test            -> {ok, latencyMs, endpointLabel, error, health}
+ *   POST /api/google/connections/:id/execute-mode    -> {ok, connection}   cloud | prefer_local
+ *   GET  /api/runner                                 -> RunnerStatus (the connector, see ConnectorCard)
  *   GET  /api/usage/summary?days=30                  -> totals / byModel / series / recent
  */
 
@@ -19,6 +21,7 @@ import {
   CheckCircle2,
   CircleGauge,
   KeyRound,
+  Laptop,
   MessageSquare,
   Plug,
   RefreshCw,
@@ -31,6 +34,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../App";
 import ConnectGoogleModal from "../components/ConnectGoogleModal";
+import ConnectorCard, { type RunnerStatus } from "../components/ConnectorCard";
 import { GoogleLogo, vendorLogo } from "../components/logos";
 import {
   Badge,
@@ -42,6 +46,7 @@ import {
   Skeleton,
   Spinner,
   StatChip,
+  Toggle,
   quotaTone,
   type Tone,
 } from "../components/ui";
@@ -61,6 +66,8 @@ interface Health {
   consecutiveFailures?: number;
 }
 
+type ExecuteMode = "cloud" | "prefer_local";
+
 interface Connection {
   id: string;
   email: string;
@@ -69,6 +76,8 @@ interface Connection {
   tier: string;
   status: "active" | "needs_reconnect" | "revoked";
   isDefault: boolean;
+  /** Where this account's model calls run: Ohshi's servers, or the user's connector when online. */
+  executeMode: ExecuteMode;
   connectedMs: number;
   health: Health;
 }
@@ -182,6 +191,22 @@ function healthLine(c: Connection, testing: boolean): { tone: Tone; text: string
   };
 }
 
+/** Where this account's calls go right now, in one line under the switch. */
+function executionLine(c: Connection, runner: RunnerStatus | null): { tone: Tone; text: string } {
+  if (c.executeMode !== "prefer_local") return { tone: "dim", text: "Calls run on Ohshi's servers." };
+  if (!runner) return { tone: "dim", text: "Checking the connector…" };
+  if (runner.online) {
+    return { tone: "ok", text: `Calls leave from ${runner.hostname ?? "your machine"} while the connector is up.` };
+  }
+  const hasToken = runner.tokens.some((t) => t.revokedMs === null);
+  return {
+    tone: "warn",
+    text: hasToken
+      ? "Connector offline, so calls run on Ohshi's servers until it is back."
+      : "No connector is set up yet, so calls run on Ohshi's servers. Create a token below.",
+  };
+}
+
 // --- page ---------------------------------------------------------------------
 
 export default function Dashboard() {
@@ -191,6 +216,8 @@ export default function Dashboard() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [quotas, setQuotas] = useState<Record<string, QuotaState>>({});
   const [usage, setUsage] = useState<UsageSummary | null>(null);
+  const [runner, setRunner] = useState<RunnerStatus | null>(null);
+  const [runnerError, setRunnerError] = useState<string | null>(null);
   const [connectOpen, setConnectOpen] = useState(false);
   const [flash, setFlash] = useState<{ tone: Tone; text: string } | null>(() => {
     const connected = params.get("connected");
@@ -222,6 +249,15 @@ export default function Dashboard() {
     }
   }, []);
 
+  const loadRunner = useCallback(async () => {
+    try {
+      setRunner(await get<RunnerStatus>("/api/runner"));
+      setRunnerError(null);
+    } catch (e) {
+      setRunnerError(friendly(e, "Couldn't read the connector status."));
+    }
+  }, []);
+
   const loadQuota = useCallback(async (id: string, force = false) => {
     setQuotas((q) => ({ ...q, [id]: { snapshot: q[id]?.snapshot ?? null, error: null, loading: true } }));
     try {
@@ -239,6 +275,8 @@ export default function Dashboard() {
 
   useEffect(() => poll(loadConnections, 20_000), [loadConnections]);
   useEffect(() => poll(loadUsage, 30_000), [loadUsage]);
+  // Online / last seen changes fast when a laptop wakes; poll() pauses while the tab is hidden.
+  useEffect(() => poll(loadRunner, 15_000), [loadRunner]);
 
   const connectionIds = useMemo(
     () =>
@@ -286,7 +324,24 @@ export default function Dashboard() {
     }
   };
 
+  const setExecuteMode = async (c: Connection, mode: ExecuteMode) => {
+    // Flip at once; the server's row (with its health note) replaces it when it answers.
+    setConnections((list) => list?.map((x) => (x.id === c.id ? { ...x, executeMode: mode } : x)) ?? list);
+    try {
+      const { connection } = await post<{ connection: Connection }>(
+        `/api/google/connections/${c.id}/execute-mode`,
+        { executeMode: mode },
+      );
+      setConnections((list) => list?.map((x) => (x.id === c.id ? connection : x)) ?? list);
+      void loadQuota(c.id, true);
+    } catch (e) {
+      setFlash({ tone: "danger", text: friendly(e) });
+      void loadConnections();
+    }
+  };
+
   const activeConnections = (connections ?? []).filter((connection) => connection.status === "active");
+  const preferLocalCount = activeConnections.filter((connection) => connection.executeMode === "prefer_local").length;
   const needsAttention = (connections ?? []).filter(
     (connection) => connection.status !== "active" || connection.health?.status === "error",
   );
@@ -302,6 +357,7 @@ export default function Dashboard() {
     await Promise.all([
       loadConnections(),
       loadUsage(),
+      loadRunner(),
       ...activeConnections.map((connection) => loadQuota(connection.id, true)),
     ]);
   };
@@ -467,11 +523,13 @@ export default function Dashboard() {
               key={c.id}
               connection={c}
               quota={quotas[c.id] ?? { snapshot: null, error: null, loading: true }}
+              runner={runner}
               soloAccount={connections.length === 1}
               onRefreshQuota={() => loadQuota(c.id, true)}
               onDisconnect={() => disconnect(c)}
               onMakeDefault={() => makeDefault(c)}
               onReconnect={() => setConnectOpen(true)}
+              onExecuteMode={(mode) => void setExecuteMode(c, mode)}
               onTested={() => {
                 void loadConnections();
                 void loadQuota(c.id, true);
@@ -479,6 +537,22 @@ export default function Dashboard() {
             />
           ))
         )}
+      </section>
+
+      <section id="connector" className="scroll-mt-4 space-y-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Laptop className="h-4 w-4 text-ink-dim" />
+            <h2 className="text-lg font-bold tracking-tight">Connector</h2>
+          </div>
+          <p className="mt-1 text-xs text-ink-dim">Optional. Make your model calls from your own computer.</p>
+        </div>
+        <ConnectorCard
+          status={runner}
+          error={runnerError}
+          preferLocalCount={preferLocalCount}
+          onChanged={() => void loadRunner()}
+        />
       </section>
 
       <UsageSection usage={usage} />
@@ -560,29 +634,39 @@ function ActionLink(props: { to: string; icon: LucideIcon; title: string; copy: 
 
 // --- one connected account -------------------------------------------------------
 
+const toneText = {
+  accent: "text-accent",
+  ok: "text-ok",
+  warn: "text-warn",
+  danger: "text-danger",
+  violet: "text-violet",
+  dim: "text-ink-dim",
+} as const;
+
 function ConnectionCard(props: {
   connection: Connection;
   quota: QuotaState;
+  runner: RunnerStatus | null;
   soloAccount: boolean;
   onRefreshQuota: () => void;
   onDisconnect: () => void;
   onMakeDefault: () => void;
   onReconnect: () => void;
+  onExecuteMode: (mode: ExecuteMode) => void;
   onTested: () => void;
 }) {
   const c = props.connection;
   const [testing, setTesting] = useState(false);
   const [test, setTest] = useState<TestResult | null>(null);
   const line = healthLine(c, testing);
-  const lineCls = {
-    accent: "text-accent",
-    ok: "text-ok",
-    warn: "text-warn",
-    danger: "text-danger",
-    violet: "text-violet",
-    dim: "text-ink-dim",
-  }[line.tone];
+  const lineCls = toneText[line.tone];
   const connected = c.status === "active";
+  const preferLocal = c.executeMode === "prefer_local";
+  const execution = executionLine(c, props.runner);
+  // The backend sets this exact sentence (and only this) when a prefer_local
+  // call had to run on Ohshi's servers; health stays green, so say it quietly.
+  const fellBack =
+    preferLocal && !!props.runner && !!c.health?.lastError && c.health.lastError === props.runner.fallbackMessage;
 
   const runTest = () => {
     setTesting(true);
@@ -635,7 +719,8 @@ function ConnectionCard(props: {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* On a phone the actions take their own row, so the text keeps its width. */}
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           {connected ? (
             <Button size="sm" tone="ghost" busy={testing} onClick={runTest}>
               <Zap className="h-3.5 w-3.5" /> Test
@@ -655,6 +740,28 @@ function ConnectionCard(props: {
           </Button>
         </div>
       </div>
+
+      {connected && (
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-3 rounded-xl bg-ink/[0.03] px-3.5 py-3">
+          <div className="min-w-0 flex-1">
+            <Toggle
+              checked={preferLocal}
+              onChange={(next) => props.onExecuteMode(next ? "prefer_local" : "cloud")}
+              label="Run on my machine"
+            />
+            <p className={`mt-1.5 text-xs ${toneText[execution.tone]}`}>{execution.text}</p>
+            {fellBack && (
+              <p className="mt-1 text-xs text-warn">
+                The last call ran on Ohshi's servers because the connector was offline.
+              </p>
+            )}
+          </div>
+          <a href="#connector" className="shrink-0 text-xs font-semibold text-ink-dim hover:text-ink">
+            <Laptop className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
+            Connector
+          </a>
+        </div>
+      )}
 
       {connected && (
         <div className="mt-5 border-t border-edge pt-5">
