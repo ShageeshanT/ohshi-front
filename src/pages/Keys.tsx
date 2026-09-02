@@ -73,6 +73,8 @@ export default function Keys() {
   const visible = (keys ?? []).filter((k) => showRevoked || k.revokedMs === null);
   const revokedCount = (keys ?? []).filter((k) => k.revokedMs !== null).length;
   const activeCount = (keys ?? []).length - revokedCount;
+  const lockedCount = (keys ?? []).filter((k) => k.revokedMs === null && k.locked).length;
+  const usableCount = activeCount - lockedCount;
   const atCap = maxKeys !== null && activeCount >= maxKeys;
 
   return (
@@ -164,7 +166,8 @@ export default function Keys() {
             <span>
               {maxKeys !== null ? (
                 <>
-                  {activeCount} of {maxKeys} active key{maxKeys === 1 ? "" : "s"} on your plan
+                  {usableCount} of {maxKeys} active key{maxKeys === 1 ? "" : "s"} on your plan
+                  {lockedCount > 0 && `, ${lockedCount} locked`}
                   {atCap && me?.config.billingEnabled && (
                     <>
                       {" · "}
