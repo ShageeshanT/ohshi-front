@@ -41,7 +41,7 @@ export interface GeminiKeyRow {
 
 /** Which credential chat and /v1 run on right now. */
 export interface RouteSummary {
-  kind: "gemini_api" | "code_assist";
+  kind: "gemini_api" | "code_assist" | "chatgpt";
   id: string;
   label: string;
   beta: boolean;

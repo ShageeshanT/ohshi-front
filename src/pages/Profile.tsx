@@ -19,6 +19,7 @@ interface Counts {
   apiKeys: number | null;
   geminiKeys: number | null;
   accounts: number | null;
+  chatgpt: number | null;
 }
 
 export default function Profile() {
@@ -36,7 +37,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [counts, setCounts] = useState<Counts>({ apiKeys: null, geminiKeys: null, accounts: null });
+  const [counts, setCounts] = useState<Counts>({ apiKeys: null, geminiKeys: null, accounts: null, chatgpt: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +53,9 @@ export default function Profile() {
     get<{ connections: { status: string }[] }>("/api/google/connections")
       .then((d) => set({ accounts: d.connections.filter((c) => c.status === "active").length }))
       .catch(() => set({ accounts: 0 }));
+    get<{ connections: { status: string }[] }>("/api/openai/connections")
+      .then((d) => set({ chatgpt: d.connections.filter((c) => c.status === "active").length }))
+      .catch(() => set({ chatgpt: 0 }));
     return () => {
       cancelled = true;
     };
@@ -176,8 +180,8 @@ export default function Profile() {
           <LinkRow
             to="/app/accounts"
             icon={Plug}
-            title="Google access"
-            sub={`${plural(counts.geminiKeys, "Gemini key")}, ${plural(counts.accounts, "Google account")}`}
+            title="Connected accounts"
+            sub={`${plural(counts.geminiKeys, "Gemini key")}, ${plural(counts.accounts, "Google account")}, ${plural(counts.chatgpt, "ChatGPT account")}`}
           />
           <LinkRow to="/app/models" icon={Layers} title="Models" sub="Quota per model and what each key can call" />
           <LinkRow to="/app/keys" icon={KeyRound} title="API keys" sub={`${plural(counts.apiKeys, "active key")}`} />

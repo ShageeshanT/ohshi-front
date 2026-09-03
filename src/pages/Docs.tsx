@@ -1,9 +1,10 @@
 /**
- * Docs — pick a model, get the exact request for it. Two paths reach the same
- * /v1: a Gemini API key (the supported path) and a connected Google account
- * (Beta). The page opens on whichever the account is set to and lists that
- * path's models: the key's live list from GET /api/chat/models, or the static
- * catalogs from /api/gemini/catalog and /api/google/catalog.
+ * Docs — pick a model, get the exact request for it. Three paths reach the
+ * same /v1: a Gemini API key (the supported path), a connected Google account
+ * (Beta) and a connected ChatGPT account (Beta). The page opens on whichever
+ * the account is set to and lists that path's models: the live list from
+ * GET /api/chat/models, or the static catalogs from /api/gemini/catalog,
+ * /api/google/catalog and /api/openai/catalog.
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -29,9 +30,11 @@ const LANGS = ["Python", "curl", "JavaScript"];
 const PATHS: { kind: RouteKind; tab: string }[] = [
   { kind: "gemini_api", tab: "Gemini key" },
   { kind: "code_assist", tab: "Google (Beta)" },
+  { kind: "chatgpt", tab: "ChatGPT (Beta)" },
 ];
 const STUDIO_URL = "https://aistudio.google.com/apikey";
 const EFFORTS = ["low", "medium", "high"];
+const CHATGPT_EFFORTS = ["low", "medium", "high", "xhigh"];
 
 /** Gemini 2.5 and later accept thinkingConfig; earlier ids and Gemma do not. */
 function geminiThinks(id: string): boolean {
@@ -53,6 +56,23 @@ function liveGeminiFamilies(models: ChatModelsPayload): Family[] {
   }));
 }
 
+/** The ChatGPT plan's live manifest, with the built-in catalog's effort levels when it knows the slug. */
+function liveChatGPTFamilies(models: ChatModelsPayload, builtIn: Family[] | null): Family[] {
+  return models.families.map((f) => {
+    const known = builtIn?.find((b) => b.id === f.id);
+    return {
+      id: f.id,
+      label: familyName(f),
+      vendor: "openai",
+      efforts: known?.efforts.length ? known.efforts : CHATGPT_EFFORTS,
+      defaultEffort: "",
+      variants: { "": f.id },
+      description: known?.description ?? "",
+      recommended: f.id === models.default,
+    };
+  });
+}
+
 const chip = (active: boolean) =>
   `rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
     active ? "bg-ink text-panel" : "bg-ink/[0.05] text-ink-dim hover:bg-ink/10 hover:text-ink"
@@ -61,6 +81,7 @@ const chip = (active: boolean) =>
 export default function Docs() {
   const [geminiCatalog, setGeminiCatalog] = useState<Family[] | null>(null);
   const [googleCatalog, setGoogleCatalog] = useState<Family[] | null>(null);
+  const [openaiCatalog, setOpenaiCatalog] = useState<Family[] | null>(null);
   const [googleDefault, setGoogleDefault] = useState("");
   const [models, setModels] = useState<ChatModelsPayload | null | undefined>(undefined);
   const [path, setPath] = useState<RouteKind>("gemini_api");
@@ -80,6 +101,9 @@ export default function Docs() {
         setGoogleDefault(d.default);
       })
       .catch(() => setGoogleCatalog([]));
+    get<{ families: Family[]; default: string }>("/api/openai/catalog")
+      .then((d) => setOpenaiCatalog(d.families))
+      .catch(() => setOpenaiCatalog([]));
     get<ChatModelsPayload>("/api/chat/models")
       .then(setModels)
       .catch(() => setModels(null));
@@ -97,31 +121,38 @@ export default function Docs() {
       if (models && models.route === "gemini_api" && models.families.length > 0) return liveGeminiFamilies(models);
       return geminiCatalog;
     }
+    if (path === "chatgpt") {
+      if (models && models.route === "chatgpt" && models.families.length > 0) return liveChatGPTFamilies(models, openaiCatalog);
+      return openaiCatalog;
+    }
     return googleCatalog;
-  }, [path, models, geminiCatalog, googleCatalog]);
+  }, [path, models, geminiCatalog, googleCatalog, openaiCatalog]);
 
   // Keep the selection on a model of the current path.
   useEffect(() => {
     if (!families || families.length === 0) return;
     if (families.some((f) => f.id === modelId)) return;
     const preferred =
-      path === "gemini_api"
-        ? (families.find((f) => f.recommended) ?? families[0])
-        : (families.find((f) => f.id === googleDefault) ?? families[0]);
+      path === "code_assist"
+        ? (families.find((f) => f.id === googleDefault) ?? families[0])
+        : (families.find((f) => f.recommended) ?? families[0]);
     setModelId(preferred.id);
-    setEffort(preferred.defaultEffort);
+    setEffort(path === "code_assist" ? preferred.defaultEffort : "");
   }, [families, modelId, path, googleDefault]);
 
   const family = useMemo(() => families?.find((f) => f.id === modelId) ?? null, [families, modelId]);
   const gemini = path === "gemini_api";
+  const chatgpt = path === "chatgpt";
+  const codeAssist = path === "code_assist";
   const resolved = family
     ? (family.variants[effort] ?? family.variants[family.defaultEffort] ?? Object.values(family.variants)[0])
     : "";
-  const live = gemini && !!models && models.route === "gemini_api" && models.families.length > 0;
+  const live =
+    !!models && models.families.length > 0 && ((gemini && models.route === "gemini_api") || (chatgpt && models.route === "chatgpt"));
 
   const pick = (f: Family) => {
     setModelId(f.id);
-    setEffort(f.defaultEffort);
+    setEffort(codeAssist ? f.defaultEffort : "");
   };
 
   const pathTab = PATHS.find((p) => p.kind === path)?.tab ?? PATHS[0].tab;
@@ -129,6 +160,8 @@ export default function Docs() {
     const next = PATHS.find((p) => p.tab === tab);
     if (next) setPath(next.kind);
   };
+
+  const vendorLabel = (f: Family) => (chatgpt ? "ChatGPT" : (VENDOR_LABEL[f.vendor] ?? f.vendor));
 
   return (
     <div className="rise-in space-y-5">
@@ -140,14 +173,14 @@ export default function Docs() {
             from the API keys page.{" "}
             {models?.route
               ? `Right now your calls run on ${routeLabel(models)}.`
-              : "Add a Gemini API key or connect a Google account on the Google access page first."}{" "}
-            Nothing in your code says which one; switching the default on the Google access page is enough.
+              : "Add a Gemini API key, or connect a Google or ChatGPT account on the Connected accounts page first."}{" "}
+            Nothing in your code says which one; switching the default on the Connected accounts page is enough.
           </>
         }
       />
 
       <Card title="Before you start" aside={<Tabs tabs={PATHS.map((p) => p.tab)} active={pathTab} onChange={onPathTab} />}>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-3">
           <PathBox active={gemini} title="Gemini API key" badge={<Badge tone="ok" dot>Live</Badge>}>
             <li>
               Create a key at{" "}
@@ -156,16 +189,21 @@ export default function Docs() {
               </a>
               . Google bills it for what you use.
             </li>
-            <li>Paste it once on the Google access page. It is stored encrypted and never shown again.</li>
+            <li>Paste it once on the Connected accounts page. It is stored encrypted and never shown again.</li>
             <li>
               Create an <code className="mono text-ink">ohs_</code> key and call <code className="mono text-ink">/v1</code>.
               The Gemini key stays on the server.
             </li>
           </PathBox>
-          <PathBox active={!gemini} title="Google account" badge={<Badge tone="violet">Beta</Badge>}>
+          <PathBox active={codeAssist} title="Google account" badge={<Badge tone="violet">Beta</Badge>}>
             <li>Connect the Google account behind your Google AI plan and paste back the code.</li>
             <li>Calls run on that plan through Google Code Assist, with live remaining quota per model.</li>
             <li>Beta: not a guaranteed API entitlement. Keep a Gemini API key for anything that must not break.</li>
+          </PathBox>
+          <PathBox active={chatgpt} title="ChatGPT account" badge={<Badge tone="violet">Beta</Badge>}>
+            <li>Connect the ChatGPT account behind your Plus, Pro or Team plan with a short sign-in code.</li>
+            <li>Calls run on that plan the way the Codex CLI does, with the plan&apos;s 5-hour and weekly windows shown live.</li>
+            <li>Beta: the plan meters usage per account, so every model shares the same windows.</li>
           </PathBox>
         </div>
       </Card>
@@ -179,7 +217,11 @@ export default function Docs() {
               ? live
                 ? `What your key lists on the Gemini API right now (${families.length} chat models). Anything Google adds appears here by itself.`
                 : "The built-in Gemini API list. Once a key is saved, this shows what that key can actually call."
-              : "The Code Assist families a connected Google account serves. Effort levels are separate backend ids."
+              : chatgpt
+                ? live
+                  ? `What your ChatGPT plan lists right now (${families.length} models). Anything OpenAI adds to the plan appears here by itself.`
+                  : "The built-in ChatGPT list. Once an account is connected, this shows what that plan can actually call."
+                : "The Code Assist families a connected Google account serves. Effort levels are separate backend ids."
         }
       >
         {families === null ? (
@@ -205,8 +247,9 @@ export default function Docs() {
                   </span>
                   <span className="mono truncate text-[11px] text-ink-dim">{f.id}</span>
                   <span className="text-[11.5px] text-ink-dim">
-                    {VENDOR_LABEL[f.vendor] ?? f.vendor}
-                    {f.efforts.length > 0 && (gemini ? ", thinking" : `, ${f.efforts.length} effort levels`)}
+                    {vendorLabel(f)}
+                    {f.efforts.length > 0 &&
+                      (gemini ? ", thinking" : chatgpt ? `, ${f.efforts.length} reasoning levels` : `, ${f.efforts.length} effort levels`)}
                   </span>
                 </button>
               );
@@ -218,7 +261,7 @@ export default function Docs() {
           <div className="mt-4 border-t border-edge pt-4">
             <p className="mb-2 text-[12.5px] font-medium">Reasoning effort</p>
             <div className="flex flex-wrap gap-1.5">
-              {gemini && (
+              {!codeAssist && (
                 <button type="button" onClick={() => setEffort("")} className={chip(effort === "")}>
                   Model default
                 </button>
@@ -226,7 +269,7 @@ export default function Docs() {
               {family.efforts.map((e) => (
                 <button key={e} type="button" onClick={() => setEffort(e)} className={chip(e === effort)}>
                   {effortLabel(e)}
-                  {!gemini && e === family.defaultEffort && <Check className="ml-1 inline h-3 w-3 align-[-1px]" />}
+                  {codeAssist && e === family.defaultEffort && <Check className="ml-1 inline h-3 w-3 align-[-1px]" />}
                 </button>
               ))}
             </div>
@@ -236,6 +279,12 @@ export default function Docs() {
                   On the Gemini API the id goes to Google unchanged and{" "}
                   <code className="mono text-ink">reasoning_effort</code> sets the thinking depth: a token budget
                   on Gemini 2.5, a thinking level on Gemini 3. Leave it out for the model&apos;s own default.
+                </>
+              ) : chatgpt ? (
+                <>
+                  On ChatGPT <code className="mono text-ink">reasoning_effort</code> sets the model&apos;s reasoning
+                  level. A level the model does not list is rounded to its nearest one, so an agent asking for{" "}
+                  <code className="mono text-ink">xhigh</code> never gets an error. Leave it out for the plan&apos;s default.
                 </>
               ) : (
                 <>
@@ -296,14 +345,18 @@ export default function Docs() {
               Missing, wrong or revoked API key.
             </ErrorRow>
             <ErrorRow code="403 / 409" tone="warn" name="gemini_api_key_error">
-              Google rejected your Gemini API key, or you have none saved. Paste a fresh one on the Google access page.
+              Google rejected your Gemini API key, or you have none saved. Paste a fresh one on the Connected accounts page.
             </ErrorRow>
             <ErrorRow code="409 / 403" tone="warn" name="google_account_error">
-              No Google account connected, or it needs reconnecting. The Google access page shows which.
+              No Google account connected, or it needs reconnecting. The Connected accounts page shows which.
+            </ErrorRow>
+            <ErrorRow code="409 / 403" tone="warn" name="chatgpt_account_error">
+              The ChatGPT account needs reconnecting, or the plan does not include Codex. Reconnect it on the Connected accounts page.
             </ErrorRow>
             <ErrorRow code="429" tone="warn" name="rate_limit_error">
-              Google&apos;s limit on your key, quota exhausted on every Code Assist endpoint, or this key over its per
-              minute burst limit. <code className="mono">Retry-After</code> says when to try again.
+              Google&apos;s limit on your key, quota exhausted on every Code Assist endpoint, the ChatGPT plan&apos;s
+              window used up, or this key over its per minute burst limit. <code className="mono">Retry-After</code>{" "}
+              says when to try again.
             </ErrorRow>
             <ErrorRow code="404" tone="dim" name="invalid_request_error">
               That model isn&apos;t available on this key or plan.

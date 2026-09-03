@@ -48,7 +48,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useChatList } from "../App";
 import { BrandHero, BrandMark } from "../components/brand";
-import { GeminiLogo } from "../components/logos";
+import { GeminiLogo, OpenAILogo } from "../components/logos";
 import Markdown from "../components/Markdown";
 import ModelPicker from "../components/ModelPicker";
 import { Topbar } from "../components/Topbar";
@@ -602,9 +602,9 @@ export default function Chat() {
             {models && !models.connected && (
               <div className="mt-6 w-full max-w-lg">
                 <Notice tone="warn">
-                  Add a Gemini API key or connect a Google account first. Every reply runs on your own key or plan.{" "}
+                  Add a Gemini API key, or connect a Google or ChatGPT account first. Every reply runs on your own key or plan.{" "}
                   <Link to="/app/accounts" className="inline-flex items-center gap-1 font-medium underline underline-offset-2">
-                    Google access <ArrowRight className="h-3.5 w-3.5" />
+                    Connected accounts <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </Notice>
               </div>
@@ -812,7 +812,7 @@ function Composer(props: {
         onChange={(e) => props.onChange(e.target.value)}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
-        placeholder={props.disabled ? "Add a Gemini API key or connect Google to start chatting" : "Ask anything…"}
+        placeholder={props.disabled ? "Add a key or connect an account to start chatting" : "Ask anything…"}
         rows={1}
         autoFocus={props.autoFocus}
         disabled={props.disabled}
@@ -1048,13 +1048,22 @@ interface KeyRow {
   status: "active" | "invalid";
 }
 
-/** Compact route control: which Gemini API key or Google account replies come
- *  from. Click it to see every source and move the default. */
+interface ChatGPTRow {
+  id: string;
+  email: string;
+  planLabel: string;
+  isDefault: boolean;
+  status: "active" | "needs_reconnect";
+}
+
+/** Compact route control: which Gemini API key, Google account or ChatGPT
+ *  account replies come from. Click it to see every source and move the default. */
 function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () => void }) {
   const m = props.models;
   const [open, setOpen] = useState(false);
   const [accounts, setAccounts] = useState<AccountRow[] | null>(null);
   const [keys, setKeys] = useState<KeyRow[] | null>(null);
+  const [chatgpt, setChatgpt] = useState<ChatGPTRow[] | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -1081,6 +1090,9 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
       .catch((e) => setError(friendly(e)));
     get<{ keys: KeyRow[] }>("/api/gemini/keys")
       .then((d) => setKeys(d.keys))
+      .catch((e) => setError(friendly(e)));
+    get<{ connections: ChatGPTRow[] }>("/api/openai/connections")
+      .then((d) => setChatgpt(d.connections))
       .catch((e) => setError(friendly(e)));
   }, []);
 
@@ -1120,7 +1132,9 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
   }
 
   const gemini = m.route === "gemini_api";
-  const isCurrent = (kind: "gemini_api" | "code_assist", id: string) => m.route === kind && m.connectionId === id;
+  const isChatgpt = m.route === "chatgpt";
+  const isCurrent = (kind: "gemini_api" | "code_assist" | "chatgpt", id: string) =>
+    m.route === kind && m.connectionId === id;
 
   return (
     <div ref={ref} className="relative">
@@ -1133,7 +1147,13 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
         aria-expanded={open}
       >
         <span className={`h-1.5 w-1.5 rounded-full ${gemini || m.quotaAvailable ? "bg-ok" : "bg-warn"}`} />
-        {gemini ? <GeminiLogo className="h-3.5 w-3.5 text-ink-dim" /> : <Plug className="h-3.5 w-3.5 text-ink-dim" />}
+        {gemini ? (
+          <GeminiLogo className="h-3.5 w-3.5 text-ink-dim" />
+        ) : isChatgpt ? (
+          <OpenAILogo className="h-3.5 w-3.5 text-ink-dim" />
+        ) : (
+          <Plug className="h-3.5 w-3.5 text-ink-dim" />
+        )}
         <span className="hidden max-w-[11rem] truncate sm:inline">{gemini ? "Gemini API" : m.email}</span>
         {m.beta && <span className="rounded bg-violet-soft px-1 py-px text-[10px] font-medium text-violet">Beta</span>}
         <ChevronDown className={`h-3.5 w-3.5 text-ink-dim transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
@@ -1151,7 +1171,7 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
                 <Spinner size={14} />
               </div>
             ) : keys.length === 0 ? (
-              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No keys yet. Add one on the Google access page.</p>
+              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No keys yet. Add one on the Connected accounts page.</p>
             ) : (
               keys.map((row) => (
                 <SourceRow
@@ -1189,6 +1209,32 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
                   switching={switchingId === row.id}
                   disabled={row.status !== "active" || switchingId !== null}
                   onPick={() => choose(`/api/google/connections/${row.id}/default`, row.id)}
+                />
+              ))
+            )}
+          </div>
+          <p className="flex items-center gap-2 border-y border-edge px-3 py-2 text-[11.5px] font-medium text-ink-dim">
+            ChatGPT accounts
+            <span className="rounded bg-violet-soft px-1 py-px text-[10px] text-violet">Beta</span>
+          </p>
+          <div className="max-h-40 overflow-y-auto p-1.5">
+            {chatgpt === null ? (
+              <div className="flex justify-center py-4 text-ink-dim">
+                <Spinner size={14} />
+              </div>
+            ) : chatgpt.length === 0 ? (
+              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No ChatGPT account connected.</p>
+            ) : (
+              chatgpt.map((row) => (
+                <SourceRow
+                  key={row.id}
+                  label={row.email}
+                  sub={row.planLabel}
+                  ok={row.status === "active"}
+                  current={isCurrent("chatgpt", row.id)}
+                  switching={switchingId === row.id}
+                  disabled={row.status !== "active" || switchingId !== null}
+                  onPick={() => choose(`/api/openai/connections/${row.id}/default`, row.id)}
                 />
               ))
             )}

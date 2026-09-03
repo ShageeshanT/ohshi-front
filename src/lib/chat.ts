@@ -91,15 +91,15 @@ export interface ModelFamily {
 }
 
 /** Which credential the picker's list came from. */
-export type RouteKind = "gemini_api" | "code_assist";
+export type RouteKind = "gemini_api" | "code_assist" | "chatgpt";
 
 export interface ChatModelsPayload {
   connected: boolean;
   /** null when nothing usable is configured (the built-in list is shown). */
   route: RouteKind | null;
-  /** The key's label or the Google account's email. */
+  /** The key's label, or the Google / ChatGPT account's email. */
   routeLabel: string | null;
-  /** The Google account connector is Beta; the Gemini API key is not. */
+  /** The account connectors (Google, ChatGPT) are Beta; the Gemini API key is not. */
   beta: boolean;
   /** The key id or the connection id behind the list. */
   connectionId: string | null;
@@ -194,11 +194,15 @@ export function modelLabel(models: ChatModelsPayload | null, id: string): string
   return `${familyName(hit.family)}${effort}`;
 }
 
-/** "Gemini API key ‘personal’" / "me@gmail.com (Beta)" for the picker header and route pill. */
+/** "Gemini API key ‘personal’" / "me@gmail.com (Beta)" / "me@openai.com (ChatGPT, Beta)"
+ *  for the picker header and route pill. */
 export function routeLabel(models: ChatModelsPayload | null): string {
   if (!models || !models.route) return "";
   if (models.route === "gemini_api") {
     return models.routeLabel ? `Gemini API key ‘${models.routeLabel}’` : "Gemini API key";
+  }
+  if (models.route === "chatgpt") {
+    return `${models.email ?? models.routeLabel ?? "ChatGPT account"} (ChatGPT, Beta)`;
   }
   return `${models.email ?? models.routeLabel ?? "Google account"} (Beta)`;
 }

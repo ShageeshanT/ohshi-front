@@ -51,6 +51,72 @@ export interface ConnectionsPayload {
   endpoints: { url: string; label: string }[];
 }
 
+/** One connected ChatGPT account (ohshi/openai). */
+export interface ChatGPTConnection {
+  id: string;
+  email: string;
+  accountId: string;
+  /** OpenAI's plan code (plus, pro, team, …) and its label. */
+  plan: string;
+  planLabel: string;
+  status: "active" | "needs_reconnect";
+  isDefault: boolean;
+  connectedMs: number;
+  updatedMs: number;
+  lastRefreshedMs: number | null;
+  health: Health;
+  /** Above the plan's connection limit (shared with Google accounts). */
+  locked?: boolean;
+}
+
+export interface ChatGPTConnectionsPayload {
+  connections: ChatGPTConnection[];
+  route: RouteSummaryLite | null;
+  maxConnections: number;
+  planUrl: string;
+}
+
+interface RouteSummaryLite {
+  kind: "gemini_api" | "code_assist" | "chatgpt";
+  id: string;
+  label: string;
+  beta: boolean;
+}
+
+/** One rolling rate-limit window of a ChatGPT account (5-hour or weekly). */
+export interface UsageWindow {
+  usedPercent: number | null;
+  remainingPercent: number | null;
+  windowMinutes: number | null;
+  resetMs: number | null;
+  exhausted: boolean;
+}
+
+/** GET /api/openai/connections/:id/usage */
+export interface ChatGPTUsage {
+  connectionId: string;
+  fetchedMs: number;
+  cached: boolean;
+  endpointLabel: string;
+  plan: string;
+  planLabel: string;
+  allowed: boolean | null;
+  limitReached: boolean | null;
+  primary: UsageWindow | null;
+  secondary: UsageWindow | null;
+  credits: { hasCredits?: boolean; unlimited?: boolean; balance?: string | null };
+  /** The tighter of the two windows. */
+  remainingPercent: number | null;
+  exhausted: boolean;
+  nextResetMs: number | null;
+}
+
+export interface ChatGPTUsageState {
+  usage: ChatGPTUsage | null;
+  error: string | null;
+  loading: boolean;
+}
+
 export interface ModelQuota {
   id: string;
   displayName: string;
@@ -167,6 +233,36 @@ export function healthLine(c: Connection, testing: boolean): { tone: Tone; text:
   };
 }
 
+/** One plain language line per ChatGPT account: working, failing or untested. */
+export function chatgptHealthLine(c: ChatGPTConnection, testing: boolean): { tone: Tone; text: string } {
+  if (testing) return { tone: "dim", text: "Testing, sending a tiny message…" };
+  if (c.status === "needs_reconnect") {
+    return { tone: "danger", text: "OpenAI no longer accepts this sign in. Reconnect the account." };
+  }
+  const h = c.health;
+  if (!h || h.status === "unknown") {
+    return { tone: "dim", text: "Not tested yet. Hit Test to check it actually answers." };
+  }
+  if (h.status === "ok") {
+    const latency = h.lastLatencyMs != null ? ` in ${(h.lastLatencyMs / 1000).toFixed(1)}s` : "";
+    return { tone: "ok", text: `Working, ${h.lastModel ?? "it"} replied${latency}, ${timeAgo(h.lastOkMs)}` };
+  }
+  const status = h.lastErrorStatus ? `HTTP ${h.lastErrorStatus}, ` : "";
+  return {
+    tone: h.lastErrorStatus === 429 ? "warn" : "danger",
+    text: `Failing, ${status}${h.lastError ?? "unknown error"}, ${timeAgo(h.lastErrorMs)}`,
+  };
+}
+
+/** "5-hour window" / "Weekly window" from the minutes OpenAI reports. */
+export function windowName(w: UsageWindow | null, fallback: string): string {
+  if (!w?.windowMinutes) return fallback;
+  const hours = w.windowMinutes / 60;
+  if (hours >= 24 * 6) return `${Math.round(hours / 24)}-day window`;
+  if (hours >= 1) return `${Math.round(hours)}-hour window`;
+  return `${w.windowMinutes}-minute window`;
+}
+
 /** Where this account's calls go right now, in one line under the switch. */
 export function executionLine(c: Connection, runner: RunnerStatus | null): { tone: Tone; text: string } {
   if (c.executeMode !== "prefer_local") return { tone: "dim", text: "Calls run on Ohshi's servers." };
@@ -179,7 +275,7 @@ export function executionLine(c: Connection, runner: RunnerStatus | null): { ton
     tone: "warn",
     text: hasToken
       ? "Connector offline, so calls run on Ohshi's servers until it is back."
-      : "No connector is set up yet, so calls run on Ohshi's servers. Create a token on the Google access page.",
+      : "No connector is set up yet, so calls run on Ohshi's servers. Create a token on the Accounts page.",
   };
 }
 
@@ -217,6 +313,79 @@ export function useGeminiKeys(pollMs = 60_000) {
   useEffect(() => poll(reload, pollMs), [reload, pollMs]);
   return { gemini, error, reload };
 }
+
+/** ChatGPT accounts and the current route. Local rows, cheap to re-read. */
+export function useChatGPTConnections(pollMs = 60_000) {
+  const [chatgpt, setChatgpt] = useState<ChatGPTConnectionsPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reload = useCallback(async () => {
+    try {
+      setChatgpt(await get<ChatGPTConnectionsPayload>("/api/openai/connections"));
+      setError(null);
+    } catch (e) {
+      setError(friendly(e, "Couldn't read your ChatGPT accounts."));
+    }
+  }, []);
+  useEffect(() => poll(reload, pollMs), [reload, pollMs]);
+  return { chatgpt, error, reload };
+}
+
+/**
+ * The rolling windows of every active ChatGPT account. Cheap on the server
+ * (cached, and fed by every reply's headers), so a five-minute cadence with
+ * jitter is plenty. `loadUsage(id, true)` is the manual override.
+ */
+export function useChatGPTUsage(connections: ChatGPTConnection[] | null) {
+  const [usages, setUsages] = useState<Record<string, ChatGPTUsageState>>({});
+
+  const loadUsage = useCallback(async (id: string, force = false) => {
+    setUsages((u) => ({ ...u, [id]: { usage: u[id]?.usage ?? null, error: null, loading: true } }));
+    try {
+      const usage = await get<ChatGPTUsage>(`/api/openai/connections/${id}/usage${force ? "?force=1" : ""}`);
+      setUsages((u) => ({ ...u, [id]: { usage, error: null, loading: false } }));
+    } catch (e) {
+      const stale = e instanceof ApiError ? ((e.body as { stale?: ChatGPTUsage | null } | null)?.stale ?? null) : null;
+      setUsages((u) => ({
+        ...u,
+        [id]: { usage: stale ?? u[id]?.usage ?? null, error: friendly(e), loading: false },
+      }));
+    }
+  }, []);
+
+  const forget = useCallback((id: string) => {
+    setUsages((u) => {
+      const next = { ...u };
+      delete next[id];
+      return next;
+    });
+  }, []);
+
+  const activeIds = useMemo(
+    () =>
+      (connections ?? [])
+        .filter((c) => c.status === "active")
+        .map((c) => c.id)
+        .join(","),
+    [connections],
+  );
+
+  useEffect(() => {
+    if (!activeIds) return;
+    const ids = activeIds.split(",");
+    return poll(
+      async () => {
+        await Promise.all(ids.map((id) => loadUsage(id)));
+      },
+      5 * 60_000,
+      0.15,
+    );
+  }, [activeIds, loadUsage]);
+
+  return { usages, loadUsage, forget };
+}
+
+export const usageFor = (usages: Record<string, ChatGPTUsageState>, id: string): ChatGPTUsageState =>
+  usages[id] ?? { usage: null, error: null, loading: true };
 
 /** The gateway ledger. */
 export function useUsage(days = 30, pollMs = 60_000) {
