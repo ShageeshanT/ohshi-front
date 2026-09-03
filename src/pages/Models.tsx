@@ -1,19 +1,18 @@
 /**
  * Models — what each model has left (the live quota of every connected Google
- * account, the model list of every Gemini key) and what your agents used per
- * model through the gateway.
+ * account, the model list of every Gemini and DeepSeek key) and what your
+ * agents used per model through the gateway.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Plug, Star } from "lucide-react";
-import type { GeminiKeyRow } from "../components/GeminiKeysCard";
-import { keyName } from "../components/GeminiKeysCard";
-import { GeminiLogo, GoogleLogo } from "../components/logos";
+import { keyName, type KeyRow, type RouteKind } from "../components/ProviderKeysCard";
+import { DeepSeekLogo, GeminiLogo, GoogleLogo } from "../components/logos";
 import { QuotaGrid } from "../components/QuotaGrid";
 import { Badge, Button, Card, EmptyState, PageHeader, SectionTitle, Spinner } from "../components/ui";
 import { formatNumber, get } from "../lib/api";
-import { quotaFor, useConnections, useGeminiKeys, useQuotas, useUsage } from "../lib/workspace";
+import { quotaFor, useConnections, useDeepSeekKeys, useGeminiKeys, useQuotas, useUsage } from "../lib/workspace";
 
 interface KeyModels {
   count: number;
@@ -21,17 +20,26 @@ interface KeyModels {
   default: string;
 }
 
+const ROUTE_LOGO: Record<RouteKind, ComponentType<{ className?: string }>> = {
+  gemini_api: GeminiLogo,
+  deepseek_api: DeepSeekLogo,
+  code_assist: GoogleLogo,
+};
+
 export default function Models() {
   const { connections } = useConnections();
   const { gemini } = useGeminiKeys();
+  const { deepseek } = useDeepSeekKeys();
   const { quotas, loadQuota } = useQuotas(connections);
   const { usage } = useUsage(30);
 
   const activeConnections = (connections ?? []).filter((c) => c.status === "active");
   const activeKeys = (gemini?.keys ?? []).filter((k) => k.status === "active");
-  const known = connections !== null && gemini !== null;
-  const route = gemini?.route ?? null;
-  const nothing = known && activeConnections.length === 0 && activeKeys.length === 0;
+  const activeDeepSeek = (deepseek?.keys ?? []).filter((k) => k.status === "active");
+  const known = connections !== null && gemini !== null && deepseek !== null;
+  const route = gemini?.route ?? deepseek?.route ?? null;
+  const RouteLogo = route ? ROUTE_LOGO[route.kind] : null;
+  const nothing = known && activeConnections.length === 0 && activeKeys.length === 0 && activeDeepSeek.length === 0;
 
   return (
     <div className="rise-in space-y-7">
@@ -39,10 +47,10 @@ export default function Models() {
         title="Models"
         description="What each model has left on your Google accounts, what each key can call, and what your agents used."
         actions={
-          route ? (
+          route && RouteLogo ? (
             <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-edge bg-panel px-2.5 text-[12.5px]">
               <span className="text-ink-dim">Answering from</span>
-              {route.kind === "gemini_api" ? <GeminiLogo className="h-3.5 w-3.5 text-ink-dim" /> : <GoogleLogo className="h-3.5 w-3.5" />}
+              <RouteLogo className={`h-3.5 w-3.5 ${route.kind === "code_assist" ? "" : "text-ink-dim"}`} />
               <span className="font-medium">{route.label}</span>
               {route.beta && <Badge tone="violet">Beta</Badge>}
             </span>
@@ -58,11 +66,11 @@ export default function Models() {
         <Card>
           <EmptyState
             title="Nothing to show yet"
-            hint="Add a Gemini API key or connect a Google account and the models it can use show up here, with live quota for Google accounts."
+            hint="Add a Gemini or DeepSeek API key or connect a Google account and the models it can use show up here, with live quota for Google accounts."
             action={
               <Link to="/app/accounts?add=key">
                 <Button arrow>
-                  <Plug className="h-3.5 w-3.5" /> Connected accounts
+                  <Plug className="h-3.5 w-3.5" /> Model access
                 </Button>
               </Link>
             }
@@ -112,7 +120,37 @@ export default function Models() {
                 description="A key has no quota meter. This is what Google lists for it right now; anything new appears by itself."
               />
               {activeKeys.map((k) => (
-                <KeyModelsCard key={k.id} row={k} isRoute={route?.kind === "gemini_api" && route.id === k.id} />
+                <KeyModelsCard
+                  key={k.id}
+                  api="/api/gemini/keys"
+                  vendor="Google"
+                  row={k}
+                  isRoute={route?.kind === "gemini_api" && route.id === k.id}
+                />
+              ))}
+            </section>
+          )}
+
+          {activeDeepSeek.length > 0 && (
+            <section className="space-y-3">
+              <SectionTitle
+                icon={DeepSeekLogo}
+                title="DeepSeek API keys"
+                badge={
+                  <Badge tone="ok" dot>
+                    Live
+                  </Badge>
+                }
+                description="What DeepSeek lists for the key right now. The balance behind each key is on the Model access page."
+              />
+              {activeDeepSeek.map((k) => (
+                <KeyModelsCard
+                  key={k.id}
+                  api="/api/deepseek/keys"
+                  vendor="DeepSeek"
+                  row={k}
+                  isRoute={route?.kind === "deepseek_api" && route.id === k.id}
+                />
               ))}
             </section>
           )}
@@ -176,13 +214,13 @@ export default function Models() {
   );
 }
 
-function KeyModelsCard(props: { row: GeminiKeyRow; isRoute: boolean }) {
-  const { row } = props;
+function KeyModelsCard(props: { api: string; vendor: string; row: KeyRow; isRoute: boolean }) {
+  const { api, row } = props;
   const [models, setModels] = useState<KeyModels | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
-    get<KeyModels>(`/api/gemini/keys/${row.id}/models`)
+    get<KeyModels>(`${api}/${row.id}/models`)
       .then((d) => {
         if (!cancelled) setModels(d);
       })
@@ -192,7 +230,7 @@ function KeyModelsCard(props: { row: GeminiKeyRow; isRoute: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [row.id]);
+  }, [api, row.id]);
 
   return (
     <Card
@@ -211,10 +249,10 @@ function KeyModelsCard(props: { row: GeminiKeyRow; isRoute: boolean }) {
       description={models ? `${models.count} chat model${models.count === 1 ? "" : "s"} on this key` : undefined}
     >
       {models === undefined ? (
-        <Spinner label="Asking Google what this key can call…" />
+        <Spinner label={`Asking ${props.vendor} what this key can call…`} />
       ) : models === null ? (
         <div className="p-4">
-          <EmptyState title="Could not list this key's models" hint="Test the key on the Connected accounts page to see why." />
+          <EmptyState title="Could not list this key's models" hint="Test the key on the Model access page to see why." />
         </div>
       ) : (
         <div className="overflow-x-auto">

@@ -31,7 +31,7 @@ import heroMobileDark from "../assets/hero-mobile-dark.webp";
 import heroMobileLight from "../assets/hero-mobile-light.webp";
 import { BrandMark } from "../components/brand";
 import { SparkleDoodle, SquiggleDoodle } from "../components/Doodles";
-import { ClaudeLogo, GeminiLogo, OpenAILogo, XaiLogo } from "../components/logos";
+import { ClaudeLogo, DeepSeekLogo, GeminiLogo, OpenAILogo, XaiLogo } from "../components/logos";
 import { PlanCard } from "../components/PlanCard";
 import {
   PayTwiceDiagram,
@@ -258,6 +258,9 @@ const MODELS = [
   { name: "Claude Opus 4.6", vendor: "Anthropic", note: "Thinking, 250k context", Logo: ClaudeLogo },
   { name: "GPT-OSS 120B", vendor: "OpenAI", note: "Open weights, medium reasoning", Logo: OpenAILogo },
   { name: "Gemini 3.5 Flash", vendor: "Google", note: "Three effort levels", Logo: GeminiLogo },
+  { name: "DeepSeek V4 Flash", vendor: "DeepSeek", note: "Thinking, 1M context, on your API key", Logo: DeepSeekLogo },
+  { name: "DeepSeek V4 Pro", vendor: "DeepSeek", note: "Deepest DeepSeek, thinking, 1M context", Logo: DeepSeekLogo },
+  { name: "DeepSeek V4 Flash Vision", vendor: "DeepSeek", note: "Image input, experimental", Logo: DeepSeekLogo },
 ];
 
 /** The hub diagram, a card per provider, then what a plan lists today. */
@@ -272,7 +275,7 @@ function Providers() {
           <ProviderHub />
         </div>
       </Reveal>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {PROVIDERS.map((pr, i) => (
           <Reveal key={pr.id} delay={i * 60}>
             <ProviderCard provider={pr} />

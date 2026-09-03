@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GeminiKeysPayload } from "../components/GeminiKeysCard";
+import type { KeysPayload } from "../components/ProviderKeysCard";
 import type { RunnerStatus } from "../components/ConnectorCard";
 import type { Tone } from "../components/ui";
 import { ApiError, friendly, get, poll, timeAgo } from "./api";
@@ -179,7 +180,7 @@ export function executionLine(c: Connection, runner: RunnerStatus | null): { ton
     tone: "warn",
     text: hasToken
       ? "Connector offline, so calls run on Ohshi's servers until it is back."
-      : "No connector is set up yet, so calls run on Ohshi's servers. Create a token on the Google access page.",
+      : "No connector is set up yet, so calls run on Ohshi's servers. Create a token on the Model access page.",
   };
 }
 
@@ -216,6 +217,22 @@ export function useGeminiKeys(pollMs = 60_000) {
   }, []);
   useEffect(() => poll(reload, pollMs), [reload, pollMs]);
   return { gemini, error, reload };
+}
+
+/** DeepSeek API keys and the current route. Same cadence as the Gemini keys. */
+export function useDeepSeekKeys(pollMs = 60_000) {
+  const [deepseek, setDeepSeek] = useState<KeysPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reload = useCallback(async () => {
+    try {
+      setDeepSeek(await get<KeysPayload>("/api/deepseek/keys"));
+      setError(null);
+    } catch (e) {
+      setError(friendly(e, "Couldn't read your DeepSeek API keys."));
+    }
+  }, []);
+  useEffect(() => poll(reload, pollMs), [reload, pollMs]);
+  return { deepseek, error, reload };
 }
 
 /** The gateway ledger. */

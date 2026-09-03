@@ -1,16 +1,17 @@
 /**
- * Connections — every AI subscription Ohshi will speak to, one card each.
- * Google is live (a Gemini API key, or the account behind a Google AI plan);
- * ChatGPT, Claude and SuperGrok are being built and stay locked until they
- * ship. Nothing here pretends to work before it does.
+ * Connections — every AI provider Ohshi will speak to, one card each.
+ * Google is live (a Gemini API key, or the account behind a Google AI plan)
+ * and so is DeepSeek (an API key; DeepSeek sells no subscription). ChatGPT,
+ * Claude and SuperGrok are being built and stay locked until they ship.
+ * Nothing here pretends to work before it does.
  */
 
 import type { ComponentType } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Lock, Sparkles } from "lucide-react";
-import { ClaudeLogo, GoogleLogo, OpenAILogo, XaiLogo } from "../components/logos";
+import { ClaudeLogo, DeepSeekLogo, GoogleLogo, OpenAILogo, XaiLogo } from "../components/logos";
 import { Badge, Button, PageHeader } from "../components/ui";
-import { useConnections, useGeminiKeys } from "../lib/workspace";
+import { useConnections, useDeepSeekKeys, useGeminiKeys } from "../lib/workspace";
 
 interface Provider {
   id: string;
@@ -20,6 +21,8 @@ interface Provider {
   models: string;
   live: boolean;
   note?: string;
+  /** Where the live provider's keys and accounts are managed. */
+  manage?: string;
 }
 
 const PROVIDERS: Provider[] = [
@@ -30,6 +33,16 @@ const PROVIDERS: Provider[] = [
     access: "Gemini API key from AI Studio, or the account behind Google AI Pro and Ultra (Beta)",
     models: "Gemini 2.5 and 3 on the key. Gemini, Claude and GPT-OSS through the account, with live quota.",
     live: true,
+    manage: "/app/accounts#sources",
+  },
+  {
+    id: "deepseek",
+    name: "DeepSeek",
+    Logo: DeepSeekLogo,
+    access: "DeepSeek API key from platform.deepseek.com",
+    models: "DeepSeek V4 Flash and V4 Pro with thinking, plus the vision preview. Pay as you go on your prepaid balance.",
+    live: true,
+    manage: "/app/accounts#deepseek",
   },
   {
     id: "openai",
@@ -60,35 +73,40 @@ const PROVIDERS: Provider[] = [
   },
 ];
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default function Connections() {
   const { connections } = useConnections();
   const { gemini } = useGeminiKeys();
+  const { deepseek } = useDeepSeekKeys();
   const keys = (gemini?.keys ?? []).filter((k) => k.status === "active").length;
+  const deepseekKeys = (deepseek?.keys ?? []).filter((k) => k.status === "active").length;
   const accounts = (connections ?? []).filter((c) => c.status === "active").length;
-  const known = connections !== null && gemini !== null;
+  const known = connections !== null && gemini !== null && deepseek !== null;
+
+  const detailFor = (id: string): string | undefined => {
+    if (!known) return "Checking…";
+    if (id === "google") {
+      return keys + accounts === 0
+        ? "Nothing connected yet"
+        : `${plural(keys, "Gemini key")}, ${plural(accounts, "Google account")}`;
+    }
+    if (id === "deepseek") {
+      return deepseekKeys === 0 ? "No key yet" : plural(deepseekKeys, "DeepSeek key");
+    }
+    return undefined;
+  };
 
   return (
     <div className="rise-in space-y-6">
       <PageHeader
         title="Connections"
-        description="Every AI subscription you connect shows up in the same picker and behind the same ohs_ key. Google is live; the others are locked until they ship."
+        description="Every AI provider you connect shows up in the same picker and behind the same ohs_ key. Google and DeepSeek are live; the others are locked until they ship."
       />
 
       <div className="grid gap-3 md:grid-cols-2">
         {PROVIDERS.map((p) => (
-          <ProviderCard
-            key={p.id}
-            provider={p}
-            detail={
-              p.live
-                ? !known
-                  ? "Checking…"
-                  : keys + accounts === 0
-                    ? "Nothing connected yet"
-                    : `${keys} Gemini key${keys === 1 ? "" : "s"}, ${accounts} Google account${accounts === 1 ? "" : "s"}`
-                : undefined
-            }
-          />
+          <ProviderCard key={p.id} provider={p} detail={p.live ? detailFor(p.id) : undefined} />
         ))}
       </div>
 
@@ -127,7 +145,7 @@ function ProviderCard(props: { provider: Provider; detail?: string }) {
             <span className="inline-flex items-center gap-1.5 text-[12px] text-ink-dim">
               <Sparkles className="h-3.5 w-3.5 text-ok" /> {props.detail}
             </span>
-            <Link to="/app/accounts">
+            <Link to={p.manage ?? "/app/accounts"}>
               <Button size="sm">
                 Manage <ArrowRight className="h-3.5 w-3.5" />
               </Button>

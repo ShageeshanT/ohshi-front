@@ -90,6 +90,17 @@ export function XaiLogo({ className }: LogoProps) {
   );
 }
 
+/** DeepSeek's whale — a rounded body swimming right, a forked tail on the
+ *  left, an eye punched out with the even-odd rule so it needs no second
+ *  colour. Reads as a whale from 14px up. */
+export function DeepSeekLogo({ className }: LogoProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" fillRule="evenodd" className={className ?? "h-5 w-5"} aria-hidden="true">
+      <path d="M5.6 12.4 C7.3 8.9 10.4 7 14.3 7.1 C17.7 7.2 20.4 8.9 21.6 11.4 C20.5 11.9 19.6 12.9 19.1 14.1 C17.6 16 14.9 16.9 12 16.6 C9.4 16.3 7.2 15.1 5.6 13.3 Z M5.6 12.4 C4.6 10.9 4.4 9.1 4.9 7.5 C6.4 8.6 7.3 10.3 7.5 12.1 Z M5.6 13.3 C4.2 14.4 3.4 16.2 3.6 18 C5.4 17.3 6.7 15.9 7.4 14.2 Z M17.2 10.2 a1.05 1.05 0 1 0 0.001 0 Z" />
+    </svg>
+  );
+}
+
 /** Fallback mark — a circuit node: hub with three linked nodes. */
 export function ModelFallbackLogo({ className }: LogoProps) {
   return (
@@ -112,6 +123,7 @@ export function vendorLogo(vendor: string) {
   if (vendor === "anthropic") return ClaudeLogo;
   if (vendor === "openai") return OpenAILogo;
   if (vendor === "google") return GeminiLogo;
+  if (vendor === "deepseek") return DeepSeekLogo;
   if (vendor === "xai") return XaiLogo;
   return ModelFallbackLogo;
 }

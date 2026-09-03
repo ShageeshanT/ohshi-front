@@ -1,8 +1,9 @@
 # Ohshi — frontend
 
-The web app for **Ohshi**: a chat UI over the Gemini / Claude / GPT-OSS models
-on your own connected Google account, plus the pages that manage those
-connections and the API keys your agents use.
+The web app for **Ohshi**: a chat UI over the models behind your own Gemini
+API key, DeepSeek API key or connected Google account (Gemini / DeepSeek /
+Claude / GPT-OSS), plus the pages that manage those sources and the API keys
+your agents use.
 
 The API lives in **[ohshi-back](https://github.com/ShageeshanT/ohshi-back)**.
 

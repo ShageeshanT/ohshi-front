@@ -28,7 +28,7 @@ import {
 import type { ComponentType, ReactNode } from "react";
 import { COPY, PROVIDERS, type Provider, type ProviderId } from "../../content/landing";
 import { BrandMark } from "../brand";
-import { ClaudeLogo, GeminiLogo, GoogleLogo, OpenAILogo, XaiLogo } from "../logos";
+import { ClaudeLogo, DeepSeekLogo, GeminiLogo, GoogleLogo, OpenAILogo, XaiLogo } from "../logos";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -36,6 +36,7 @@ type Logo = ComponentType<{ className?: string }>;
 
 export const PROVIDER_LOGOS: Record<ProviderId, Logo> = {
   google: GoogleLogo,
+  deepseek: DeepSeekLogo,
   openai: OpenAILogo,
   anthropic: ClaudeLogo,
   xai: XaiLogo,
@@ -490,7 +491,7 @@ function Mock(props: { children: ReactNode }) {
 function ConnectMock() {
   return (
     <Mock>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {PROVIDERS.map((p, i) => {
           const Logo = PROVIDER_LOGOS[p.id];
           return (

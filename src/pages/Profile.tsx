@@ -18,6 +18,7 @@ import { useTheme, type Theme } from "../lib/theme";
 interface Counts {
   apiKeys: number | null;
   geminiKeys: number | null;
+  deepseekKeys: number | null;
   accounts: number | null;
 }
 
@@ -36,7 +37,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [counts, setCounts] = useState<Counts>({ apiKeys: null, geminiKeys: null, accounts: null });
+  const [counts, setCounts] = useState<Counts>({ apiKeys: null, geminiKeys: null, deepseekKeys: null, accounts: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +50,9 @@ export default function Profile() {
     get<{ keys: { status: string }[] }>("/api/gemini/keys")
       .then((d) => set({ geminiKeys: d.keys.filter((k) => k.status === "active").length }))
       .catch(() => set({ geminiKeys: 0 }));
+    get<{ keys: { status: string }[] }>("/api/deepseek/keys")
+      .then((d) => set({ deepseekKeys: d.keys.filter((k) => k.status === "active").length }))
+      .catch(() => set({ deepseekKeys: 0 }));
     get<{ connections: { status: string }[] }>("/api/google/connections")
       .then((d) => set({ accounts: d.connections.filter((c) => c.status === "active").length }))
       .catch(() => set({ accounts: 0 }));
@@ -176,8 +180,8 @@ export default function Profile() {
           <LinkRow
             to="/app/accounts"
             icon={Plug}
-            title="Google access"
-            sub={`${plural(counts.geminiKeys, "Gemini key")}, ${plural(counts.accounts, "Google account")}`}
+            title="Model access"
+            sub={`${plural(counts.geminiKeys, "Gemini key")}, ${plural(counts.deepseekKeys, "DeepSeek key")}, ${plural(counts.accounts, "Google account")}`}
           />
           <LinkRow to="/app/models" icon={Layers} title="Models" sub="Quota per model and what each key can call" />
           <LinkRow to="/app/keys" icon={KeyRound} title="API keys" sub={`${plural(counts.apiKeys, "active key")}`} />

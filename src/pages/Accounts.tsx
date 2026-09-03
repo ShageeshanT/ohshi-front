@@ -1,11 +1,12 @@
 /**
- * Connected accounts — the Gemini API keys and Google accounts your chat and
- * /v1 calls run on, whether each one actually answers, and the optional
- * connector. Quota per model lives on the Models page; the ledger on Usage.
+ * Model access — the Gemini API keys, DeepSeek API keys and Google accounts
+ * your chat and /v1 calls run on, whether each one actually answers, and the
+ * optional connector. Quota per model lives on the Models page; the ledger
+ * on Usage.
  *
  * The Google OAuth callback lands here with ?connected=… or ?connect_error=…;
- * the Overview's Get started strip links here with ?add=key or ?connect=1 to
- * open the matching dialog.
+ * the Overview's Get started strip links here with ?add=key (Gemini),
+ * ?add=deepseek or ?connect=1 to open the matching dialog.
  */
 
 import { useEffect, useState } from "react";
@@ -15,12 +16,14 @@ import ConnectGoogleModal from "../components/ConnectGoogleModal";
 import { ConnectionCard } from "../components/ConnectionCard";
 import ConnectorCard from "../components/ConnectorCard";
 import GeminiKeysCard from "../components/GeminiKeysCard";
-import { GeminiLogo, GoogleLogo } from "../components/logos";
+import ProviderKeysCard, { DEEPSEEK_SPEC } from "../components/ProviderKeysCard";
+import { DeepSeekLogo, GeminiLogo, GoogleLogo } from "../components/logos";
 import { Badge, Button, Card, EmptyState, Notice, PageHeader, SectionTitle, Spinner, type Tone } from "../components/ui";
 import { friendly, paramText, post } from "../lib/api";
 import {
   quotaFor,
   useConnections,
+  useDeepSeekKeys,
   useGeminiKeys,
   useQuotas,
   useRunner,
@@ -32,10 +35,12 @@ export default function Accounts() {
   const [params, setParams] = useSearchParams();
   const { connections, setConnections, error: loadError, reload: loadConnections } = useConnections();
   const { gemini, error: geminiError, reload: loadGemini } = useGeminiKeys();
+  const { deepseek, error: deepseekError, reload: loadDeepSeek } = useDeepSeekKeys();
   const { runner, error: runnerError, reload: loadRunner } = useRunner();
   const { quotas, loadQuota, forget } = useQuotas(connections);
   const [connectOpen, setConnectOpen] = useState(() => params.get("connect") === "1");
   const [addKeyOpen, setAddKeyOpen] = useState(() => params.get("add") === "key");
+  const [addDeepSeekOpen, setAddDeepSeekOpen] = useState(() => params.get("add") === "deepseek");
   const [refreshing, setRefreshing] = useState(false);
   const [flash, setFlash] = useState<{ tone: Tone; text: string } | null>(() => {
     const connected = params.get("connected");
@@ -53,14 +58,21 @@ export default function Accounts() {
 
   const activeConnections = (connections ?? []).filter((c) => c.status === "active");
   const preferLocalCount = activeConnections.filter((c) => c.executeMode === "prefer_local").length;
-  const route = gemini?.route ?? null;
+  // Both key payloads carry the same route summary; either answers.
+  const route = gemini?.route ?? deepseek?.route ?? null;
   const studioUrl = gemini?.studioUrl ?? "https://aistudio.google.com/apikey";
+  const platformUrl = deepseek?.platformUrl ?? DEEPSEEK_SPEC.consoleUrl;
+
+  const reloadKeys = () => {
+    void loadGemini();
+    void loadDeepSeek();
+  };
 
   const onConnected = (email: string) => {
     setConnectOpen(false);
     setFlash({ tone: "ok", text: `Connected ${email}.` });
     void loadConnections();
-    void loadGemini();
+    reloadKeys();
   };
 
   const disconnect = async (c: Connection) => {
@@ -68,7 +80,7 @@ export default function Accounts() {
     try {
       await post(`/api/google/connections/${c.id}/disconnect`);
       forget(c.id);
-      await Promise.all([loadConnections(), loadGemini()]);
+      await Promise.all([loadConnections(), loadGemini(), loadDeepSeek()]);
     } catch (e) {
       setFlash({ tone: "danger", text: friendly(e) });
     }
@@ -78,7 +90,7 @@ export default function Accounts() {
     try {
       await post(`/api/google/connections/${c.id}/default`);
       setFlash({ tone: "ok", text: `Chat and /v1 now run on ${c.email} (Beta).` });
-      await Promise.all([loadConnections(), loadGemini()]);
+      await Promise.all([loadConnections(), loadGemini(), loadDeepSeek()]);
     } catch (e) {
       setFlash({ tone: "danger", text: friendly(e) });
     }
@@ -102,7 +114,13 @@ export default function Accounts() {
   const refresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([loadConnections(), loadGemini(), loadRunner(), ...activeConnections.map((c) => loadQuota(c.id, true))]);
+      await Promise.all([
+        loadConnections(),
+        loadGemini(),
+        loadDeepSeek(),
+        loadRunner(),
+        ...activeConnections.map((c) => loadQuota(c.id, true)),
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -111,8 +129,8 @@ export default function Accounts() {
   return (
     <div className="rise-in space-y-7">
       <PageHeader
-        title="Google access"
-        description="The Gemini keys and Google accounts your chat and /v1 calls run on. Add several and pick a default."
+        title="Model access"
+        description="The API keys and Google accounts your chat and /v1 calls run on. Add several and pick a default."
         actions={
           <>
             <Button tone="ghost" busy={refreshing} onClick={() => void refresh()}>
@@ -164,7 +182,44 @@ export default function Accounts() {
           addOpen={addKeyOpen}
           onAddOpen={setAddKeyOpen}
           onChanged={() => {
-            void loadGemini();
+            reloadKeys();
+            void loadConnections();
+          }}
+          onFlash={setFlash}
+        />
+      </section>
+
+      <section id="deepseek" className="scroll-mt-4 space-y-3">
+        <SectionTitle
+          icon={DeepSeekLogo}
+          title="DeepSeek API keys"
+          badge={
+            <Badge tone="ok" dot>
+              Live
+            </Badge>
+          }
+          description="Your own key from the DeepSeek platform. DeepSeek bills the prepaid balance behind it; the balance shows here."
+          aside={
+            <div className="flex gap-2">
+              <a href={platformUrl} target="_blank" rel="noreferrer" className="inline-flex">
+                <Button size="sm" tone="ghost">
+                  <ExternalLink className="h-3.5 w-3.5" /> Get a key
+                </Button>
+              </a>
+              <Button size="sm" onClick={() => setAddDeepSeekOpen(true)}>
+                <Plus className="h-3.5 w-3.5" /> Add key
+              </Button>
+            </div>
+          }
+        />
+        <ProviderKeysCard
+          spec={DEEPSEEK_SPEC}
+          payload={deepseek}
+          error={deepseekError}
+          addOpen={addDeepSeekOpen}
+          onAddOpen={setAddDeepSeekOpen}
+          onChanged={() => {
+            reloadKeys();
             void loadConnections();
           }}
           onFlash={setFlash}
@@ -208,7 +263,7 @@ export default function Accounts() {
                 connection={c}
                 quota={quotaFor(quotas, c.id)}
                 runner={runner}
-                canMakeDefault={!c.isDefault && (connections.length > 1 || route?.kind === "gemini_api")}
+                canMakeDefault={!c.isDefault && (connections.length > 1 || (route !== null && route.kind !== "code_assist"))}
                 onDisconnect={() => disconnect(c)}
                 onMakeDefault={() => makeDefault(c)}
                 onReconnect={() => setConnectOpen(true)}
@@ -228,7 +283,7 @@ export default function Accounts() {
           icon={Laptop}
           title="Connector"
           badge={<Badge tone="violet">Beta</Badge>}
-          description="Optional. Make your model calls from your own computer instead of Ohshi's servers."
+          description="Optional. Make your Google account calls from your own computer instead of Ohshi's servers."
         />
         <ConnectorCard status={runner} error={runnerError} preferLocalCount={preferLocalCount} onChanged={() => void loadRunner()} />
       </section>

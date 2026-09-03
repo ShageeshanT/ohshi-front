@@ -21,16 +21,17 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../App";
 import { keyName } from "../components/GeminiKeysCard";
-import { GeminiLogo, GoogleLogo } from "../components/logos";
+import { DeepSeekLogo, GeminiLogo, GoogleLogo } from "../components/logos";
 import { FamilyRow } from "../components/QuotaGrid";
 import { Badge, Button, Card, PageHeader, Progress, Skeleton, Stat } from "../components/ui";
 import { formatNumber } from "../lib/api";
-import { useConnections, useGeminiKeys, useQuotas, useUsage } from "../lib/workspace";
+import { useConnections, useDeepSeekKeys, useGeminiKeys, useQuotas, useUsage } from "../lib/workspace";
 
 export default function Overview() {
   const { me } = useAuth();
   const { connections } = useConnections();
   const { gemini } = useGeminiKeys();
+  const { deepseek } = useDeepSeekKeys();
   const { usage } = useUsage(30);
   const { quotas } = useQuotas(connections);
   const [now, setNow] = useState(() => Date.now());
@@ -41,14 +42,17 @@ export default function Overview() {
 
   const activeConnections = (connections ?? []).filter((c) => c.status === "active");
   const keys = gemini?.keys ?? [];
+  const deepseekKeys = deepseek?.keys ?? [];
   const activeKeys = keys.filter((k) => k.status === "active");
-  const route = gemini?.route ?? null;
-  const sourcesKnown = connections !== null && gemini !== null;
-  const activeSources = activeConnections.length + activeKeys.length;
-  const totalSources = (connections?.length ?? 0) + keys.length;
+  const activeDeepSeek = deepseekKeys.filter((k) => k.status === "active");
+  const activeKeyCount = activeKeys.length + activeDeepSeek.length;
+  const route = gemini?.route ?? deepseek?.route ?? null;
+  const sourcesKnown = connections !== null && gemini !== null && deepseek !== null;
+  const activeSources = activeConnections.length + activeKeyCount;
+  const totalSources = (connections?.length ?? 0) + keys.length + deepseekKeys.length;
   const needsAttention =
     (connections ?? []).filter((c) => c.status !== "active" || c.health?.status === "error").length +
-    keys.filter((k) => k.status !== "active" || k.health?.status === "error").length;
+    [...keys, ...deepseekKeys].filter((k) => k.status !== "active" || k.health?.status === "error").length;
   const families = Object.values(quotas).flatMap((q) => q.snapshot?.families ?? []);
   const requestCount = usage?.totals.requests ?? 0;
   const errorRate = usage && usage.totals.requests ? Math.round((usage.totals.errors / usage.totals.requests) * 100) : 0;
@@ -87,7 +91,9 @@ export default function Overview() {
               : route
                 ? route.kind === "gemini_api"
                   ? `Route: Gemini key ${route.label}`
-                  : `Route: ${route.label} (Beta)`
+                  : route.kind === "deepseek_api"
+                    ? `Route: DeepSeek key ${route.label}`
+                    : `Route: ${route.label} (Beta)`
                 : "Add a key or connect an account"
           }
         />
@@ -100,8 +106,8 @@ export default function Overview() {
               ? `${families.filter((f) => f.exhausted).length} out of quota`
               : activeConnections.length
                 ? "Reading quota"
-                : activeKeys.length
-                  ? "API keys report no meter"
+                : activeKeyCount
+                  ? "API keys have no per-model meter"
                   : "After you connect an account"
           }
         />
@@ -152,9 +158,9 @@ export default function Overview() {
                   <FamilyRow key={f.id} family={f} now={now} compact />
                 ))}
             </div>
-          ) : activeKeys.length ? (
+          ) : activeKeyCount ? (
             <p className="text-[12.5px] leading-relaxed text-ink-dim">
-              {activeKeys.length} Gemini key{activeKeys.length === 1 ? "" : "s"}. A key has no quota meter; the Models page lists what it can call.
+              {activeKeyCount} API key{activeKeyCount === 1 ? "" : "s"}. A key has no per-model meter; the Models page lists what it can call.
             </p>
           ) : activeConnections.length ? (
             <Rows n={3} />
@@ -176,7 +182,7 @@ export default function Overview() {
           )}
         </SummaryCard>
 
-        <SummaryCard icon={Plug} title="Google access" to="/app/accounts" hint="Keys, accounts and the connector">
+        <SummaryCard icon={Plug} title="Model access" to="/app/accounts" hint="Keys, accounts and the connector">
           {!sourcesKnown ? (
             <Rows n={3} />
           ) : totalSources === 0 ? (
@@ -192,6 +198,15 @@ export default function Overview() {
                   isDefault={route?.kind === "gemini_api" && route.id === k.id}
                 />
               ))}
+              {deepseekKeys.slice(0, 3).map((k) => (
+                <SourceLine
+                  key={k.id}
+                  icon={<DeepSeekLogo className="h-3.5 w-3.5 text-ink-dim" />}
+                  name={keyName(k)}
+                  ok={k.status === "active" && k.health?.status !== "error"}
+                  isDefault={route?.kind === "deepseek_api" && route.id === k.id}
+                />
+              ))}
               {(connections ?? []).slice(0, 3).map((c) => (
                 <SourceLine
                   key={c.id}
@@ -201,7 +216,7 @@ export default function Overview() {
                   isDefault={c.isDefault}
                 />
               ))}
-              {totalSources > 6 && <li className="text-[12px] text-ink-dim">+{totalSources - 6} more</li>}
+              {totalSources > 9 && <li className="text-[12px] text-ink-dim">+{totalSources - 9} more</li>}
             </ul>
           )}
         </SummaryCard>
@@ -272,12 +287,17 @@ function GetStarted() {
     {
       n: "1",
       title: "Add a model source",
-      text: "Paste a Gemini API key from Google AI Studio, or connect a Google account in Beta.",
+      text: "Paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, or connect a Google account in Beta.",
       action: (
         <div className="flex flex-wrap gap-2">
           <Link to="/app/accounts?add=key">
             <Button size="sm">
-              <KeyRound className="h-3.5 w-3.5" /> Add a key
+              <KeyRound className="h-3.5 w-3.5" /> Gemini key
+            </Button>
+          </Link>
+          <Link to="/app/accounts?add=deepseek">
+            <Button size="sm" tone="ghost">
+              <KeyRound className="h-3.5 w-3.5" /> DeepSeek key
             </Button>
           </Link>
           <Link to="/app/accounts?connect=1">

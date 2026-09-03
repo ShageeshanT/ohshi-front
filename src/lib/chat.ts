@@ -91,7 +91,12 @@ export interface ModelFamily {
 }
 
 /** Which credential the picker's list came from. */
-export type RouteKind = "gemini_api" | "code_assist";
+export type RouteKind = "gemini_api" | "deepseek_api" | "code_assist";
+
+/** The pasted-key routes: the user's own key on a supported API (not Beta). */
+export function isKeyRoute(kind: RouteKind | null | undefined): boolean {
+  return kind === "gemini_api" || kind === "deepseek_api";
+}
 
 export interface ChatModelsPayload {
   connected: boolean;
@@ -99,7 +104,7 @@ export interface ChatModelsPayload {
   route: RouteKind | null;
   /** The key's label or the Google account's email. */
   routeLabel: string | null;
-  /** The Google account connector is Beta; the Gemini API key is not. */
+  /** The Google account connector is Beta; the Gemini and DeepSeek API keys are not. */
   beta: boolean;
   /** The key id or the connection id behind the list. */
   connectionId: string | null;
@@ -109,7 +114,7 @@ export interface ChatModelsPayload {
   fetchedMs: number | null;
   endpointLabel: string | null;
   default: string;
-  /** Ids to show first (Gemini API route); null = use POPULAR_FAMILIES. */
+  /** Ids to show first (key routes); null = use POPULAR_FAMILIES. */
   popular: string[] | null;
   families: ModelFamily[];
 }
@@ -194,11 +199,15 @@ export function modelLabel(models: ChatModelsPayload | null, id: string): string
   return `${familyName(hit.family)}${effort}`;
 }
 
-/** "Gemini API key ‘personal’" / "me@gmail.com (Beta)" for the picker header and route pill. */
+/** "Gemini API key ‘personal’" / "DeepSeek API key ‘work’" / "me@gmail.com (Beta)"
+ *  for the picker header and route pill. */
 export function routeLabel(models: ChatModelsPayload | null): string {
   if (!models || !models.route) return "";
   if (models.route === "gemini_api") {
     return models.routeLabel ? `Gemini API key ‘${models.routeLabel}’` : "Gemini API key";
+  }
+  if (models.route === "deepseek_api") {
+    return models.routeLabel ? `DeepSeek API key ‘${models.routeLabel}’` : "DeepSeek API key";
   }
   return `${models.email ?? models.routeLabel ?? "Google account"} (Beta)`;
 }
