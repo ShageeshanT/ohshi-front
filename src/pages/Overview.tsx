@@ -21,17 +21,25 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../App";
 import { keyName } from "../components/GeminiKeysCard";
-import { DeepSeekLogo, GeminiLogo, GoogleLogo } from "../components/logos";
+import { DeepSeekLogo, GeminiLogo, GoogleLogo, OpenAILogo } from "../components/logos";
 import { FamilyRow } from "../components/QuotaGrid";
 import { Badge, Button, Card, PageHeader, Progress, Skeleton, Stat } from "../components/ui";
 import { formatNumber } from "../lib/api";
-import { useConnections, useDeepSeekKeys, useGeminiKeys, useQuotas, useUsage } from "../lib/workspace";
+import {
+  useChatGPTConnections,
+  useConnections,
+  useDeepSeekKeys,
+  useGeminiKeys,
+  useQuotas,
+  useUsage,
+} from "../lib/workspace";
 
 export default function Overview() {
   const { me } = useAuth();
   const { connections } = useConnections();
   const { gemini } = useGeminiKeys();
   const { deepseek } = useDeepSeekKeys();
+  const { chatgpt } = useChatGPTConnections();
   const { usage } = useUsage(30);
   const { quotas } = useQuotas(connections);
   const [now, setNow] = useState(() => Date.now());
@@ -46,13 +54,16 @@ export default function Overview() {
   const activeKeys = keys.filter((k) => k.status === "active");
   const activeDeepSeek = deepseekKeys.filter((k) => k.status === "active");
   const activeKeyCount = activeKeys.length + activeDeepSeek.length;
+  const chatgptRows = chatgpt?.connections ?? [];
+  const activeChatgpt = chatgptRows.filter((c) => c.status === "active");
   const route = gemini?.route ?? deepseek?.route ?? null;
-  const sourcesKnown = connections !== null && gemini !== null && deepseek !== null;
-  const activeSources = activeConnections.length + activeKeyCount;
-  const totalSources = (connections?.length ?? 0) + keys.length + deepseekKeys.length;
+  const sourcesKnown = connections !== null && gemini !== null && deepseek !== null && chatgpt !== null;
+  const activeSources = activeConnections.length + activeKeyCount + activeChatgpt.length;
+  const totalSources = (connections?.length ?? 0) + keys.length + deepseekKeys.length + chatgptRows.length;
   const needsAttention =
     (connections ?? []).filter((c) => c.status !== "active" || c.health?.status === "error").length +
-    [...keys, ...deepseekKeys].filter((k) => k.status !== "active" || k.health?.status === "error").length;
+    [...keys, ...deepseekKeys].filter((k) => k.status !== "active" || k.health?.status === "error").length +
+    chatgptRows.filter((c) => c.status !== "active" || c.health?.status === "error").length;
   const families = Object.values(quotas).flatMap((q) => q.snapshot?.families ?? []);
   const requestCount = usage?.totals.requests ?? 0;
   const errorRate = usage && usage.totals.requests ? Math.round((usage.totals.errors / usage.totals.requests) * 100) : 0;
@@ -93,6 +104,8 @@ export default function Overview() {
                   ? `Route: Gemini key ${route.label}`
                   : route.kind === "deepseek_api"
                     ? `Route: DeepSeek key ${route.label}`
+                    : route.kind === "chatgpt"
+                      ? `Route: ${route.label} (ChatGPT, Beta)`
                     : `Route: ${route.label} (Beta)`
                 : "Add a key or connect an account"
           }
@@ -106,9 +119,11 @@ export default function Overview() {
               ? `${families.filter((f) => f.exhausted).length} out of quota`
               : activeConnections.length
                 ? "Reading quota"
-                : activeKeyCount
-                  ? "API keys have no per-model meter"
-                  : "After you connect an account"
+                : activeChatgpt.length
+                  ? "ChatGPT windows are on the Models page"
+                  : activeKeyCount
+                    ? "API keys have no per-model meter"
+                    : "After you connect an account"
           }
         />
         <Stat icon={Activity} label="Gateway requests" value={usage ? formatNumber(requestCount) : "…"} sub={`Last ${usage?.windowDays ?? 30} days`} />
@@ -158,6 +173,10 @@ export default function Overview() {
                   <FamilyRow key={f.id} family={f} now={now} compact />
                 ))}
             </div>
+          ) : activeChatgpt.length ? (
+            <p className="text-[12.5px] leading-relaxed text-ink-dim">
+              {activeChatgpt.length} ChatGPT account{activeChatgpt.length === 1 ? "" : "s"}. The Models page shows the plan's rolling usage windows and what it can call.
+            </p>
           ) : activeKeyCount ? (
             <p className="text-[12.5px] leading-relaxed text-ink-dim">
               {activeKeyCount} API key{activeKeyCount === 1 ? "" : "s"}. A key has no per-model meter; the Models page lists what it can call.
@@ -182,7 +201,7 @@ export default function Overview() {
           )}
         </SummaryCard>
 
-        <SummaryCard icon={Plug} title="Model access" to="/app/accounts" hint="Keys, accounts and the connector">
+        <SummaryCard icon={Plug} title="Accounts" to="/app/accounts" hint="Keys, accounts and the connector">
           {!sourcesKnown ? (
             <Rows n={3} />
           ) : totalSources === 0 ? (
@@ -216,7 +235,16 @@ export default function Overview() {
                   isDefault={c.isDefault}
                 />
               ))}
-              {totalSources > 9 && <li className="text-[12px] text-ink-dim">+{totalSources - 9} more</li>}
+              {chatgptRows.slice(0, 3).map((c) => (
+                <SourceLine
+                  key={c.id}
+                  icon={<OpenAILogo className="h-3.5 w-3.5 text-ink-dim" />}
+                  name={c.email}
+                  ok={c.status === "active" && c.health?.status !== "error"}
+                  isDefault={c.isDefault}
+                />
+              ))}
+              {totalSources > 12 && <li className="text-[12px] text-ink-dim">+{totalSources - 12} more</li>}
             </ul>
           )}
         </SummaryCard>
@@ -287,7 +315,7 @@ function GetStarted() {
     {
       n: "1",
       title: "Add a model source",
-      text: "Paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, or connect a Google account in Beta.",
+      text: "Paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, or connect a Google or ChatGPT account in Beta.",
       action: (
         <div className="flex flex-wrap gap-2">
           <Link to="/app/accounts?add=key">
@@ -303,6 +331,11 @@ function GetStarted() {
           <Link to="/app/accounts?connect=1">
             <Button size="sm" tone="ghost">
               Connect Google
+            </Button>
+          </Link>
+          <Link to="/app/accounts?connect=chatgpt">
+            <Button size="sm" tone="ghost">
+              Connect ChatGPT
             </Button>
           </Link>
         </div>

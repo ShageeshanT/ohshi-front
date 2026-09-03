@@ -256,8 +256,8 @@ const MODELS = [
   { name: "Gemini 3.1 Pro", vendor: "Google", note: "Deepest Gemini, two effort levels", Logo: GeminiLogo },
   { name: "Claude Sonnet 4.6", vendor: "Anthropic", note: "Thinking, 250k context", Logo: ClaudeLogo },
   { name: "Claude Opus 4.6", vendor: "Anthropic", note: "Thinking, 250k context", Logo: ClaudeLogo },
+  { name: "GPT-5.5", vendor: "OpenAI", note: "On a ChatGPT plan, every effort level", Logo: OpenAILogo },
   { name: "GPT-OSS 120B", vendor: "OpenAI", note: "Open weights, medium reasoning", Logo: OpenAILogo },
-  { name: "Gemini 3.5 Flash", vendor: "Google", note: "Three effort levels", Logo: GeminiLogo },
   { name: "DeepSeek V4 Flash", vendor: "DeepSeek", note: "Thinking, 1M context, on your API key", Logo: DeepSeekLogo },
   { name: "DeepSeek V4 Pro", vendor: "DeepSeek", note: "Deepest DeepSeek, thinking, 1M context", Logo: DeepSeekLogo },
   { name: "DeepSeek V4 Flash Vision", vendor: "DeepSeek", note: "Image input, experimental", Logo: DeepSeekLogo },
@@ -538,7 +538,7 @@ function CallToAction() {
 const CONSTELLATION = [
   { id: "google", label: "Gemini", sub: "Live", live: true, Logo: GeminiLogo, x: 14, y: 22 },
   { id: "anthropic", label: "Claude", sub: "Next", live: false, Logo: ClaudeLogo, x: 86, y: 18 },
-  { id: "openai", label: "GPT", sub: "Next", live: false, Logo: OpenAILogo, x: 12, y: 80 },
+  { id: "openai", label: "GPT", sub: "Live", live: true, Logo: OpenAILogo, x: 12, y: 80 },
   { id: "xai", label: "Grok", sub: "Next", live: false, Logo: XaiLogo, x: 88, y: 78 },
 ];
 

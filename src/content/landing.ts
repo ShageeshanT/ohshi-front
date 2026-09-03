@@ -47,9 +47,9 @@ export const PROVIDERS: Provider[] = [
   {
     id: "openai",
     vendor: "OpenAI",
-    plans: ["ChatGPT Plus", "ChatGPT Pro"],
-    models: "The GPT models on the plan",
-    live: false,
+    plans: ["ChatGPT Plus, Pro and Team account (Beta)"],
+    models: "The GPT and Codex models on the plan, with its rolling usage windows",
+    live: true,
   },
   {
     id: "anthropic",

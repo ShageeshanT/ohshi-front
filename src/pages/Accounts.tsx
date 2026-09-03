@@ -1,32 +1,39 @@
 /**
- * Model access — the Gemini API keys, DeepSeek API keys and Google accounts
- * your chat and /v1 calls run on, whether each one actually answers, and the
- * optional connector. Quota per model lives on the Models page; the ledger
- * on Usage.
+ * Connected accounts — the Gemini API keys, DeepSeek API keys, Google
+ * accounts and ChatGPT accounts your chat and /v1 calls run on, whether each
+ * one actually answers, and the optional connector. Quota per model lives on
+ * the Models page; the ledger on Usage.
  *
  * The Google OAuth callback lands here with ?connected=… or ?connect_error=…;
  * the Overview's Get started strip links here with ?add=key (Gemini),
- * ?add=deepseek or ?connect=1 to open the matching dialog.
+ * ?add=deepseek, ?connect=1 (Google) or ?connect=chatgpt to open the
+ * matching dialog.
  */
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ExternalLink, Laptop, Plug, Plus, RefreshCw } from "lucide-react";
+import { ChatGPTAccountCard } from "../components/ChatGPTAccountCard";
+import ConnectChatGPTModal from "../components/ConnectChatGPTModal";
 import ConnectGoogleModal from "../components/ConnectGoogleModal";
 import { ConnectionCard } from "../components/ConnectionCard";
 import ConnectorCard from "../components/ConnectorCard";
 import GeminiKeysCard from "../components/GeminiKeysCard";
 import ProviderKeysCard, { DEEPSEEK_SPEC } from "../components/ProviderKeysCard";
-import { DeepSeekLogo, GeminiLogo, GoogleLogo } from "../components/logos";
+import { DeepSeekLogo, GeminiLogo, GoogleLogo, OpenAILogo } from "../components/logos";
 import { Badge, Button, Card, EmptyState, Notice, PageHeader, SectionTitle, Spinner, type Tone } from "../components/ui";
 import { friendly, paramText, post } from "../lib/api";
 import {
   quotaFor,
+  usageFor,
+  useChatGPTConnections,
+  useChatGPTUsage,
   useConnections,
   useDeepSeekKeys,
   useGeminiKeys,
   useQuotas,
   useRunner,
+  type ChatGPTConnection,
   type Connection,
   type ExecuteMode,
 } from "../lib/workspace";
@@ -36,9 +43,13 @@ export default function Accounts() {
   const { connections, setConnections, error: loadError, reload: loadConnections } = useConnections();
   const { gemini, error: geminiError, reload: loadGemini } = useGeminiKeys();
   const { deepseek, error: deepseekError, reload: loadDeepSeek } = useDeepSeekKeys();
+  const { chatgpt, error: chatgptError, reload: loadChatgpt } = useChatGPTConnections();
   const { runner, error: runnerError, reload: loadRunner } = useRunner();
   const { quotas, loadQuota, forget } = useQuotas(connections);
+  const chatgptRows = chatgpt?.connections ?? null;
+  const { usages, loadUsage, forget: forgetUsage } = useChatGPTUsage(chatgptRows);
   const [connectOpen, setConnectOpen] = useState(() => params.get("connect") === "1");
+  const [chatgptOpen, setChatgptOpen] = useState(() => params.get("connect") === "chatgpt");
   const [addKeyOpen, setAddKeyOpen] = useState(() => params.get("add") === "key");
   const [addDeepSeekOpen, setAddDeepSeekOpen] = useState(() => params.get("add") === "deepseek");
   const [refreshing, setRefreshing] = useState(false);
@@ -62,17 +73,21 @@ export default function Accounts() {
   const route = gemini?.route ?? deepseek?.route ?? null;
   const studioUrl = gemini?.studioUrl ?? "https://aistudio.google.com/apikey";
   const platformUrl = deepseek?.platformUrl ?? DEEPSEEK_SPEC.consoleUrl;
+  const sourceCount =
+    (connections?.length ?? 0) + (chatgptRows?.length ?? 0) + (gemini?.keys.length ?? 0) + (deepseek?.keys.length ?? 0);
 
-  const reloadKeys = () => {
-    void loadGemini();
-    void loadDeepSeek();
-  };
+  const reloadAll = () => Promise.all([loadConnections(), loadGemini(), loadDeepSeek(), loadChatgpt()]);
 
   const onConnected = (email: string) => {
     setConnectOpen(false);
     setFlash({ tone: "ok", text: `Connected ${email}.` });
-    void loadConnections();
-    reloadKeys();
+    void reloadAll();
+  };
+
+  const onChatgptConnected = (email: string) => {
+    setChatgptOpen(false);
+    setFlash({ tone: "ok", text: `Connected ${email} (ChatGPT).` });
+    void reloadAll();
   };
 
   const disconnect = async (c: Connection) => {
@@ -80,7 +95,7 @@ export default function Accounts() {
     try {
       await post(`/api/google/connections/${c.id}/disconnect`);
       forget(c.id);
-      await Promise.all([loadConnections(), loadGemini(), loadDeepSeek()]);
+      await reloadAll();
     } catch (e) {
       setFlash({ tone: "danger", text: friendly(e) });
     }
@@ -90,7 +105,28 @@ export default function Accounts() {
     try {
       await post(`/api/google/connections/${c.id}/default`);
       setFlash({ tone: "ok", text: `Chat and /v1 now run on ${c.email} (Beta).` });
-      await Promise.all([loadConnections(), loadGemini(), loadDeepSeek()]);
+      await reloadAll();
+    } catch (e) {
+      setFlash({ tone: "danger", text: friendly(e) });
+    }
+  };
+
+  const disconnectChatgpt = async (c: ChatGPTConnection) => {
+    if (!window.confirm(`Disconnect ${c.email}? Agents using this ChatGPT account will stop until you reconnect.`)) return;
+    try {
+      await post(`/api/openai/connections/${c.id}/disconnect`);
+      forgetUsage(c.id);
+      await reloadAll();
+    } catch (e) {
+      setFlash({ tone: "danger", text: friendly(e) });
+    }
+  };
+
+  const makeChatgptDefault = async (c: ChatGPTConnection) => {
+    try {
+      await post(`/api/openai/connections/${c.id}/default`);
+      setFlash({ tone: "ok", text: `Chat and /v1 now run on ${c.email} (ChatGPT, Beta).` });
+      await reloadAll();
     } catch (e) {
       setFlash({ tone: "danger", text: friendly(e) });
     }
@@ -115,11 +151,10 @@ export default function Accounts() {
     setRefreshing(true);
     try {
       await Promise.all([
-        loadConnections(),
-        loadGemini(),
-        loadDeepSeek(),
+        reloadAll(),
         loadRunner(),
         ...activeConnections.map((c) => loadQuota(c.id, true)),
+        ...(chatgptRows ?? []).filter((c) => c.status === "active").map((c) => loadUsage(c.id, true)),
       ]);
     } finally {
       setRefreshing(false);
@@ -129,12 +164,15 @@ export default function Accounts() {
   return (
     <div className="rise-in space-y-7">
       <PageHeader
-        title="Model access"
-        description="The API keys and Google accounts your chat and /v1 calls run on. Add several and pick a default."
+        title="Connected accounts"
+        description="The Gemini keys, DeepSeek keys, Google accounts and ChatGPT accounts your chat and /v1 calls run on. Add several and pick a default."
         actions={
           <>
             <Button tone="ghost" busy={refreshing} onClick={() => void refresh()}>
               <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </Button>
+            <Button tone="ghost" onClick={() => setChatgptOpen(true)}>
+              <OpenAILogo className="h-3.5 w-3.5" /> Connect ChatGPT
             </Button>
             <Button tone="ghost" onClick={() => setConnectOpen(true)}>
               <GoogleLogo className="h-3.5 w-3.5" /> Connect Google
@@ -181,10 +219,7 @@ export default function Accounts() {
           error={geminiError}
           addOpen={addKeyOpen}
           onAddOpen={setAddKeyOpen}
-          onChanged={() => {
-            reloadKeys();
-            void loadConnections();
-          }}
+          onChanged={() => void reloadAll()}
           onFlash={setFlash}
         />
       </section>
@@ -218,12 +253,63 @@ export default function Accounts() {
           error={deepseekError}
           addOpen={addDeepSeekOpen}
           onAddOpen={setAddDeepSeekOpen}
-          onChanged={() => {
-            reloadKeys();
-            void loadConnections();
-          }}
+          onChanged={() => void reloadAll()}
           onFlash={setFlash}
         />
+      </section>
+
+      <section id="chatgpt" className="scroll-mt-4 space-y-3">
+        <SectionTitle
+          icon={OpenAILogo}
+          title="ChatGPT accounts"
+          badge={<Badge tone="violet">Beta</Badge>}
+          description="Sign in with the account behind your ChatGPT Plus, Pro or Team plan, the way the Codex CLI does. Health and the plan's rolling usage windows show here."
+          aside={
+            <Button size="sm" tone="ghost" onClick={() => setChatgptOpen(true)}>
+              <Plug className="h-3.5 w-3.5" /> Add account
+            </Button>
+          }
+        />
+        {chatgptError && <Notice tone="warn">{chatgptError}</Notice>}
+        {chatgptRows === null ? (
+          <Card>
+            <Spinner label="Checking your ChatGPT accounts…" />
+          </Card>
+        ) : chatgptRows.length === 0 ? (
+          <Card>
+            <EmptyState
+              title="No ChatGPT account connected"
+              hint="Optional, and in Beta. Get a short code, enter it at OpenAI, and the models on your plan show up in the picker and behind your ohs_ key."
+              action={
+                <Button tone="ghost" onClick={() => setChatgptOpen(true)} arrow>
+                  <Plug className="h-3.5 w-3.5" /> Connect ChatGPT
+                </Button>
+              }
+            />
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {chatgptRows.map((c) => (
+              <ChatGPTAccountCard
+                key={c.id}
+                connection={c}
+                usage={usageFor(usages, c.id)}
+                canMakeDefault={!c.isDefault && (sourceCount > 1 || route?.kind !== "chatgpt")}
+                onDisconnect={() => disconnectChatgpt(c)}
+                onMakeDefault={() => makeChatgptDefault(c)}
+                onReconnect={() => setChatgptOpen(true)}
+                onTested={() => {
+                  void loadChatgpt();
+                  void loadUsage(c.id);
+                }}
+              />
+            ))}
+            <p className="text-[11.5px] text-ink-dim">
+              {chatgptRows.length} of {chatgpt?.maxConnections ?? 1} connected accounts on your plan (Google and ChatGPT together).
+              Tokens are stored encrypted; the plan itself is managed at OpenAI.
+            </p>
+          </div>
+        )}
       </section>
 
       <section id="connections" className="scroll-mt-4 space-y-3">
@@ -263,7 +349,7 @@ export default function Accounts() {
                 connection={c}
                 quota={quotaFor(quotas, c.id)}
                 runner={runner}
-                canMakeDefault={!c.isDefault && (connections.length > 1 || (route !== null && route.kind !== "code_assist"))}
+                canMakeDefault={!c.isDefault && (sourceCount > 1 || route?.kind !== "code_assist")}
                 onDisconnect={() => disconnect(c)}
                 onMakeDefault={() => makeDefault(c)}
                 onReconnect={() => setConnectOpen(true)}
@@ -283,12 +369,13 @@ export default function Accounts() {
           icon={Laptop}
           title="Connector"
           badge={<Badge tone="violet">Beta</Badge>}
-          description="Optional. Make your Google account calls from your own computer instead of Ohshi's servers."
+          description="Optional. Make your Google model calls from your own computer instead of Ohshi's servers."
         />
         <ConnectorCard status={runner} error={runnerError} preferLocalCount={preferLocalCount} onChanged={() => void loadRunner()} />
       </section>
 
       <ConnectGoogleModal open={connectOpen} onClose={() => setConnectOpen(false)} onDone={onConnected} />
+      <ConnectChatGPTModal open={chatgptOpen} onClose={() => setChatgptOpen(false)} onDone={onChatgptConnected} />
     </div>
   );
 }

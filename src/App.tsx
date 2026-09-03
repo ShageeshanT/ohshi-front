@@ -418,7 +418,7 @@ function AuthedRoutes(props: {
                     <Route
                       path="accounts"
                       element={
-                        <Page title="Model access">
+                        <Page title="Connected accounts">
                           <Accounts />
                         </Page>
                       }

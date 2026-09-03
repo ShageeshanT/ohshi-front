@@ -1,18 +1,33 @@
 /**
  * Models — what each model has left (the live quota of every connected Google
- * account, the model list of every Gemini and DeepSeek key) and what your
- * agents used per model through the gateway.
+ * account, the rolling usage windows of every ChatGPT account, the model list
+ * of every Gemini and DeepSeek key) and what your agents used per model
+ * through the gateway.
  */
 
 import { useEffect, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Plug, Star } from "lucide-react";
+import { ArrowRight, Plug, RefreshCw, Star } from "lucide-react";
+import { WindowChip } from "../components/ChatGPTAccountCard";
 import { keyName, type KeyRow, type RouteKind } from "../components/ProviderKeysCard";
-import { DeepSeekLogo, GeminiLogo, GoogleLogo } from "../components/logos";
+import { DeepSeekLogo, GeminiLogo, GoogleLogo, OpenAILogo } from "../components/logos";
 import { QuotaGrid } from "../components/QuotaGrid";
-import { Badge, Button, Card, EmptyState, PageHeader, SectionTitle, Spinner } from "../components/ui";
-import { formatNumber, get } from "../lib/api";
-import { quotaFor, useConnections, useDeepSeekKeys, useGeminiKeys, useQuotas, useUsage } from "../lib/workspace";
+import { Badge, Button, Card, EmptyState, Notice, PageHeader, SectionTitle, Spinner } from "../components/ui";
+import { formatNumber, get, timeAgo } from "../lib/api";
+import {
+  quotaFor,
+  usageFor,
+  useChatGPTConnections,
+  useChatGPTUsage,
+  useConnections,
+  useDeepSeekKeys,
+  useGeminiKeys,
+  useQuotas,
+  useUsage,
+  windowName,
+  type ChatGPTConnection,
+  type ChatGPTUsageState,
+} from "../lib/workspace";
 
 interface KeyModels {
   count: number;
@@ -20,32 +35,49 @@ interface KeyModels {
   default: string;
 }
 
+interface ChatGPTModels {
+  count: number;
+  models: { id: string; displayName: string; description: string; efforts: string[]; defaultEffort: string; contextWindow: number | null }[];
+  default: string;
+}
+
 const ROUTE_LOGO: Record<RouteKind, ComponentType<{ className?: string }>> = {
   gemini_api: GeminiLogo,
   deepseek_api: DeepSeekLogo,
   code_assist: GoogleLogo,
+  chatgpt: OpenAILogo,
 };
 
 export default function Models() {
   const { connections } = useConnections();
   const { gemini } = useGeminiKeys();
   const { deepseek } = useDeepSeekKeys();
+  const { chatgpt } = useChatGPTConnections();
   const { quotas, loadQuota } = useQuotas(connections);
+  const chatgptRows = chatgpt?.connections ?? null;
+  const { usages, loadUsage } = useChatGPTUsage(chatgptRows);
   const { usage } = useUsage(30);
 
   const activeConnections = (connections ?? []).filter((c) => c.status === "active");
   const activeKeys = (gemini?.keys ?? []).filter((k) => k.status === "active");
   const activeDeepSeek = (deepseek?.keys ?? []).filter((k) => k.status === "active");
-  const known = connections !== null && gemini !== null && deepseek !== null;
+  const activeChatgpt = (chatgptRows ?? []).filter((c) => c.status === "active");
+  const known = connections !== null && gemini !== null && deepseek !== null && chatgpt !== null;
+  // Every keys payload carries the same route summary; either answers.
   const route = gemini?.route ?? deepseek?.route ?? null;
   const RouteLogo = route ? ROUTE_LOGO[route.kind] : null;
-  const nothing = known && activeConnections.length === 0 && activeKeys.length === 0 && activeDeepSeek.length === 0;
+  const nothing =
+    known &&
+    activeConnections.length === 0 &&
+    activeKeys.length === 0 &&
+    activeDeepSeek.length === 0 &&
+    activeChatgpt.length === 0;
 
   return (
     <div className="rise-in space-y-7">
       <PageHeader
         title="Models"
-        description="What each model has left on your Google accounts, what each key can call, and what your agents used."
+        description="What each model has left on your Google and ChatGPT accounts, what each key can call, and what your agents used."
         actions={
           route && RouteLogo ? (
             <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-edge bg-panel px-2.5 text-[12.5px]">
@@ -66,11 +98,11 @@ export default function Models() {
         <Card>
           <EmptyState
             title="Nothing to show yet"
-            hint="Add a Gemini or DeepSeek API key or connect a Google account and the models it can use show up here, with live quota for Google accounts."
+            hint="Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account, and the models it can use show up here with what is left on the plan."
             action={
               <Link to="/app/accounts?add=key">
                 <Button arrow>
-                  <Plug className="h-3.5 w-3.5" /> Model access
+                  <Plug className="h-3.5 w-3.5" /> Connected accounts
                 </Button>
               </Link>
             }
@@ -103,6 +135,20 @@ export default function Models() {
                 >
                   <QuotaGrid quota={quotaFor(quotas, c.id)} onRefresh={() => loadQuota(c.id, true)} />
                 </Card>
+              ))}
+            </section>
+          )}
+
+          {activeChatgpt.length > 0 && (
+            <section className="space-y-3">
+              <SectionTitle
+                icon={OpenAILogo}
+                title="ChatGPT usage"
+                badge={<Badge tone="violet">Beta</Badge>}
+                description="OpenAI meters a ChatGPT plan per account, not per model: a 5-hour window and a weekly one. Every model on the plan shares them."
+              />
+              {activeChatgpt.map((c) => (
+                <ChatGPTUsageCard key={c.id} row={c} usage={usageFor(usages, c.id)} onRefresh={() => loadUsage(c.id, true)} />
               ))}
             </section>
           )}
@@ -141,7 +187,7 @@ export default function Models() {
                     Live
                   </Badge>
                 }
-                description="What DeepSeek lists for the key right now. The balance behind each key is on the Model access page."
+                description="What DeepSeek lists for the key right now. The balance behind each key is on the Connected accounts page."
               />
               {activeDeepSeek.map((k) => (
                 <KeyModelsCard
@@ -214,6 +260,115 @@ export default function Models() {
   );
 }
 
+function ChatGPTUsageCard(props: { row: ChatGPTConnection; usage: ChatGPTUsageState; onRefresh: () => void }) {
+  const { row } = props;
+  const { usage, error, loading } = props.usage;
+  const [models, setModels] = useState<ChatGPTModels | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    get<ChatGPTModels>(`/api/openai/connections/${row.id}/models`)
+      .then((d) => {
+        if (!cancelled) setModels(d);
+      })
+      .catch(() => {
+        if (!cancelled) setModels(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [row.id]);
+
+  return (
+    <Card
+      flush
+      title={
+        <span className="flex items-center gap-1.5">
+          {row.email}
+          {row.planLabel && <Badge>ChatGPT {row.planLabel}</Badge>}
+          {row.isDefault && (
+            <Badge tone="accent">
+              <Star className="h-3 w-3" /> Default
+            </Badge>
+          )}
+        </span>
+      }
+      description={
+        usage
+          ? `Read from OpenAI ${timeAgo(usage.fetchedMs)}${usage.cached ? ", cached" : ""}${usage.exhausted ? ", limit reached" : ""}`
+          : loading
+            ? "Reading your usage from OpenAI…"
+            : "Usage unavailable"
+      }
+      aside={
+        <Button size="sm" tone="ghost" busy={loading} onClick={props.onRefresh}>
+          <RefreshCw className="h-3.5 w-3.5" /> Refresh
+        </Button>
+      }
+    >
+      <div className="space-y-3 p-4">
+        {error && (
+          <Notice tone="warn">
+            {error}
+            {usage ? " Showing the last reading." : ""}
+          </Notice>
+        )}
+        {usage ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            <WindowChip wide window={usage.primary} label={windowName(usage.primary, "5-hour window")} />
+            <WindowChip wide window={usage.secondary} label={windowName(usage.secondary, "Weekly window")} />
+          </div>
+        ) : !loading ? (
+          <EmptyState title="No usage reading yet" hint="Hit Refresh to ask OpenAI again." />
+        ) : null}
+        {usage?.credits?.hasCredits && (
+          <p className="text-[12px] text-ink-dim">
+            Credits on the account{usage.credits.unlimited ? ": unlimited" : usage.credits.balance ? `: ${usage.credits.balance}` : ""}.
+          </p>
+        )}
+      </div>
+      <div className="border-t border-edge">
+        {models === undefined ? (
+          <Spinner label="Asking OpenAI what this plan can call…" />
+        ) : models === null ? (
+          <div className="p-4">
+            <EmptyState title="Could not list this plan's models" hint="Test the account on the Connected accounts page to see why." />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Id</th>
+                  <th>Reasoning levels</th>
+                  <th className="num">Context</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {models.models.map((m) => (
+                  <tr key={m.id}>
+                    <td className="font-medium" title={m.description}>
+                      {m.displayName}
+                    </td>
+                    <td className="mono text-[12px] text-ink-dim">{m.id}</td>
+                    <td className="text-[12px] text-ink-dim">
+                      {m.efforts.length ? m.efforts.map((e) => (e === m.defaultEffort ? `${e} (default)` : e)).join(", ") : "—"}
+                    </td>
+                    <td className="num text-[12px] text-ink-dim">{m.contextWindow ? formatNumber(m.contextWindow) : "—"}</td>
+                    <td className="num">{m.id === models.default && <Badge tone="accent">Default</Badge>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function KeyModelsCard(props: { api: string; vendor: string; row: KeyRow; isRoute: boolean }) {
   const { api, row } = props;
   const [models, setModels] = useState<KeyModels | null | undefined>(undefined);
@@ -252,7 +407,7 @@ function KeyModelsCard(props: { api: string; vendor: string; row: KeyRow; isRout
         <Spinner label={`Asking ${props.vendor} what this key can call…`} />
       ) : models === null ? (
         <div className="p-4">
-          <EmptyState title="Could not list this key's models" hint="Test the key on the Model access page to see why." />
+          <EmptyState title="Could not list this key's models" hint="Test the key on the Connected accounts page to see why." />
         </div>
       ) : (
         <div className="overflow-x-auto">

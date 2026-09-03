@@ -1,10 +1,11 @@
 /**
- * Docs — pick a model, get the exact request for it. Three paths reach the
- * same /v1: a Gemini API key, a DeepSeek API key (both supported) and a
- * connected Google account (Beta). The page opens on whichever the account is
- * set to and lists that path's models: the key's live list from GET
- * /api/chat/models, or the static catalogs from /api/gemini/catalog,
- * /api/deepseek/catalog and /api/google/catalog.
+ * Docs — pick a model, get the exact request for it. Four paths reach the
+ * same /v1: a Gemini API key, a DeepSeek API key (both supported), a
+ * connected Google account (Beta) and a connected ChatGPT account (Beta). The
+ * page opens on whichever the account is set to and lists that path's models:
+ * the live list from GET /api/chat/models, or the static catalogs from
+ * /api/gemini/catalog, /api/deepseek/catalog, /api/google/catalog and
+ * /api/openai/catalog.
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -31,15 +32,18 @@ const PATHS: { kind: RouteKind; tab: string }[] = [
   { kind: "gemini_api", tab: "Gemini key" },
   { kind: "deepseek_api", tab: "DeepSeek key" },
   { kind: "code_assist", tab: "Google (Beta)" },
+  { kind: "chatgpt", tab: "ChatGPT (Beta)" },
 ];
 const STUDIO_URL = "https://aistudio.google.com/apikey";
 const PLATFORM_URL = "https://platform.deepseek.com/api_keys";
 const GEMINI_EFFORTS = ["low", "medium", "high"];
 const DEEPSEEK_EFFORTS = ["low", "high", "max"];
+const CHATGPT_EFFORTS = ["low", "medium", "high", "xhigh"];
 const DEFAULT_ID: Record<RouteKind, string> = {
   gemini_api: "gemini-2.5-flash",
   deepseek_api: "deepseek-v4-flash",
   code_assist: "gemini-3.6-flash",
+  chatgpt: "gpt-5.5",
 };
 
 /** Gemini 2.5 and later accept thinkingConfig; earlier ids and Gemma do not. */
@@ -70,6 +74,23 @@ function liveKeyFamilies(models: ChatModelsPayload, kind: RouteKind): Family[] {
   }));
 }
 
+/** The ChatGPT plan's live manifest, with the built-in catalog's effort levels when it knows the slug. */
+function liveChatGPTFamilies(models: ChatModelsPayload, builtIn: Family[] | null): Family[] {
+  return models.families.map((f) => {
+    const known = builtIn?.find((b) => b.id === f.id);
+    return {
+      id: f.id,
+      label: familyName(f),
+      vendor: "openai",
+      efforts: known?.efforts.length ? known.efforts : CHATGPT_EFFORTS,
+      defaultEffort: "",
+      variants: { "": f.id },
+      description: known?.description ?? "",
+      recommended: f.id === models.default,
+    };
+  });
+}
+
 const chip = (active: boolean) =>
   `rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
     active ? "bg-ink text-panel" : "bg-ink/[0.05] text-ink-dim hover:bg-ink/10 hover:text-ink"
@@ -79,6 +100,7 @@ export default function Docs() {
   const [geminiCatalog, setGeminiCatalog] = useState<Family[] | null>(null);
   const [deepseekCatalog, setDeepSeekCatalog] = useState<Family[] | null>(null);
   const [googleCatalog, setGoogleCatalog] = useState<Family[] | null>(null);
+  const [openaiCatalog, setOpenaiCatalog] = useState<Family[] | null>(null);
   const [googleDefault, setGoogleDefault] = useState("");
   const [models, setModels] = useState<ChatModelsPayload | null | undefined>(undefined);
   const [path, setPath] = useState<RouteKind>("gemini_api");
@@ -101,6 +123,9 @@ export default function Docs() {
         setGoogleDefault(d.default);
       })
       .catch(() => setGoogleCatalog([]));
+    get<{ families: Family[]; default: string }>("/api/openai/catalog")
+      .then((d) => setOpenaiCatalog(d.families))
+      .catch(() => setOpenaiCatalog([]));
     get<ChatModelsPayload>("/api/chat/models")
       .then(setModels)
       .catch(() => setModels(null));
@@ -122,32 +147,40 @@ export default function Docs() {
       if (models && models.route === "deepseek_api" && models.families.length > 0) return liveKeyFamilies(models, path);
       return deepseekCatalog;
     }
+    if (path === "chatgpt") {
+      if (models && models.route === "chatgpt" && models.families.length > 0) return liveChatGPTFamilies(models, openaiCatalog);
+      return openaiCatalog;
+    }
     return googleCatalog;
-  }, [path, models, geminiCatalog, deepseekCatalog, googleCatalog]);
+  }, [path, models, geminiCatalog, deepseekCatalog, googleCatalog, openaiCatalog]);
+
+  const codeAssist = path === "code_assist";
 
   // Keep the selection on a model of the current path.
   useEffect(() => {
     if (!families || families.length === 0) return;
     if (families.some((f) => f.id === modelId)) return;
-    const preferred = isKeyRoute(path)
-      ? (families.find((f) => f.recommended) ?? families[0])
-      : (families.find((f) => f.id === googleDefault) ?? families[0]);
+    const preferred = codeAssist
+      ? (families.find((f) => f.id === googleDefault) ?? families[0])
+      : (families.find((f) => f.recommended) ?? families[0]);
     setModelId(preferred.id);
-    setEffort(preferred.defaultEffort);
-  }, [families, modelId, path, googleDefault]);
+    setEffort(codeAssist ? preferred.defaultEffort : "");
+  }, [families, modelId, codeAssist, googleDefault]);
 
   const family = useMemo(() => families?.find((f) => f.id === modelId) ?? null, [families, modelId]);
   const keyPath = isKeyRoute(path);
+  const gemini = path === "gemini_api";
   const deepseek = path === "deepseek_api";
+  const chatgpt = path === "chatgpt";
   const resolved = family
     ? (family.variants[effort] ?? family.variants[family.defaultEffort] ?? Object.values(family.variants)[0])
     : "";
-  const live = keyPath && !!models && models.route === path && models.families.length > 0;
+  const live = !!models && models.families.length > 0 && !codeAssist && models.route === path;
   const vendorName = deepseek ? "DeepSeek" : "Google";
 
   const pick = (f: Family) => {
     setModelId(f.id);
-    setEffort(f.defaultEffort);
+    setEffort(codeAssist ? f.defaultEffort : "");
   };
 
   const pathTab = PATHS.find((p) => p.kind === path)?.tab ?? PATHS[0].tab;
@@ -155,6 +188,8 @@ export default function Docs() {
     const next = PATHS.find((p) => p.tab === tab);
     if (next) setPath(next.kind);
   };
+
+  const vendorLabel = (f: Family) => (chatgpt ? "ChatGPT" : (VENDOR_LABEL[f.vendor] ?? f.vendor));
 
   return (
     <div className="rise-in space-y-5">
@@ -166,15 +201,15 @@ export default function Docs() {
             from the API keys page.{" "}
             {models?.route
               ? `Right now your calls run on ${routeLabel(models)}.`
-              : "Add a Gemini or DeepSeek API key, or connect a Google account, on the Model access page first."}{" "}
-            Nothing in your code says which one; switching the default on the Model access page is enough.
+              : "Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account, on the Connected accounts page first."}{" "}
+            Nothing in your code says which one; switching the default on the Connected accounts page is enough.
           </>
         }
       />
 
       <Card title="Before you start" aside={<Tabs tabs={PATHS.map((p) => p.tab)} active={pathTab} onChange={onPathTab} />}>
-        <div className="grid gap-3 md:grid-cols-3">
-          <PathBox active={path === "gemini_api"} title="Gemini API key" badge={<Badge tone="ok" dot>Live</Badge>}>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <PathBox active={gemini} title="Gemini API key" badge={<Badge tone="ok" dot>Live</Badge>}>
             <li>
               Create a key at{" "}
               <a href={STUDIO_URL} target="_blank" rel="noreferrer" className="font-medium text-accent underline-offset-2 hover:underline">
@@ -182,7 +217,7 @@ export default function Docs() {
               </a>
               . Google bills it for what you use.
             </li>
-            <li>Paste it once on the Model access page. It is stored encrypted and never shown again.</li>
+            <li>Paste it once on the Connected accounts page. It is stored encrypted and never shown again.</li>
             <li>
               Create an <code className="mono text-ink">ohs_</code> key and call <code className="mono text-ink">/v1</code>.
               The Gemini key stays on the server.
@@ -196,16 +231,21 @@ export default function Docs() {
               </a>{" "}
               and top up the balance. DeepSeek bills it per token; there is no subscription.
             </li>
-            <li>Paste it once on the Model access page. The balance behind it shows there.</li>
+            <li>Paste it once on the Connected accounts page. The balance behind it shows there.</li>
             <li>
               Same <code className="mono text-ink">ohs_</code> key, same <code className="mono text-ink">/v1</code>. Thinking
               streams as <code className="mono text-ink">reasoning_content</code>.
             </li>
           </PathBox>
-          <PathBox active={path === "code_assist"} title="Google account" badge={<Badge tone="violet">Beta</Badge>}>
+          <PathBox active={codeAssist} title="Google account" badge={<Badge tone="violet">Beta</Badge>}>
             <li>Connect the Google account behind your Google AI plan and paste back the code.</li>
             <li>Calls run on that plan through Google Code Assist, with live remaining quota per model.</li>
             <li>Beta: not a guaranteed API entitlement. Keep an API key for anything that must not break.</li>
+          </PathBox>
+          <PathBox active={chatgpt} title="ChatGPT account" badge={<Badge tone="violet">Beta</Badge>}>
+            <li>Connect the ChatGPT account behind your Plus, Pro or Team plan with a short sign-in code.</li>
+            <li>Calls run on that plan the way the Codex CLI does, with the plan&apos;s 5-hour and weekly windows shown live.</li>
+            <li>Beta: the plan meters usage per account, so every model shares the same windows.</li>
           </PathBox>
         </div>
       </Card>
@@ -217,9 +257,13 @@ export default function Docs() {
             ? undefined
             : keyPath
               ? live
-                ? `What your key lists on the ${vendorName === "Google" ? "Gemini" : "DeepSeek"} API right now (${families.length} chat models). Anything ${vendorName} adds appears here by itself.`
+                ? `What your key lists on the ${deepseek ? "DeepSeek" : "Gemini"} API right now (${families.length} chat models). Anything ${vendorName} adds appears here by itself.`
                 : `The built-in ${deepseek ? "DeepSeek" : "Gemini API"} list. Once a key is saved, this shows what that key can actually call.`
-              : "The Code Assist families a connected Google account serves. Effort levels are separate backend ids."
+              : chatgpt
+                ? live
+                  ? `What your ChatGPT plan lists right now (${families.length} models). Anything OpenAI adds to the plan appears here by itself.`
+                  : "The built-in ChatGPT list. Once an account is connected, this shows what that plan can actually call."
+                : "The Code Assist families a connected Google account serves. Effort levels are separate backend ids."
         }
       >
         {families === null ? (
@@ -245,8 +289,9 @@ export default function Docs() {
                   </span>
                   <span className="mono truncate text-[11px] text-ink-dim">{f.id}</span>
                   <span className="text-[11.5px] text-ink-dim">
-                    {VENDOR_LABEL[f.vendor] ?? f.vendor}
-                    {f.efforts.length > 0 && (keyPath ? ", thinking" : `, ${f.efforts.length} effort levels`)}
+                    {vendorLabel(f)}
+                    {f.efforts.length > 0 &&
+                      (keyPath ? ", thinking" : chatgpt ? `, ${f.efforts.length} reasoning levels` : `, ${f.efforts.length} effort levels`)}
                   </span>
                 </button>
               );
@@ -258,7 +303,7 @@ export default function Docs() {
           <div className="mt-4 border-t border-edge pt-4">
             <p className="mb-2 text-[12.5px] font-medium">Reasoning effort</p>
             <div className="flex flex-wrap gap-1.5">
-              {keyPath && (
+              {!codeAssist && (
                 <button type="button" onClick={() => setEffort("")} className={chip(effort === "")}>
                   Model default
                 </button>
@@ -266,7 +311,7 @@ export default function Docs() {
               {family.efforts.map((e) => (
                 <button key={e} type="button" onClick={() => setEffort(e)} className={chip(e === effort)}>
                   {effortLabel(e)}
-                  {!keyPath && e === family.defaultEffort && <Check className="ml-1 inline h-3 w-3 align-[-1px]" />}
+                  {codeAssist && e === family.defaultEffort && <Check className="ml-1 inline h-3 w-3 align-[-1px]" />}
                 </button>
               ))}
             </div>
@@ -278,11 +323,17 @@ export default function Docs() {
                   words: low, high or max (medium counts as high; none switches thinking off). Leave it out for the
                   model&apos;s own default, which is high.
                 </>
-              ) : keyPath ? (
+              ) : gemini ? (
                 <>
                   On the Gemini API the id goes to Google unchanged and{" "}
                   <code className="mono text-ink">reasoning_effort</code> sets the thinking depth: a token budget
                   on Gemini 2.5, a thinking level on Gemini 3. Leave it out for the model&apos;s own default.
+                </>
+              ) : chatgpt ? (
+                <>
+                  On ChatGPT <code className="mono text-ink">reasoning_effort</code> sets the model&apos;s reasoning
+                  level. A level the model does not list is rounded to its nearest one, so an agent asking for{" "}
+                  <code className="mono text-ink">xhigh</code> never gets an error. Leave it out for the plan&apos;s default.
                 </>
               ) : (
                 <>
@@ -350,20 +401,24 @@ export default function Docs() {
               Missing, wrong or revoked API key.
             </ErrorRow>
             <ErrorRow code="403 / 409" tone="warn" name="gemini_api_key_error">
-              Google rejected your Gemini API key, or you have none saved. Paste a fresh one on the Model access page.
+              Google rejected your Gemini API key, or you have none saved. Paste a fresh one on the Connected accounts page.
             </ErrorRow>
             <ErrorRow code="403 / 409" tone="warn" name="deepseek_api_key_error">
-              DeepSeek rejected your API key, or you have none saved. Paste a fresh one on the Model access page.
+              DeepSeek rejected your API key, or you have none saved. Paste a fresh one on the Connected accounts page.
             </ErrorRow>
             <ErrorRow code="402" tone="warn" name="insufficient_quota">
               The DeepSeek account behind the key has no balance left. Top up at platform.deepseek.com; the key stays.
             </ErrorRow>
             <ErrorRow code="409 / 403" tone="warn" name="google_account_error">
-              No Google account connected, or it needs reconnecting. The Model access page shows which.
+              No Google account connected, or it needs reconnecting. The Connected accounts page shows which.
+            </ErrorRow>
+            <ErrorRow code="409 / 403" tone="warn" name="chatgpt_account_error">
+              The ChatGPT account needs reconnecting, or the plan does not include Codex. Reconnect it on the Connected accounts page.
             </ErrorRow>
             <ErrorRow code="429" tone="warn" name="rate_limit_error">
-              The provider&apos;s limit on your key, quota exhausted on every Code Assist endpoint, or this key over its
-              per minute burst limit. <code className="mono">Retry-After</code> says when to try again.
+              The provider&apos;s limit on your key, quota exhausted on every Code Assist endpoint, the ChatGPT plan&apos;s
+              window used up, or this key over its per minute burst limit. <code className="mono">Retry-After</code>{" "}
+              says when to try again.
             </ErrorRow>
             <ErrorRow code="404" tone="dim" name="invalid_request_error">
               That model isn&apos;t available on this key or plan.

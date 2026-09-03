@@ -40,7 +40,7 @@ const PAGES: PageHit[] = [
   { to: "/app/models", label: "Models", hint: "Quota per model", icon: Layers },
   { to: "/app/usage", label: "Usage", hint: "The gateway ledger", icon: Activity },
   { to: "/app/connections", label: "Connections", hint: "Providers, live and coming", icon: Network },
-  { to: "/app/accounts", label: "Model access", hint: "Gemini keys, DeepSeek keys, Google accounts, connector", icon: Plug },
+  { to: "/app/accounts", label: "Accounts", hint: "Gemini keys, DeepSeek keys, Google and ChatGPT accounts, connector", icon: Plug },
   { to: "/app/keys", label: "API keys", hint: "Keys for /v1", icon: KeyRound },
   { to: "/app/billing", label: "Plan and billing", hint: "Your plan", icon: CreditCard },
   { to: "/app/docs", label: "Docs", hint: "Request snippets", icon: BookOpen },

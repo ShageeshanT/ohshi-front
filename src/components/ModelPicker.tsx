@@ -112,7 +112,7 @@ export default function ModelPicker(props: {
                           ? `, list ${timeAgo(m.fetchedMs)}`
                           : ""
                     }`
-                  : "Built-in catalog. Add a Gemini or DeepSeek API key, or connect Google"}
+                  : "Built-in catalog. Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account"}
               </p>
               {m?.error && <p className="mt-0.5 text-[11.5px] text-warn">{m.error}</p>}
             </div>
