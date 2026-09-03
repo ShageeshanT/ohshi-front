@@ -77,8 +77,29 @@ export interface ChatGPTConnectionsPayload {
   planUrl: string;
 }
 
+/** One connected DeepSeek chat account (ohshi/deepseek connect). */
+export interface DeepSeekChatConnection {
+  id: string;
+  email: string;
+  accountId: string;
+  status: "active" | "needs_reconnect";
+  isDefault: boolean;
+  connectedMs: number;
+  updatedMs: number;
+  lastRefreshedMs: number | null;
+  health: Health;
+  locked?: boolean;
+}
+
+export interface DeepSeekChatConnectionsPayload {
+  connections: DeepSeekChatConnection[];
+  route: RouteSummaryLite | null;
+  maxConnections: number;
+  signInUrl: string;
+}
+
 interface RouteSummaryLite {
-  kind: "gemini_api" | "code_assist" | "chatgpt";
+  kind: "gemini_api" | "deepseek_api" | "code_assist" | "chatgpt" | "deepseek_chat";
   id: string;
   label: string;
   beta: boolean;
@@ -345,6 +366,22 @@ export function useChatGPTConnections(pollMs = 60_000) {
   }, []);
   useEffect(() => poll(reload, pollMs), [reload, pollMs]);
   return { chatgpt, error, reload };
+}
+
+/** DeepSeek chat accounts (email/password at chat.deepseek.com). */
+export function useDeepSeekChat(pollMs = 60_000) {
+  const [deepseekChat, setDeepseekChat] = useState<DeepSeekChatConnectionsPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reload = useCallback(async () => {
+    try {
+      setDeepseekChat(await get<DeepSeekChatConnectionsPayload>("/api/deepseek/connections"));
+      setError(null);
+    } catch (e) {
+      setError(friendly(e, "Couldn't read your DeepSeek accounts."));
+    }
+  }, []);
+  useEffect(() => poll(reload, pollMs), [reload, pollMs]);
+  return { deepseekChat, error, reload };
 }
 
 /**

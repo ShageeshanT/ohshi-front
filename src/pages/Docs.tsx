@@ -31,6 +31,7 @@ const LANGS = ["Python", "curl", "JavaScript"];
 const PATHS: { kind: RouteKind; tab: string }[] = [
   { kind: "gemini_api", tab: "Gemini key" },
   { kind: "deepseek_api", tab: "DeepSeek key" },
+  { kind: "deepseek_chat", tab: "DeepSeek chat (Beta)" },
   { kind: "code_assist", tab: "Google (Beta)" },
   { kind: "chatgpt", tab: "ChatGPT (Beta)" },
 ];
@@ -42,6 +43,7 @@ const CHATGPT_EFFORTS = ["low", "medium", "high", "xhigh"];
 const DEFAULT_ID: Record<RouteKind, string> = {
   gemini_api: "gemini-2.5-flash",
   deepseek_api: "deepseek-v4-flash",
+  deepseek_chat: "deepseek-v4-flash",
   code_assist: "gemini-3.6-flash",
   chatgpt: "gpt-5.5",
 };
@@ -143,8 +145,8 @@ export default function Docs() {
       if (models && models.route === "gemini_api" && models.families.length > 0) return liveKeyFamilies(models, path);
       return geminiCatalog;
     }
-    if (path === "deepseek_api") {
-      if (models && models.route === "deepseek_api" && models.families.length > 0) return liveKeyFamilies(models, path);
+    if (path === "deepseek_api" || path === "deepseek_chat") {
+      if (models && models.route === path && models.families.length > 0) return liveKeyFamilies(models, "deepseek_api");
       return deepseekCatalog;
     }
     if (path === "chatgpt") {
@@ -170,7 +172,7 @@ export default function Docs() {
   const family = useMemo(() => families?.find((f) => f.id === modelId) ?? null, [families, modelId]);
   const keyPath = isKeyRoute(path);
   const gemini = path === "gemini_api";
-  const deepseek = path === "deepseek_api";
+  const deepseek = path === "deepseek_api" || path === "deepseek_chat";
   const chatgpt = path === "chatgpt";
   const resolved = family
     ? (family.variants[effort] ?? family.variants[family.defaultEffort] ?? Object.values(family.variants)[0])

@@ -41,7 +41,7 @@ export interface KeyRow {
   health: KeyHealth;
 }
 
-export type RouteKind = "gemini_api" | "deepseek_api" | "code_assist" | "chatgpt";
+export type RouteKind = "gemini_api" | "deepseek_api" | "code_assist" | "chatgpt" | "deepseek_chat";
 
 /** Which credential chat and /v1 run on right now. */
 export interface RouteSummary {

@@ -1068,6 +1068,7 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
   const [keys, setKeys] = useState<KeyRow[] | null>(null);
   const [deepseekKeys, setDeepSeekKeys] = useState<KeyRow[] | null>(null);
   const [chatgpt, setChatgpt] = useState<ChatGPTRow[] | null>(null);
+  const [deepseekChat, setDeepseekChat] = useState<ChatGPTRow[] | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -1100,6 +1101,9 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
       .catch((e) => setError(friendly(e)));
     get<{ connections: ChatGPTRow[] }>("/api/openai/connections")
       .then((d) => setChatgpt(d.connections))
+      .catch((e) => setError(friendly(e)));
+    get<{ connections: ChatGPTRow[] }>("/api/deepseek/connections")
+      .then((d) => setDeepseekChat(d.connections))
       .catch((e) => setError(friendly(e)));
   }, []);
 
@@ -1142,12 +1146,17 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
   const RouteLogo =
     m.route === "gemini_api"
       ? GeminiLogo
-      : m.route === "deepseek_api"
+      : m.route === "deepseek_api" || m.route === "deepseek_chat"
         ? DeepSeekLogo
         : m.route === "chatgpt"
           ? OpenAILogo
           : Plug;
-  const routeName = m.route === "gemini_api" ? "Gemini API" : m.route === "deepseek_api" ? "DeepSeek API" : m.email;
+  const routeName =
+    m.route === "gemini_api"
+      ? "Gemini API"
+      : m.route === "deepseek_api"
+        ? "DeepSeek API"
+        : m.email;
   const isCurrent = (kind: RouteKind, id: string) => m.route === kind && m.connectionId === id;
 
   return (
@@ -1214,6 +1223,32 @@ function RouteBar(props: { models: ChatModelsPayload | null; onRouteChange?: () 
                   switching={switchingId === row.id}
                   disabled={row.status !== "active" || switchingId !== null}
                   onPick={() => choose(`/api/deepseek/keys/${row.id}/default`, row.id)}
+                />
+              ))
+            )}
+          </div>
+          <p className="flex items-center gap-2 border-y border-edge px-3 py-2 text-[11.5px] font-medium text-ink-dim">
+            DeepSeek accounts
+            <span className="rounded bg-violet-soft px-1 py-px text-[10px] text-violet">Beta</span>
+          </p>
+          <div className="max-h-40 overflow-y-auto p-1.5">
+            {deepseekChat === null ? (
+              <div className="flex justify-center py-4 text-ink-dim">
+                <Spinner size={14} />
+              </div>
+            ) : deepseekChat.length === 0 ? (
+              <p className="px-2 py-1.5 text-[12px] text-ink-dim">No DeepSeek account connected.</p>
+            ) : (
+              deepseekChat.map((row) => (
+                <SourceRow
+                  key={row.id}
+                  label={row.email}
+                  sub="chat.deepseek.com"
+                  ok={row.status === "active"}
+                  current={isCurrent("deepseek_chat", row.id)}
+                  switching={switchingId === row.id}
+                  disabled={row.status !== "active" || switchingId !== null}
+                  onPick={() => choose(`/api/deepseek/connections/${row.id}/default`, row.id)}
                 />
               ))
             )}

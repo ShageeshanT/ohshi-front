@@ -20,6 +20,7 @@ import {
   useChatGPTConnections,
   useChatGPTUsage,
   useConnections,
+  useDeepSeekChat,
   useDeepSeekKeys,
   useGeminiKeys,
   useQuotas,
@@ -44,6 +45,7 @@ interface ChatGPTModels {
 const ROUTE_LOGO: Record<RouteKind, ComponentType<{ className?: string }>> = {
   gemini_api: GeminiLogo,
   deepseek_api: DeepSeekLogo,
+  deepseek_chat: DeepSeekLogo,
   code_assist: GoogleLogo,
   chatgpt: OpenAILogo,
 };
@@ -53,6 +55,7 @@ export default function Models() {
   const { gemini } = useGeminiKeys();
   const { deepseek } = useDeepSeekKeys();
   const { chatgpt } = useChatGPTConnections();
+  const { deepseekChat } = useDeepSeekChat();
   const { quotas, loadQuota } = useQuotas(connections);
   const chatgptRows = chatgpt?.connections ?? null;
   const { usages, loadUsage } = useChatGPTUsage(chatgptRows);
@@ -62,7 +65,9 @@ export default function Models() {
   const activeKeys = (gemini?.keys ?? []).filter((k) => k.status === "active");
   const activeDeepSeek = (deepseek?.keys ?? []).filter((k) => k.status === "active");
   const activeChatgpt = (chatgptRows ?? []).filter((c) => c.status === "active");
-  const known = connections !== null && gemini !== null && deepseek !== null && chatgpt !== null;
+  const activeDeepSeekChat = (deepseekChat?.connections ?? []).filter((c) => c.status === "active");
+  const known =
+    connections !== null && gemini !== null && deepseek !== null && chatgpt !== null && deepseekChat !== null;
   // Every keys payload carries the same route summary; either answers.
   const route = gemini?.route ?? deepseek?.route ?? null;
   const RouteLogo = route ? ROUTE_LOGO[route.kind] : null;
@@ -71,6 +76,7 @@ export default function Models() {
     activeConnections.length === 0 &&
     activeKeys.length === 0 &&
     activeDeepSeek.length === 0 &&
+    activeDeepSeekChat.length === 0 &&
     activeChatgpt.length === 0;
 
   return (
@@ -196,6 +202,25 @@ export default function Models() {
                   vendor="DeepSeek"
                   row={k}
                   isRoute={route?.kind === "deepseek_api" && route.id === k.id}
+                />
+              ))}
+            </section>
+          )}
+
+          {activeDeepSeekChat.length > 0 && (
+            <section className="space-y-3">
+              <SectionTitle
+                icon={DeepSeekLogo}
+                title="DeepSeek chat accounts"
+                badge={<Badge tone="violet">Beta</Badge>}
+                description="What chat.deepseek.com lists for the signed-in account."
+              />
+              {activeDeepSeekChat.map((c) => (
+                <ChatAccountModelsCard
+                  key={c.id}
+                  email={c.email}
+                  path={`/api/deepseek/connections/${c.id}/models`}
+                  isRoute={route?.kind === "deepseek_chat" && route.id === c.id}
                 />
               ))}
             </section>
@@ -408,6 +433,73 @@ function KeyModelsCard(props: { api: string; vendor: string; row: KeyRow; isRout
       ) : models === null ? (
         <div className="p-4">
           <EmptyState title="Could not list this key's models" hint="Test the key on the Connected accounts page to see why." />
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Id</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {models.models.map((m) => (
+                <tr key={m.id}>
+                  <td className="font-medium">{m.displayName}</td>
+                  <td className="mono text-[12px] text-ink-dim">{m.id}</td>
+                  <td className="num">{m.id === models.default && <Badge tone="accent">Default</Badge>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ChatAccountModelsCard(props: { email: string; path: string; isRoute: boolean }) {
+  const [models, setModels] = useState<KeyModels | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    get<KeyModels>(props.path)
+      .then((d) => {
+        if (!cancelled) setModels(d);
+      })
+      .catch(() => {
+        if (!cancelled) setModels(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [props.path]);
+
+  return (
+    <Card
+      flush
+      title={
+        <span className="flex items-center gap-1.5">
+          {props.email}
+          {props.isRoute && (
+            <Badge tone="accent">
+              <Star className="h-3 w-3" /> Default
+            </Badge>
+          )}
+        </span>
+      }
+      description={models ? `${models.count} chat model${models.count === 1 ? "" : "s"} on this account` : undefined}
+    >
+      {models === undefined ? (
+        <Spinner label="Asking DeepSeek what this account can call…" />
+      ) : models === null ? (
+        <div className="p-4">
+          <EmptyState
+            title="Could not list this account's models"
+            hint="Test the account on the Connected accounts page to see why."
+          />
         </div>
       ) : (
         <div className="overflow-x-auto">

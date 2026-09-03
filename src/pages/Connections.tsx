@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Lock, Sparkles } from "lucide-react";
 import { ClaudeLogo, DeepSeekLogo, GoogleLogo, OpenAILogo, XaiLogo } from "../components/logos";
 import { Badge, Button, PageHeader } from "../components/ui";
-import { useChatGPTConnections, useConnections, useDeepSeekKeys, useGeminiKeys } from "../lib/workspace";
+import { useChatGPTConnections, useConnections, useDeepSeekChat, useDeepSeekKeys, useGeminiKeys } from "../lib/workspace";
 
 interface Provider {
   id: string;
@@ -40,8 +40,8 @@ const PROVIDERS: Provider[] = [
     id: "deepseek",
     name: "DeepSeek",
     Logo: DeepSeekLogo,
-    access: "DeepSeek API key from platform.deepseek.com",
-    models: "DeepSeek V4 Flash and V4 Pro with thinking, plus the vision preview. Pay as you go on your prepaid balance.",
+    access: "DeepSeek API key from platform.deepseek.com, or the free chat account at chat.deepseek.com (Beta)",
+    models: "DeepSeek V4 Flash and V4 Pro with thinking, plus the vision preview. Pay as you go on a key, or run on the consumer chat account.",
     live: true,
     to: "/app/accounts#deepseek",
   },
@@ -81,12 +81,14 @@ export default function Connections() {
   const { gemini } = useGeminiKeys();
   const { deepseek } = useDeepSeekKeys();
   const { chatgpt } = useChatGPTConnections();
+  const { deepseekChat } = useDeepSeekChat();
   const keys = (gemini?.keys ?? []).filter((k) => k.status === "active").length;
   const deepseekKeys = (deepseek?.keys ?? []).filter((k) => k.status === "active").length;
+  const deepseekAccounts = (deepseekChat?.connections ?? []).filter((c) => c.status === "active").length;
   const accounts = (connections ?? []).filter((c) => c.status === "active").length;
   const chatgptAccounts = (chatgpt?.connections ?? []).filter((c) => c.status === "active").length;
   const googleKnown = connections !== null && gemini !== null;
-  const deepseekKnown = deepseek !== null;
+  const deepseekKnown = deepseek !== null && deepseekChat !== null;
   const chatgptKnown = chatgpt !== null;
 
   const detailFor = (id: string): string | undefined => {
@@ -97,7 +99,8 @@ export default function Connections() {
     }
     if (id === "deepseek") {
       if (!deepseekKnown) return "Checking…";
-      return deepseekKeys === 0 ? "No key yet" : plural(deepseekKeys, "DeepSeek key");
+      if (deepseekKeys + deepseekAccounts === 0) return "Nothing connected yet";
+      return `${plural(deepseekKeys, "DeepSeek key")}, ${plural(deepseekAccounts, "DeepSeek account")}`;
     }
     if (id === "openai") {
       if (!chatgptKnown) return "Checking…";

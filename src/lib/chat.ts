@@ -91,7 +91,7 @@ export interface ModelFamily {
 }
 
 /** Which credential the picker's list came from. */
-export type RouteKind = "gemini_api" | "deepseek_api" | "code_assist" | "chatgpt";
+export type RouteKind = "gemini_api" | "deepseek_api" | "code_assist" | "chatgpt" | "deepseek_chat";
 
 /** The pasted-key routes: the user's own key on a supported API (not Beta). */
 export function isKeyRoute(kind: RouteKind | null | undefined): boolean {
@@ -211,6 +211,9 @@ export function routeLabel(models: ChatModelsPayload | null): string {
   }
   if (models.route === "chatgpt") {
     return `${models.email ?? models.routeLabel ?? "ChatGPT account"} (ChatGPT, Beta)`;
+  }
+  if (models.route === "deepseek_chat") {
+    return `${models.email ?? models.routeLabel ?? "DeepSeek account"} (DeepSeek chat, Beta)`;
   }
   return `${models.email ?? models.routeLabel ?? "Google account"} (Beta)`;
 }

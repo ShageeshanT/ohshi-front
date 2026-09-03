@@ -6,7 +6,7 @@
  *
  * The Google OAuth callback lands here with ?connected=… or ?connect_error=…;
  * the Overview's Get started strip links here with ?add=key (Gemini),
- * ?add=deepseek, ?connect=1 (Google) or ?connect=chatgpt to open the
+ * ?add=deepseek, ?connect=1 (Google), ?connect=chatgpt or ?connect=deepseek to open the
  * matching dialog.
  */
 
@@ -15,7 +15,9 @@ import { useSearchParams } from "react-router-dom";
 import { ExternalLink, Laptop, Plug, Plus, RefreshCw } from "lucide-react";
 import { ChatGPTAccountCard } from "../components/ChatGPTAccountCard";
 import ConnectChatGPTModal from "../components/ConnectChatGPTModal";
+import ConnectDeepSeekModal from "../components/ConnectDeepSeekModal";
 import ConnectGoogleModal from "../components/ConnectGoogleModal";
+import { DeepSeekAccountCard } from "../components/DeepSeekAccountCard";
 import { ConnectionCard } from "../components/ConnectionCard";
 import ConnectorCard from "../components/ConnectorCard";
 import GeminiKeysCard from "../components/GeminiKeysCard";
@@ -29,12 +31,14 @@ import {
   useChatGPTConnections,
   useChatGPTUsage,
   useConnections,
+  useDeepSeekChat,
   useDeepSeekKeys,
   useGeminiKeys,
   useQuotas,
   useRunner,
   type ChatGPTConnection,
   type Connection,
+  type DeepSeekChatConnection,
   type ExecuteMode,
 } from "../lib/workspace";
 
@@ -44,12 +48,15 @@ export default function Accounts() {
   const { gemini, error: geminiError, reload: loadGemini } = useGeminiKeys();
   const { deepseek, error: deepseekError, reload: loadDeepSeek } = useDeepSeekKeys();
   const { chatgpt, error: chatgptError, reload: loadChatgpt } = useChatGPTConnections();
+  const { deepseekChat, error: deepseekChatError, reload: loadDeepSeekChat } = useDeepSeekChat();
   const { runner, error: runnerError, reload: loadRunner } = useRunner();
   const { quotas, loadQuota, forget } = useQuotas(connections);
   const chatgptRows = chatgpt?.connections ?? null;
+  const deepseekChatRows = deepseekChat?.connections ?? null;
   const { usages, loadUsage, forget: forgetUsage } = useChatGPTUsage(chatgptRows);
   const [connectOpen, setConnectOpen] = useState(() => params.get("connect") === "1");
   const [chatgptOpen, setChatgptOpen] = useState(() => params.get("connect") === "chatgpt");
+  const [deepseekChatOpen, setDeepseekChatOpen] = useState(() => params.get("connect") === "deepseek");
   const [addKeyOpen, setAddKeyOpen] = useState(() => params.get("add") === "key");
   const [addDeepSeekOpen, setAddDeepSeekOpen] = useState(() => params.get("add") === "deepseek");
   const [refreshing, setRefreshing] = useState(false);
@@ -74,9 +81,14 @@ export default function Accounts() {
   const studioUrl = gemini?.studioUrl ?? "https://aistudio.google.com/apikey";
   const platformUrl = deepseek?.platformUrl ?? DEEPSEEK_SPEC.consoleUrl;
   const sourceCount =
-    (connections?.length ?? 0) + (chatgptRows?.length ?? 0) + (gemini?.keys.length ?? 0) + (deepseek?.keys.length ?? 0);
+    (connections?.length ?? 0) +
+    (chatgptRows?.length ?? 0) +
+    (deepseekChatRows?.length ?? 0) +
+    (gemini?.keys.length ?? 0) +
+    (deepseek?.keys.length ?? 0);
 
-  const reloadAll = () => Promise.all([loadConnections(), loadGemini(), loadDeepSeek(), loadChatgpt()]);
+  const reloadAll = () =>
+    Promise.all([loadConnections(), loadGemini(), loadDeepSeek(), loadChatgpt(), loadDeepSeekChat()]);
 
   const onConnected = (email: string) => {
     setConnectOpen(false);
@@ -87,6 +99,12 @@ export default function Accounts() {
   const onChatgptConnected = (email: string) => {
     setChatgptOpen(false);
     setFlash({ tone: "ok", text: `Connected ${email} (ChatGPT).` });
+    void reloadAll();
+  };
+
+  const onDeepSeekChatConnected = (email: string) => {
+    setDeepseekChatOpen(false);
+    setFlash({ tone: "ok", text: `Connected ${email} (DeepSeek).` });
     void reloadAll();
   };
 
@@ -116,6 +134,27 @@ export default function Accounts() {
     try {
       await post(`/api/openai/connections/${c.id}/disconnect`);
       forgetUsage(c.id);
+      await reloadAll();
+    } catch (e) {
+      setFlash({ tone: "danger", text: friendly(e) });
+    }
+  };
+
+  const disconnectDeepSeekChat = async (c: DeepSeekChatConnection) => {
+    if (!window.confirm(`Disconnect ${c.email}? Agents using this DeepSeek account will stop until you reconnect.`))
+      return;
+    try {
+      await post(`/api/deepseek/connections/${c.id}/disconnect`);
+      await reloadAll();
+    } catch (e) {
+      setFlash({ tone: "danger", text: friendly(e) });
+    }
+  };
+
+  const makeDeepSeekChatDefault = async (c: DeepSeekChatConnection) => {
+    try {
+      await post(`/api/deepseek/connections/${c.id}/default`);
+      setFlash({ tone: "ok", text: `Chat and /v1 now run on ${c.email} (DeepSeek chat, Beta).` });
       await reloadAll();
     } catch (e) {
       setFlash({ tone: "danger", text: friendly(e) });
@@ -165,11 +204,14 @@ export default function Accounts() {
     <div className="rise-in space-y-7">
       <PageHeader
         title="Connected accounts"
-        description="The Gemini keys, DeepSeek keys, Google accounts and ChatGPT accounts your chat and /v1 calls run on. Add several and pick a default."
+        description="The Gemini keys, DeepSeek keys, Google accounts, ChatGPT accounts and DeepSeek chat accounts your chat and /v1 calls run on. Add several and pick a default."
         actions={
           <>
             <Button tone="ghost" busy={refreshing} onClick={() => void refresh()}>
               <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </Button>
+            <Button tone="ghost" onClick={() => setDeepseekChatOpen(true)}>
+              <DeepSeekLogo className="h-3.5 w-3.5" /> Connect DeepSeek
             </Button>
             <Button tone="ghost" onClick={() => setChatgptOpen(true)}>
               <OpenAILogo className="h-3.5 w-3.5" /> Connect ChatGPT
@@ -258,6 +300,56 @@ export default function Accounts() {
         />
       </section>
 
+      <section id="deepseek-chat" className="scroll-mt-4 space-y-3">
+        <SectionTitle
+          icon={DeepSeekLogo}
+          title="DeepSeek accounts"
+          badge={<Badge tone="violet">Beta</Badge>}
+          description="Sign in with the email and password of your free DeepSeek chat account. Models run on that account through chat.deepseek.com."
+          aside={
+            <Button size="sm" tone="ghost" onClick={() => setDeepseekChatOpen(true)}>
+              <Plug className="h-3.5 w-3.5" /> Add account
+            </Button>
+          }
+        />
+        {deepseekChatError && <Notice tone="warn">{deepseekChatError}</Notice>}
+        {deepseekChatRows === null ? (
+          <Card>
+            <Spinner label="Checking your DeepSeek accounts…" />
+          </Card>
+        ) : deepseekChatRows.length === 0 ? (
+          <Card>
+            <EmptyState
+              title="No DeepSeek account connected"
+              hint="Optional, and in Beta. Enter the email and password you use at chat.deepseek.com. A DeepSeek API key is the supported path."
+              action={
+                <Button tone="ghost" onClick={() => setDeepseekChatOpen(true)} arrow>
+                  <Plug className="h-3.5 w-3.5" /> Connect DeepSeek
+                </Button>
+              }
+            />
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {deepseekChatRows.map((c) => (
+              <DeepSeekAccountCard
+                key={c.id}
+                connection={c}
+                canMakeDefault={!c.isDefault && (sourceCount > 1 || route?.kind !== "deepseek_chat")}
+                onDisconnect={() => disconnectDeepSeekChat(c)}
+                onMakeDefault={() => makeDeepSeekChatDefault(c)}
+                onReconnect={() => setDeepseekChatOpen(true)}
+                onTested={() => void loadDeepSeekChat()}
+              />
+            ))}
+            <p className="text-[11.5px] text-ink-dim">
+              {deepseekChatRows.length} of {deepseekChat?.maxConnections ?? 1} connected accounts on your plan
+              (Google, ChatGPT and DeepSeek chat together). The session and password are stored encrypted.
+            </p>
+          </div>
+        )}
+      </section>
+
       <section id="chatgpt" className="scroll-mt-4 space-y-3">
         <SectionTitle
           icon={OpenAILogo}
@@ -305,7 +397,7 @@ export default function Accounts() {
               />
             ))}
             <p className="text-[11.5px] text-ink-dim">
-              {chatgptRows.length} of {chatgpt?.maxConnections ?? 1} connected accounts on your plan (Google and ChatGPT together).
+              {chatgptRows.length} of {chatgpt?.maxConnections ?? 1} connected accounts on your plan (Google, ChatGPT and DeepSeek chat together).
               Tokens are stored encrypted; the plan itself is managed at OpenAI.
             </p>
           </div>
@@ -376,6 +468,11 @@ export default function Accounts() {
 
       <ConnectGoogleModal open={connectOpen} onClose={() => setConnectOpen(false)} onDone={onConnected} />
       <ConnectChatGPTModal open={chatgptOpen} onClose={() => setChatgptOpen(false)} onDone={onChatgptConnected} />
+      <ConnectDeepSeekModal
+        open={deepseekChatOpen}
+        onClose={() => setDeepseekChatOpen(false)}
+        onDone={onDeepSeekChatConnected}
+      />
     </div>
   );
 }
