@@ -20,6 +20,7 @@ import { PlanCard } from "../components/PlanCard";
 import { Badge, Button, Card, Modal, Notice, PageHeader, Progress, SectionTitle } from "../components/ui";
 import { formatNumber, friendly, get, poll, post, safeExternalUrl } from "../lib/api";
 import { fetchPlans, planPerks, type PlansPayload } from "../lib/plans";
+import { useTheme } from "../lib/theme";
 import { useUsage } from "../lib/workspace";
 
 const FINE_PRINT = [
@@ -67,6 +68,7 @@ function forgetPlan() {
 
 export default function Billing() {
   const { me, setMe } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { usage, reload: reloadUsage } = useUsage(30);
@@ -169,7 +171,12 @@ export default function Billing() {
     const safe = safeExternalUrl(url, [".paypal.com", "polar.sh", ".polar.sh"]);
     if (!safe) throw new Error("unexpected billing link");
     rememberPlan(plan);
-    window.location.assign(safe);
+    // Polar's checkout and portal follow the visitor's system theme unless
+    // told otherwise; tell them ours, so the hand-off does not flip from a
+    // light workspace to a dark checkout.
+    const target = new URL(safe);
+    if (/(^|\.)polar\.sh$/.test(target.hostname)) target.searchParams.set("theme", theme === "dark" ? "dark" : "light");
+    window.location.assign(target.href);
   };
 
   const checkout = (target: string) => {
