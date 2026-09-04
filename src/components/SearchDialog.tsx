@@ -15,9 +15,10 @@ import {
   Plug,
   Search,
   Settings,
+  ShieldCheck,
   SquarePen,
 } from "lucide-react";
-import { useChatList } from "../App";
+import { useAuth, useChatList } from "../App";
 import type { ChatSummary } from "../lib/chat";
 import { get, timeAgo } from "../lib/api";
 import { Spinner } from "./ui";
@@ -47,9 +48,15 @@ const PAGES: PageHit[] = [
   { to: "/app/profile", label: "Account settings", hint: "Profile, password, theme", icon: Settings },
 ];
 
+/** Only offered to the backend's admin addresses. */
+const ADMIN_PAGE: PageHit = { to: "/app/admin", label: "Admin", hint: "Accounts, usage, bans", icon: ShieldCheck };
+
 export default function SearchDialog(props: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const { chats } = useChatList();
+  const { me } = useAuth();
+  const isAdmin = Boolean(me?.user.isAdmin);
+  const allPages = useMemo(() => (isAdmin ? [...PAGES, ADMIN_PAGE] : PAGES), [isAdmin]);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Result[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -90,8 +97,8 @@ export default function SearchDialog(props: { open: boolean; onClose: () => void
 
   const needle = q.trim().toLowerCase();
   const pages = useMemo(
-    () => (needle ? PAGES.filter((p) => `${p.label} ${p.hint}`.toLowerCase().includes(needle)) : PAGES.slice(0, 5)),
-    [needle],
+    () => (needle ? allPages.filter((p) => `${p.label} ${p.hint}`.toLowerCase().includes(needle)) : allPages.slice(0, 5)),
+    [needle, allPages],
   );
   const rows: Result[] = results ?? (needle ? [] : chats.slice(0, 6).map((chat) => ({ chat, snippet: "" })));
   const total = pages.length + rows.length;

@@ -38,6 +38,8 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminUser = lazy(() => import("./pages/AdminUser"));
 
 export interface Me {
   user: {
@@ -50,6 +52,8 @@ export interface Me {
     plan?: string;
     subscriptionStatus?: string | null;
     planRenewsMs?: number | null;
+    /** Listed in the backend's OHSHI_ADMIN_EMAILS: may open /app/admin. */
+    isAdmin?: boolean;
   };
   config: {
     allowRegistration: boolean;
@@ -81,6 +85,14 @@ const AuthContext = createContext<AuthState>({
   authError: null,
 });
 export const useAuth = () => useContext(AuthContext);
+
+/** Only the backend's admin addresses see the admin pages; everyone else is
+ *  sent back to the chat. The API refuses them regardless. */
+function AdminOnly(props: { children: ReactNode }) {
+  const { me } = useAuth();
+  if (!me?.user.isAdmin) return <Navigate to="/app" replace />;
+  return <>{props.children}</>;
+}
 
 // --- shell (sidebar + search, reachable from the top bar) ---------------------------
 
@@ -455,6 +467,22 @@ function AuthedRoutes(props: {
                         </Page>
                       }
                     />
+                    <Route
+                      path="admin"
+                      element={
+                        <Page title="Admin">
+                          <AdminOnly>{lazyPage(<Admin />)}</AdminOnly>
+                        </Page>
+                      }
+                    />
+                    <Route
+                      path="admin/u/:userId"
+                      element={
+                        <Page title="Admin">
+                          <AdminOnly>{lazyPage(<AdminUser />)}</AdminOnly>
+                        </Page>
+                      }
+                    />
                     <Route path="*" element={<Navigate to="/app" replace />} />
                   </Routes>
                 </Shell>
@@ -544,6 +572,7 @@ function Shell(props: { children: ReactNode }) {
           onRename={rename}
           onDelete={onDelete}
           user={{ email: me?.user.email ?? "", displayName: me?.user.displayName ?? "" }}
+          isAdmin={Boolean(me?.user.isAdmin)}
         />
         <main key={routeKey} className="route-fade flex min-h-0 min-w-0 flex-1 flex-col">
           {props.children}

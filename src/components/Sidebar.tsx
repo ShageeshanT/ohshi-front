@@ -20,6 +20,7 @@ import {
   Pencil,
   Plug,
   Search,
+  ShieldCheck,
   SquarePen,
   Trash2,
   X,
@@ -40,6 +41,8 @@ export interface SidebarProps {
   onRename: (id: string, title: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   user: { email: string; displayName: string };
+  /** Show the Admin link. */
+  isAdmin?: boolean;
 }
 
 type Icon = ComponentType<{ className?: string }>;
@@ -115,6 +118,15 @@ export default function Sidebar(p: SidebarProps) {
             <SideLink key={item.to} icon={item.icon} label={item.label} to={item.to} collapsed={c} onClick={p.onMobileClose} />
           ))}
         </nav>
+
+        {p.isAdmin && (
+          <>
+            <Divider collapsed={c} label="Operator" />
+            <nav className="space-y-0.5 px-2">
+              <SideLink icon={ShieldCheck} label="Admin" to="/app/admin" collapsed={c} onClick={p.onMobileClose} />
+            </nav>
+          </>
+        )}
 
         {/* History: hidden on the rail. */}
         <div
