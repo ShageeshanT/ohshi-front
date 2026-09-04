@@ -340,11 +340,16 @@ function Quota() {
 function Pricing() {
   const p = COPY.pricing;
   const [plans, setPlans] = useState<PlanRow[]>(PLAN_FALLBACK);
+  // Until the backend answers, promise nothing: the cautious copy is the one
+  // that is safe to be wrong about.
+  const [buyable, setBuyable] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void fetchPlans().then((data) => {
-      if (!cancelled) setPlans(data.plans);
+      if (cancelled) return;
+      setPlans(data.plans);
+      setBuyable(data.billingEnabled);
     });
     return () => {
       cancelled = true;
@@ -353,7 +358,7 @@ function Pricing() {
 
   return (
     <section id="pricing" className="relative z-10 mx-auto max-w-6xl px-5 py-20 sm:px-8 md:py-28">
-      <SectionHeader eyebrow={p.eyebrow} title={p.title} text={p.intro} />
+      <SectionHeader eyebrow={p.eyebrow} title={p.title} text={buyable ? p.introLive : p.intro} />
       <div className="mt-12 grid gap-3 md:grid-cols-3">
         {plans.map((plan, i) => {
           const popular = plan.code === "plus";

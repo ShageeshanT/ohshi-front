@@ -117,7 +117,10 @@ export interface LandingCopy {
   pricing: {
     eyebrow: string;
     title: string;
+    /** Shown while the backend has no payment provider configured. */
     intro: string;
+    /** Shown once paid plans can actually be bought. */
+    introLive: string;
     freeCta: string;
     paidCta: string;
     fine: string[];
@@ -238,8 +241,12 @@ export const COPY: LandingCopy = {
   pricing: {
     eyebrow: "Pricing",
     title: "Start Free. Upgrade When You Outgrow It.",
+    /** Shown while the backend has no payment provider configured. */
     intro:
       "Every plan is an Ohshi allowance on top of the access you connect. The models themselves keep running on your own key or account, and Ohshi never resells model access. Paid plans open soon; everything is free until then.",
+    /** Shown once paid plans can actually be bought. */
+    introLive:
+      "Every plan is an Ohshi allowance on top of the access you connect. The models themselves keep running on your own key or account, and Ohshi never resells model access. Paid plans are billed monthly through PayPal and you can cancel whenever you like.",
     freeCta: "Start Free",
     paidCta: "Start with",
     fine: [
@@ -247,6 +254,7 @@ export const COPY: LandingCopy = {
       "Downgrading locks extras instead of deleting them. Upgrade again and they wake up.",
       "Chat and usage history outside your plan's window is pruned.",
       "Cancel any time. A paid plan stays active until the period already paid for ends.",
+      "Paid plans are charged through PayPal, so you pay with a PayPal account.",
     ],
   },
   quota: {
