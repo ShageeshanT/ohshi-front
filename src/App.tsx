@@ -64,6 +64,8 @@ export interface Me {
     authProvider?: "clerk" | "password";
     /** Whether the backend has a payment provider configured. */
     billingEnabled?: boolean;
+    /** Which processor serves checkout: "polar" (merchant of record, has a portal), "paypal", or "". */
+    billingProvider?: "polar" | "paypal" | "";
   };
 }
 

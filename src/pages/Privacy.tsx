@@ -69,11 +69,13 @@ export default function Privacy() {
 
       <h2 id="sharing">3. Where your data goes</h2>
       <p>
-        <strong>PayPal</strong> processes paid-plan payments. Your card or PayPal details go to
-        PayPal, never to Ohshi; when you start a checkout we pass PayPal your account id and email
-        address so the payment can be matched to your account. On our side we store only your
-        plan, PayPal&apos;s payer and subscription identifiers, and the signed billing events PayPal
-        sends us. PayPal&apos;s handling of your data is governed by PayPal&apos;s privacy statement.
+        <strong>Polar</strong> (Polar Software Inc.) sells paid plans as merchant of record and
+        processes the payment. Your card details go to Polar, never to Ohshi; when you start a
+        checkout we pass Polar your account id and email address so the purchase can be matched
+        to your account and so it can send you invoices. On our side we store only your plan,
+        Polar&apos;s customer and subscription identifiers, and the signed billing events Polar
+        sends us. Where PayPal is offered instead, the same applies to PayPal. Each processor&apos;s
+        handling of your data is governed by its own privacy policy.
       </p>
       <ul>
         <li>

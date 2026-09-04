@@ -13,7 +13,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, CreditCard, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth, type Me } from "../App";
 import { ArrowLoopDoodle, StarsDoodle } from "../components/Doodles";
 import { PlanCard } from "../components/PlanCard";
@@ -100,6 +100,10 @@ export default function Billing() {
   const plan = me?.user.plan ?? "free";
   const paid = plan !== "free";
   const billingEnabled = plans?.billingEnabled ?? me?.config.billingEnabled ?? false;
+  const provider = plans?.provider || me?.config.billingProvider || "";
+  // Polar is a merchant of record with a hosted portal (invoices, the payment
+  // method, cancellation). PayPal has none: those live in the payer's account.
+  const hasPortal = provider === "polar";
   const status = me?.user.subscriptionStatus ?? null;
   const ending = paid && status === "cancelled";
   const renews = me?.user.planRenewsMs
@@ -162,7 +166,7 @@ export default function Billing() {
   const follow = (url: unknown) => {
     // Only ever to PayPal, over https — never to a link an answer could
     // have been made to carry.
-    const safe = safeExternalUrl(url, [".paypal.com"]);
+    const safe = safeExternalUrl(url, [".paypal.com", "polar.sh", ".polar.sh"]);
     if (!safe) throw new Error("unexpected billing link");
     rememberPlan(plan);
     window.location.assign(safe);
@@ -187,6 +191,18 @@ export default function Billing() {
         }
         follow(answer.url);
       })
+      .catch((err) => {
+        setError(friendly(err));
+        setBusy(null);
+      });
+  };
+
+  const openPortal = () => {
+    if (busy !== null) return;
+    setBusy("portal");
+    setError(null);
+    post<{ url: string }>("/api/billing/portal")
+      .then(({ url }) => follow(url))
       .catch((err) => {
         setError(friendly(err));
         setBusy(null);
@@ -290,7 +306,7 @@ export default function Billing() {
                   ? `Stays active until ${renews}. Renewal is off.`
                   : status === "payment_failed"
                     ? `PayPal could not collect the last payment and will retry. The plan renews ${renews} once it goes through.`
-                    : `Renews ${renews} through PayPal.`
+                    : `Renews ${renews}${provider === "paypal" ? " through PayPal" : ""}.`
                 : null}
               {!paid && (billingEnabled ? "Nothing on file. Upgrade whenever you outgrow it." : "Paid plans open soon. Everything is free until then.")}
             </p>
@@ -309,6 +325,11 @@ export default function Billing() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {billingEnabled && paid && hasPortal && (
+              <Button tone="ghost" busy={busy === "portal"} disabled={locked} onClick={openPortal}>
+                <CreditCard className="h-3.5 w-3.5" /> Manage billing <ArrowUpRight className="h-3.5 w-3.5 text-ink-dim" />
+              </Button>
+            )}
             {billingEnabled && paid && !ending && (
               <Button tone="ghost" disabled={locked} onClick={() => setCancelOpen(true)}>
                 Cancel plan
@@ -387,8 +408,9 @@ export default function Billing() {
         </ul>
         <p className="mt-4 inline-flex items-start gap-2 text-[12px] text-ink-dim">
           <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0 text-ok" />
-          Payments are processed by PayPal. Your card or PayPal details never touch Ohshi; receipts and your payment
-          method live in your PayPal account. Switching plans asks you to approve the new price on PayPal.
+          {hasPortal
+            ? "Checkout, tax, invoices and your payment method are handled by Polar, the merchant of record. Your card details never touch Ohshi. Switching plans applies at once and the difference is prorated."
+            : "Payments are processed by PayPal. Your card or PayPal details never touch Ohshi; receipts and your payment method live in your PayPal account. Switching plans asks you to approve the new price on PayPal."}
         </p>
       </Card>
 
@@ -399,7 +421,11 @@ export default function Billing() {
             charged. After that the account returns to Free: connections and keys above the Free limits are locked, not
             deleted, and history outside the Free window is pruned.
           </p>
-          <p className="text-ink-dim">Receipts and your payment method stay in your PayPal account.</p>
+          <p className="text-ink-dim">
+            {hasPortal
+              ? "Invoices and your payment method stay available in the billing portal."
+              : "Receipts and your payment method stay in your PayPal account."}
+          </p>
           <div className="flex justify-end gap-2">
             <Button tone="ghost" disabled={busy === "cancel"} onClick={() => setCancelOpen(false)}>
               Keep my plan

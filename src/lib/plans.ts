@@ -20,8 +20,8 @@ export interface PlanRow {
 
 export const PLAN_FALLBACK: PlanRow[] = [
   { code: "free", label: "Free", priceUsd: 0, monthlyRequestLimit: 50, maxConnections: 1, maxApiKeys: 1, historyDays: 7, perMinuteLimit: 3 },
-  { code: "plus", label: "Plus", priceUsd: 6, monthlyRequestLimit: 200, maxConnections: 2, maxApiKeys: 3, historyDays: 90, perMinuteLimit: 14 },
-  { code: "pro", label: "Pro", priceUsd: 17, monthlyRequestLimit: 1000, maxConnections: 5, maxApiKeys: 10, historyDays: 365, perMinuteLimit: 30 },
+  { code: "plus", label: "Plus", priceUsd: 7, monthlyRequestLimit: 200, maxConnections: 2, maxApiKeys: 3, historyDays: 90, perMinuteLimit: 14 },
+  { code: "pro", label: "Pro", priceUsd: 15, monthlyRequestLimit: 1000, maxConnections: 5, maxApiKeys: 10, historyDays: 365, perMinuteLimit: 30 },
 ];
 
 /** One line per plan, the pitch under the price. */
@@ -43,10 +43,14 @@ export function planPerks(plan: PlanRow): string[] {
   ];
 }
 
+export type BillingProvider = "polar" | "paypal" | "";
+
 export interface PlansPayload {
   plans: PlanRow[];
   /** Whether the backend has a payment provider configured. */
   billingEnabled: boolean;
+  /** Which processor serves checkout. Polar is a merchant of record with a customer portal. */
+  provider: BillingProvider;
   /** False when the route does not exist on this backend at all. */
   live: boolean;
 }
@@ -54,13 +58,15 @@ export interface PlansPayload {
 /** The live matrix, or the mirror when the backend has no billing yet. */
 export async function fetchPlans(): Promise<PlansPayload> {
   try {
-    const data = await get<{ plans?: PlanRow[]; billingEnabled?: boolean }>("/api/billing/plans");
+    const data = await get<{ plans?: PlanRow[]; billingEnabled?: boolean; provider?: string }>("/api/billing/plans");
+    const provider: BillingProvider = data.provider === "polar" || data.provider === "paypal" ? data.provider : "";
     return {
       plans: data.plans?.length ? data.plans : PLAN_FALLBACK,
       billingEnabled: Boolean(data.billingEnabled),
+      provider,
       live: true,
     };
   } catch {
-    return { plans: PLAN_FALLBACK, billingEnabled: false, live: false };
+    return { plans: PLAN_FALLBACK, billingEnabled: false, provider: "", live: false };
   }
 }

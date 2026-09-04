@@ -45,7 +45,7 @@ import { MarketingNav } from "../components/marketing/MarketingNav";
 import { Reveal } from "../components/marketing/Reveal";
 import { SmoothScroll } from "../components/marketing/SmoothScroll";
 import { COPY, PROVIDERS } from "../content/landing";
-import { PLAN_FALLBACK, fetchPlans, type PlanRow } from "../lib/plans";
+import { PLAN_FALLBACK, fetchPlans, type BillingProvider, type PlanRow } from "../lib/plans";
 import { useTheme } from "../lib/theme";
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -343,6 +343,7 @@ function Pricing() {
   // Until the backend answers, promise nothing: the cautious copy is the one
   // that is safe to be wrong about.
   const [buyable, setBuyable] = useState(false);
+  const [provider, setProvider] = useState<BillingProvider>("");
 
   useEffect(() => {
     let cancelled = false;
@@ -350,6 +351,7 @@ function Pricing() {
       if (cancelled) return;
       setPlans(data.plans);
       setBuyable(data.billingEnabled);
+      setProvider(data.provider);
     });
     return () => {
       cancelled = true;
@@ -379,7 +381,7 @@ function Pricing() {
       </div>
       <Reveal className="mx-auto mt-8 max-w-3xl">
         <ul className="grid gap-x-8 gap-y-1.5 text-[12.5px] text-ink-dim sm:grid-cols-2">
-          {p.fine.map((line) => (
+          {[...p.fine, ...(buyable && provider ? [p.fineByProvider[provider]] : [])].map((line) => (
             <li key={line} className="flex items-start gap-2">
               <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-current opacity-60" />
               {line}

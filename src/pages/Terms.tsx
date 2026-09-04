@@ -106,17 +106,19 @@ export default function Terms() {
 
       <h2 id="fees">8. Fees and billing</h2>
       <p>
-        Ohshi has a free plan and paid monthly subscriptions (currently Plus and Pro). Ohshi is
-        the seller. Payments are collected as PayPal subscriptions: PayPal processes your payment
-        details under its own user agreement, sends you receipts and holds your payment method;
-        Ohshi never sees your card. Prices are in US dollars and do not include any tax your
-        country may charge on the payment.
+        Ohshi has a free plan and paid monthly subscriptions (currently Plus and Pro). Paid plans
+        are sold by Polar Software Inc. (&quot;Polar&quot;) as merchant of record: Polar runs the
+        checkout, charges your card, works out and remits any tax due where you are, issues your
+        invoices and holds your payment method under its own terms. Ohshi never sees your card.
+        Where PayPal is offered instead, Ohshi is the seller and PayPal processes the payment.
+        Prices are shown in US dollars.
       </p>
       <ul>
         <li>
-          Paid plans renew monthly through PayPal until cancelled. You can cancel any time from
-          the billing page (or from your PayPal account); the plan stays active until the end of
-          the period already paid for. Switching plans asks you to approve the new price on PayPal.
+          Paid plans renew monthly until cancelled. You can cancel any time from the billing page
+          or the billing portal; the plan stays active until the end of the period already paid
+          for. Switching plans applies at once and the difference for the current period is
+          prorated.
         </li>
         <li>
           Each plan carries usage limits — monthly requests, connected accounts, API keys,
@@ -130,8 +132,8 @@ export default function Terms() {
         </li>
         <li>
           Refunds: contact us within 14 days of a charge and we will review it. Approved refunds
-          are issued through PayPal and end the paid plan immediately. A payment reversed or
-          disputed through PayPal also ends the plan, and the account cannot buy again until the
+          are issued through the payment processor and end the paid plan immediately. A payment
+          reversed or disputed also ends the plan, and the account cannot buy again until the
           dispute is resolved.
         </li>
       </ul>

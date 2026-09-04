@@ -124,6 +124,7 @@ export interface LandingCopy {
     freeCta: string;
     paidCta: string;
     fine: string[];
+    fineByProvider: { polar: string; paypal: string };
   };
   quota: { eyebrow: string; title: string; paragraph: string; bullets: string[] };
   developers: {
@@ -246,7 +247,7 @@ export const COPY: LandingCopy = {
       "Every plan is an Ohshi allowance on top of the access you connect. The models themselves keep running on your own key or account, and Ohshi never resells model access. Paid plans open soon; everything is free until then.",
     /** Shown once paid plans can actually be bought. */
     introLive:
-      "Every plan is an Ohshi allowance on top of the access you connect. The models themselves keep running on your own key or account, and Ohshi never resells model access. Paid plans are billed monthly through PayPal and you can cancel whenever you like.",
+      "Every plan is an Ohshi allowance on top of the access you connect. The models themselves keep running on your own key or account, and Ohshi never resells model access. Paid plans are billed monthly and you can cancel whenever you like.",
     freeCta: "Start Free",
     paidCta: "Start with",
     fine: [
@@ -254,8 +255,12 @@ export const COPY: LandingCopy = {
       "Downgrading locks extras instead of deleting them. Upgrade again and they wake up.",
       "Chat and usage history outside your plan's window is pruned.",
       "Cancel any time. A paid plan stays active until the period already paid for ends.",
-      "Paid plans are charged through PayPal, so you pay with a PayPal account.",
     ],
+    /** One more line of fine print, by processor. */
+    fineByProvider: {
+      polar: "Pay by card at a checkout run by Polar, the merchant of record. Tax is worked out there and your invoices live in its portal.",
+      paypal: "Paid plans are charged through PayPal, so you pay with a PayPal account.",
+    },
   },
   quota: {
     eyebrow: "Live Quota",
@@ -311,7 +316,7 @@ export const COPY: LandingCopy = {
       },
       {
         q: "What Does Ohshi Cost?",
-        a: "The Free plan is $0: 50 successful requests a month, one connected account and one API key. Plus is $6 a month for 200 requests, two accounts and three keys with 90 days of history. Pro is $17 a month for 1,000 requests, five accounts, ten keys and a year of history. The models themselves still run on the API key or the Google account you connect; Google or DeepSeek bills the key for what you use, and Ohshi never resells model access.",
+        a: "The Free plan is $0: 50 successful requests a month, one connected account and one API key. Plus is $7 a month for 200 requests, two accounts and three keys with 90 days of history. Pro is $15 a month for 1,000 requests, five accounts, ten keys and a year of history. The models themselves still run on the API key or the Google account you connect; Google or DeepSeek bills the key for what you use, and Ohshi never resells model access.",
       },
     ],
   },
