@@ -19,8 +19,10 @@ import {
   PanelLeftOpen,
   Pencil,
   Plug,
+  Rocket,
   Search,
   ShieldCheck,
+  Sparkles,
   SquarePen,
   Trash2,
   X,
@@ -41,6 +43,8 @@ export interface SidebarProps {
   onRename: (id: string, title: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   user: { email: string; displayName: string };
+  /** The account's Ohshi plan, marked on the account chip. */
+  plan?: string;
   /** Show the Admin link. */
   isAdmin?: boolean;
 }
@@ -67,6 +71,8 @@ export default function Sidebar(p: SidebarProps) {
   const groups = groupChatsByDate(p.chats);
   const name = p.user.displayName || p.user.email.split("@")[0];
   const c = p.collapsed;
+  const plan = (p.plan || "free").toLowerCase();
+  const planName = PLAN_MARK[plan]?.label ?? "Free";
 
   return (
     <>
@@ -173,17 +179,23 @@ export default function Sidebar(p: SidebarProps) {
           ) : null}
           <Link
             to="/app/profile"
-            title="Account settings"
-            aria-label="Account settings"
+            title={`Account settings — ${planName} plan`}
+            aria-label={`Account settings, ${planName} plan`}
             onClick={p.onMobileClose}
-            className={`flex min-w-0 items-center gap-2.5 rounded-lg transition-colors hover:bg-ink/[0.05] ${c ? "p-1" : "flex-1 px-2 py-1.5"}`}
+            className={`flex min-w-0 items-center gap-2 rounded-lg transition-colors hover:bg-ink/[0.05] ${c ? "p-1" : "flex-1 px-2 py-1.5"}`}
           >
-            <Avatar name={name} size="sm" />
+            <span className="relative shrink-0">
+              <Avatar name={name} size="sm" />
+              {c && <PlanDot plan={plan} />}
+            </span>
             {!c && (
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-semibold leading-tight">{name}</span>
-                <span className="block truncate text-[11.5px] leading-tight text-ink-dim">{p.user.email}</span>
-              </span>
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] font-semibold leading-tight">{name}</span>
+                  <span className="block truncate text-[11.5px] leading-tight text-ink-dim">{p.user.email}</span>
+                </span>
+                <PlanChip plan={plan} />
+              </>
             )}
           </Link>
           {!c && (
@@ -200,6 +212,46 @@ export default function Sidebar(p: SidebarProps) {
         </div>
       </aside>
     </>
+  );
+}
+
+/** Plus and Pro carry the same motif as their pricing cards: a sparkle and
+ *  a rocket. Free is marked too — quietly — so the chip always answers
+ *  "what am I on?" rather than only shouting when the answer is flattering. */
+const PLAN_MARK: Record<string, { label: string; icon: Icon; chip: string; dot: string }> = {
+  plus: { label: "Plus", icon: Sparkles, chip: "bg-accent-soft text-accent", dot: "bg-accent" },
+  pro: { label: "Pro", icon: Rocket, chip: "bg-violet-soft text-violet", dot: "bg-violet" },
+};
+
+function PlanChip(props: { plan: string }) {
+  const mark = PLAN_MARK[props.plan];
+  if (!mark) {
+    return (
+      <span className="shrink-0 rounded-md bg-ink/[0.06] px-1.5 py-0.5 text-[10.5px] font-medium leading-none text-ink-dim">
+        Free
+      </span>
+    );
+  }
+  const Icon = mark.icon;
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold leading-none ${mark.chip}`}
+    >
+      <Icon className="h-3 w-3" />
+      {mark.label}
+    </span>
+  );
+}
+
+/** On the 56px rail there is no room for a word: a paid plan becomes a dot
+ *  on the avatar, named by the chip's tooltip. */
+function PlanDot(props: { plan: string }) {
+  const mark = PLAN_MARK[props.plan];
+  if (!mark) return null;
+  return (
+    <span
+      className={`absolute -bottom-px -right-px h-2 w-2 rounded-full ring-2 ring-surface ${mark.dot}`}
+    />
   );
 }
 

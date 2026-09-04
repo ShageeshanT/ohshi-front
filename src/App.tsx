@@ -574,6 +574,7 @@ function Shell(props: { children: ReactNode }) {
           onRename={rename}
           onDelete={onDelete}
           user={{ email: me?.user.email ?? "", displayName: me?.user.displayName ?? "" }}
+          plan={me?.user.plan}
           isAdmin={Boolean(me?.user.isAdmin)}
         />
         <main key={routeKey} className="route-fade flex min-h-0 min-w-0 flex-1 flex-col">
