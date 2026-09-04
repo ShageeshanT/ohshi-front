@@ -11,7 +11,8 @@ import { BookOpen, Check, ChevronRight, CreditCard, KeyRound, Layers, LogOut, Pl
 import type { LucideIcon } from "lucide-react";
 import { useAuth, type Me } from "../App";
 import { ChangePassword } from "../components/ChangePassword";
-import { Avatar, Badge, Button, Card, Input, Toggle } from "../components/ui";
+import { SignInMethod } from "../components/SignInMethod";
+import { Avatar, Button, Card, Input, Toggle } from "../components/ui";
 import { friendly, get, post } from "../lib/api";
 import { useTheme, type Theme } from "../lib/theme";
 
@@ -110,37 +111,37 @@ export default function Profile() {
         <div className="divide-y divide-edge">
           <Row
             label="Display name"
-            hint={clerk ? "Comes from the account you sign in with." : "Leave it blank to use the first part of your email."}
+            hint={
+              clerk
+                ? "Yours to choose. Leave it blank to use the name on your sign-in account."
+                : "Leave it blank to use the first part of your email."
+            }
           >
-            {clerk ? (
-              <span className="text-[13px]">{me?.user.displayName || "—"}</span>
-            ) : (
-              <form
-                className="flex w-full max-w-sm items-center gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  save();
-                }}
-              >
-                <Input value={name} onChange={setName} placeholder="Your name" maxLength={120} />
-                <Button type="submit" tone={dirty ? "primary" : "ghost"} busy={saving} disabled={!dirty}>
-                  {saved ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" /> Saved
-                    </>
-                  ) : (
-                    "Save"
-                  )}
-                </Button>
-              </form>
-            )}
+            <form
+              className="flex w-full max-w-sm items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                save();
+              }}
+            >
+              <Input value={name} onChange={setName} placeholder="Your name" maxLength={120} />
+              <Button type="submit" tone={dirty ? "primary" : "ghost"} busy={saving} disabled={!dirty}>
+                {saved ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" /> Saved
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </form>
             {error && <p className="mt-1.5 text-[12px] text-danger">{error}</p>}
           </Row>
-          <Row label="Email" hint={clerk ? "Managed by your sign-in provider." : "The address you sign in with."}>
+          <Row label="Email" hint="The address you sign in with.">
             <span className="break-all text-[13px]">{email}</span>
           </Row>
-          <Row label="Sign-in method">
-            <Badge>{clerk ? "Clerk account" : "Email and password"}</Badge>
+          <Row label="Sign-in method" hint="How you get in. Changing it is not supported yet.">
+            <SignInMethod clerk={clerk} />
           </Row>
         </div>
       </Card>

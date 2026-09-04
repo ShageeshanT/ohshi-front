@@ -84,7 +84,7 @@ export default function Sidebar(p: SidebarProps) {
         }}
       >
         {/* Brand row. */}
-        <div className={`flex h-12 shrink-0 items-center ${c ? "justify-center" : "justify-between pl-3.5 pr-2"}`}>
+        <div className={`flex h-11 shrink-0 items-center ${c ? "justify-center" : "justify-between pl-3.5 pr-2"}`}>
           <Link to="/app" className="flex items-center" title="Ohshi" onClick={p.onMobileClose}>
             {c ? <BrandMark className="h-6" /> : <Wordmark className="h-6" />}
           </Link>
@@ -130,7 +130,7 @@ export default function Sidebar(p: SidebarProps) {
 
         {/* History: hidden on the rail. */}
         <div
-          className={`mt-4 min-h-0 flex-1 overflow-y-auto px-2 pb-2 transition-opacity duration-200 ${
+          className={`mt-3 min-h-0 flex-1 overflow-y-auto px-2 pb-2 transition-opacity duration-200 ${
             c ? "pointer-events-none opacity-0" : "opacity-100"
           }`}
           aria-hidden={c}
@@ -204,12 +204,12 @@ export default function Sidebar(p: SidebarProps) {
 }
 
 function Divider(props: { collapsed: boolean; label: string }) {
-  if (props.collapsed) return <div className="mx-3 my-2 h-px bg-edge" />;
-  return <p className="mt-4 px-4 pb-1 text-[11px] font-medium text-ink-faint">{props.label}</p>;
+  if (props.collapsed) return <div className="mx-3 my-1.5 h-px bg-edge" />;
+  return <p className="mt-2.5 px-4 pb-0.5 text-[11px] font-medium text-ink-faint">{props.label}</p>;
 }
 
-const itemBase = "flex items-center gap-2.5 rounded-md text-[13px] font-medium transition-colors";
-const expanded = "w-full px-2.5 py-[6px]";
+const itemBase = "flex items-center gap-2 rounded-md text-[13px] font-medium transition-colors";
+const expanded = "w-full px-2.5 py-[5px]";
 const rail = "mx-auto h-9 w-9 justify-center";
 
 function SideButton(props: { icon: Icon; label: string; hint?: string; collapsed: boolean; onClick: () => void }) {
