@@ -1,19 +1,21 @@
 /**
  * Plan and billing — Ohshi's own plan, separate from any connected provider
- * account. The page only ever *asks*: upgrades go to Dodo's hosted checkout
- * and the plan flips when Dodo's signed webhook reaches the backend, so coming
- * back from a payment can be a few seconds ahead of the plan (the polling
- * below, keyed off the ?checkout=done return URL). On a backend without
- * billing the plans still show, with the paid buttons waiting.
+ * account. The page only ever *asks*: upgrades go to PayPal's approval page
+ * and the plan flips when PayPal's signed webhook reaches the backend, so
+ * coming back from a payment can be a few seconds ahead of the plan (the
+ * polling below, keyed off the ?checkout=done return URL). Cancelling asks
+ * the backend, which stops the subscription at PayPal and keeps the plan
+ * until the paid period ends. On a backend without billing the plans still
+ * show, with the paid buttons waiting.
  */
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUpRight, CreditCard, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { useAuth, type Me } from "../App";
 import { ArrowLoopDoodle, StarsDoodle } from "../components/Doodles";
 import { PlanCard } from "../components/PlanCard";
-import { Badge, Button, Card, Notice, PageHeader, Progress, SectionTitle } from "../components/ui";
+import { Badge, Button, Card, Modal, Notice, PageHeader, Progress, SectionTitle } from "../components/ui";
 import { formatNumber, friendly, get, poll, post, safeExternalUrl } from "../lib/api";
 import { fetchPlans, type PlansPayload } from "../lib/plans";
 import { useUsage } from "../lib/workspace";
@@ -25,8 +27,9 @@ const FINE_PRINT = [
   "Cancel any time. A paid plan stays active until the period already paid for ends.",
 ];
 
-/** Dodo sends the browser back with `?checkout=done` (plus its own `status`
- *  and ids); a failed or abandoned checkout is not a payment. */
+/** PayPal sends the browser back with `?checkout=done` plus its own
+ *  `subscription_id`, `ba_token` and `token`; an abandoned approval lands on
+ *  the cancel URL instead, which carries none of this. */
 function paymentCameBack(params: URLSearchParams): boolean {
   if (params.get("checkout") !== "done") return false;
   const status = (params.get("status") ?? "").toLowerCase();
@@ -34,7 +37,7 @@ function paymentCameBack(params: URLSearchParams): boolean {
 }
 
 const ACTIVATION_TIMEOUT_MS = 3 * 60_000;
-const RETURN_PARAMS = ["checkout", "status", "payment_id", "subscription_id"];
+const RETURN_PARAMS = ["checkout", "status", "subscription_id", "ba_token", "token"];
 
 export default function Billing() {
   const { me, setMe } = useAuth();
@@ -43,6 +46,8 @@ export default function Billing() {
   const [plans, setPlans] = useState<PlansPayload | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelled, setCancelled] = useState<string | null>(null);
   // Captured once from the return URL; the URL is then cleaned, so a refresh,
   // the back button or a bookmark never re-announce a payment.
   const [activating, setActivating] = useState<{ since: number; from: string } | null>(() =>
@@ -51,12 +56,12 @@ export default function Billing() {
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelledFetch = false;
     void fetchPlans().then((p) => {
-      if (!cancelled) setPlans(p);
+      if (!cancelledFetch) setPlans(p);
     });
     return () => {
-      cancelled = true;
+      cancelledFetch = true;
     };
   }, []);
 
@@ -64,12 +69,14 @@ export default function Billing() {
   const paid = plan !== "free";
   const billingEnabled = plans?.billingEnabled ?? me?.config.billingEnabled ?? false;
   const status = me?.user.subscriptionStatus ?? null;
+  const ending = paid && status === "cancelled";
   const renews = me?.user.planRenewsMs
     ? new Date(me.user.planRenewsMs).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })
     : null;
   const entitlement = usage?.entitlement;
   const rows = plans?.plans ?? [];
   const current = rows.find((p) => p.code === plan) ?? rows[0];
+  const currentLabel = current?.label ?? (paid ? plan[0].toUpperCase() + plan.slice(1) : "Free");
   // Between "payment received" and the webhook moving the plan.
   const waiting = activating !== null && plan === activating.from && !timedOut;
   const locked = busy !== null || waiting;
@@ -80,7 +87,7 @@ export default function Billing() {
     if (RETURN_PARAMS.some((key) => params.has(key))) setParams({}, { replace: true });
   }, [params, setParams]);
 
-  // Restored from the back-forward cache (Back from the Dodo tab): nothing
+  // Restored from the back-forward cache (Back from the PayPal tab): nothing
   // is in flight any more, whatever the buttons were doing when we left.
   useEffect(() => {
     const onShow = (event: PageTransitionEvent) => {
@@ -110,9 +117,9 @@ export default function Billing() {
   }, [plan, reloadUsage]);
 
   const follow = (url: unknown) => {
-    // Only ever to the payment processor, over https — never to a link an
-    // answer could have been made to carry.
-    const safe = safeExternalUrl(url, [".dodopayments.com"]);
+    // Only ever to PayPal, over https — never to a link an answer could
+    // have been made to carry.
+    const safe = safeExternalUrl(url, [".paypal.com"]);
     if (!safe) throw new Error("unexpected billing link");
     window.location.assign(safe);
   };
@@ -121,11 +128,12 @@ export default function Billing() {
     if (locked) return;
     setBusy(target);
     setError(null);
+    setCancelled(null);
     post<{ url?: string | null; changed?: boolean }>("/api/billing/checkout", { plan: target })
       .then((answer) => {
         if (answer.changed) {
-          // Changed on the existing subscription: no checkout page, the
-          // webhook flips the plan in a moment.
+          // Changed on the existing subscription: PayPal asks the payer to
+          // approve the new plan, then its webhook flips the plan.
           setActivating({ since: Date.now(), from: plan });
           setTimedOut(false);
           setBusy(null);
@@ -140,16 +148,21 @@ export default function Billing() {
       });
   };
 
-  const openPortal = () => {
+  const confirmCancel = () => {
     if (busy !== null) return;
-    setBusy("portal");
+    setBusy("cancel");
     setError(null);
-    post<{ url: string }>("/api/billing/portal")
-      .then(({ url }) => follow(url))
+    post<{ ok: boolean; activeUntilMs?: number | null }>("/api/billing/cancel")
+      .then(async () => {
+        setMe(await get<Me>("/api/auth/me"));
+        setCancelOpen(false);
+        setCancelled(currentLabel);
+      })
       .catch((err) => {
         setError(friendly(err));
-        setBusy(null);
-      });
+        setCancelOpen(false);
+      })
+      .finally(() => setBusy(null));
   };
 
   const rank = (code: string) => rows.findIndex((p) => p.code === code);
@@ -168,6 +181,12 @@ export default function Billing() {
           plan has not changed.
         </Notice>
       )}
+      {cancelled && (
+        <Notice tone="ok" onClose={() => setCancelled(null)}>
+          {cancelled} cancelled. It stays active until {renews ?? "the end of the paid period"}, then the account
+          returns to Free.
+        </Notice>
+      )}
       {error && (
         <Notice tone="danger" onClose={() => setError(null)}>
           {error}
@@ -180,13 +199,20 @@ export default function Billing() {
           <div className="min-w-0">
             <p className="text-[12px] font-medium text-ink-dim">Current plan</p>
             <p className="mt-1 flex items-center gap-2 text-[22px] font-semibold leading-none tracking-tight">
-              {current?.label ?? (paid ? plan[0].toUpperCase() + plan.slice(1) : "Free")}
-              {paid && status === "cancelled" && <Badge tone="warn">Cancelled</Badge>}
+              {currentLabel}
+              {ending && <Badge tone="warn">Cancelled</Badge>}
+              {paid && status === "payment_failed" && <Badge tone="warn">Payment failed</Badge>}
               {!paid && !billingEnabled && <Badge tone="ok" dot>Free during beta</Badge>}
             </p>
             <p className="mt-1.5 text-[12.5px] text-ink-dim">
-              {paid && renews ? (status === "cancelled" ? `Stays active until ${renews}.` : `Renews ${renews}.`) : null}
-              {!paid && (billingEnabled ? "No card on file. Upgrade whenever you outgrow it." : "Paid plans open soon. Everything is free until then.")}
+              {paid && renews
+                ? ending
+                  ? `Stays active until ${renews}. Renewal is off.`
+                  : status === "payment_failed"
+                    ? `PayPal could not collect the last payment and will retry. The plan renews ${renews} once it goes through.`
+                    : `Renews ${renews} through PayPal.`
+                : null}
+              {!paid && (billingEnabled ? "Nothing on file. Upgrade whenever you outgrow it." : "Paid plans open soon. Everything is free until then.")}
             </p>
             {entitlement && entitlement.requestLimit > 0 && (
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -203,9 +229,9 @@ export default function Billing() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {billingEnabled && paid && (
-              <Button tone="ghost" busy={busy === "portal"} disabled={locked} onClick={openPortal}>
-                <CreditCard className="h-3.5 w-3.5" /> Manage billing <ArrowUpRight className="h-3.5 w-3.5 text-ink-dim" />
+            {billingEnabled && paid && !ending && (
+              <Button tone="ghost" disabled={locked} onClick={() => setCancelOpen(true)}>
+                Cancel plan
               </Button>
             )}
             {billingEnabled && !paid && rows[1] && (
@@ -228,7 +254,13 @@ export default function Billing() {
             const isCurrent = p.code === plan;
             const upgrade = rank(p.code) > rank(plan);
             let action: React.ReactNode;
-            if (isCurrent) {
+            if (isCurrent && ending && billingEnabled) {
+              action = (
+                <Button busy={busy === p.code} disabled={locked} onClick={() => checkout(p.code)} className="w-full">
+                  Resubscribe
+                </Button>
+              );
+            } else if (isCurrent) {
               action = (
                 <Button tone="ghost" disabled className="w-full">
                   Your current plan
@@ -242,8 +274,8 @@ export default function Billing() {
               );
             } else if (p.priceUsd === 0) {
               action = (
-                <Button tone="ghost" busy={busy === "portal"} disabled={locked} onClick={openPortal} className="w-full">
-                  Move to Free
+                <Button tone="ghost" disabled={locked || ending} onClick={() => setCancelOpen(true)} className="w-full">
+                  {ending ? `Free from ${renews ?? "the period end"}` : "Move to Free"}
                 </Button>
               );
             } else {
@@ -275,9 +307,29 @@ export default function Billing() {
         </ul>
         <p className="mt-4 inline-flex items-start gap-2 text-[12px] text-ink-dim">
           <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0 text-ok" />
-          Checkout, taxes, invoices and cancellation are handled by Dodo Payments, the merchant of record. Your card details never touch Ohshi.
+          Payments are processed by PayPal. Your card or PayPal details never touch Ohshi; receipts and your payment
+          method live in your PayPal account. Switching plans asks you to approve the new price on PayPal.
         </p>
       </Card>
+
+      <Modal open={cancelOpen} onClose={() => (busy === "cancel" ? undefined : setCancelOpen(false))} title={`Cancel ${currentLabel}?`}>
+        <div className="space-y-4 text-[13px]">
+          <p className="text-ink-dim">
+            {currentLabel} stays active until {renews ?? "the end of the period already paid for"}; nothing more is
+            charged. After that the account returns to Free: connections and keys above the Free limits are locked, not
+            deleted, and history outside the Free window is pruned.
+          </p>
+          <p className="text-ink-dim">Receipts and your payment method stay in your PayPal account.</p>
+          <div className="flex justify-end gap-2">
+            <Button tone="ghost" disabled={busy === "cancel"} onClick={() => setCancelOpen(false)}>
+              Keep my plan
+            </Button>
+            <Button busy={busy === "cancel"} disabled={busy !== null && busy !== "cancel"} onClick={confirmCancel}>
+              Cancel plan
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

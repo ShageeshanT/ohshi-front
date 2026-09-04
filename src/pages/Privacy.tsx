@@ -69,9 +69,11 @@ export default function Privacy() {
 
       <h2 id="sharing">3. Where your data goes</h2>
       <p>
-        <strong>Dodo Payments</strong> processes paid-plan checkouts as merchant of record. Your
-        payment details go to Dodo, never to Ohshi; on our side we store only your plan, Dodo&apos;s
-        customer and subscription identifiers, and the signed billing events Dodo sends us.
+        <strong>PayPal</strong> processes paid-plan payments. Your card or PayPal details go to
+        PayPal, never to Ohshi; when you start a checkout we pass PayPal your account id and email
+        address so the payment can be matched to your account. On our side we store only your
+        plan, PayPal&apos;s payer and subscription identifiers, and the signed billing events PayPal
+        sends us. PayPal&apos;s handling of your data is governed by PayPal&apos;s privacy statement.
       </p>
       <ul>
         <li>

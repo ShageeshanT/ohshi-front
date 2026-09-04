@@ -106,15 +106,17 @@ export default function Terms() {
 
       <h2 id="fees">8. Fees and billing</h2>
       <p>
-        Ohshi has a free plan and paid monthly subscriptions (currently Plus and Pro). Prices,
-        taxes and invoices are handled at checkout by Dodo Payments, our merchant of record —
-        Dodo is the seller of the subscription and processes your payment details; Ohshi never
-        sees your card.
+        Ohshi has a free plan and paid monthly subscriptions (currently Plus and Pro). Ohshi is
+        the seller. Payments are collected as PayPal subscriptions: PayPal processes your payment
+        details under its own user agreement, sends you receipts and holds your payment method;
+        Ohshi never sees your card. Prices are in US dollars and do not include any tax your
+        country may charge on the payment.
       </p>
       <ul>
         <li>
-          Paid plans renew monthly until cancelled. You can cancel any time from your profile or
-          the billing portal; the plan stays active until the end of the period already paid for.
+          Paid plans renew monthly through PayPal until cancelled. You can cancel any time from
+          the billing page (or from your PayPal account); the plan stays active until the end of
+          the period already paid for. Switching plans asks you to approve the new price on PayPal.
         </li>
         <li>
           Each plan carries usage limits — monthly requests, connected accounts, API keys,
@@ -128,7 +130,9 @@ export default function Terms() {
         </li>
         <li>
           Refunds: contact us within 14 days of a charge and we will review it. Approved refunds
-          are processed by Dodo and end the paid plan immediately.
+          are issued through PayPal and end the paid plan immediately. A payment reversed or
+          disputed through PayPal also ends the plan, and the account cannot buy again until the
+          dispute is resolved.
         </li>
       </ul>
       <h2 id="termination">9. Ending things</h2>
