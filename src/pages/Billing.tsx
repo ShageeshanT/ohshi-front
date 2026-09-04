@@ -178,14 +178,22 @@ export default function Billing() {
     setError(null);
     setCancelled(null);
     setUpgraded(null);
-    post<{ url?: string | null; changed?: boolean }>("/api/billing/checkout", { plan: target })
-      .then((answer) => {
+    post<{ url?: string | null; changed?: boolean; applied?: boolean; resubscribed?: boolean }>("/api/billing/checkout", { plan: target })
+      .then(async (answer) => {
         if (answer.changed) {
-          // Changed on the existing subscription: PayPal asks the payer to
-          // approve the new plan, then its webhook flips the plan.
+          setBusy(null);
+          if (answer.resubscribed) {
+            // The scheduled cancellation was undone; the plan itself did
+            // not move, so there is nothing to wait for.
+            setMe(await get<Me>("/api/auth/me"));
+            setCancelled(null);
+            return;
+          }
+          // Changed on the existing subscription. Polar applies it at once
+          // (the next /me shows it); PayPal asks the payer to approve the
+          // new plan first, then its webhook flips the plan.
           setActivating({ since: Date.now(), from: plan });
           setTimedOut(false);
-          setBusy(null);
           if (answer.url) follow(answer.url);
           return;
         }
