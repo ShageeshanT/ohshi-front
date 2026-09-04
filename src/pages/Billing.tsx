@@ -78,9 +78,10 @@ export default function Billing() {
   // Captured once from the return URL; the URL is then cleaned, so a refresh,
   // the back button or a bookmark never re-announce a payment.
   const [activating, setActivating] = useState<{ since: number; from: string } | null>(() =>
-    paymentCameBack(params)
-      ? { since: Date.now(), from: rememberedPlan() ?? me?.user.plan ?? "free" }
-      : null,
+    // Without a remembered plan (another browser, storage off) assume Free:
+    // a paid plan on arrival then reads as the upgrade it almost surely is,
+    // and a still-free one keeps polling until the webhook lands.
+    paymentCameBack(params) ? { since: Date.now(), from: rememberedPlan() ?? "free" } : null,
   );
   const [timedOut, setTimedOut] = useState(false);
   // The plan code just arrived at, for the welcome card.
@@ -220,7 +221,6 @@ export default function Billing() {
 
       {upgraded && (
         <Card className="relative overflow-hidden">
-          <StarsDoodle className="pointer-events-none absolute -right-2 -top-1 h-20 w-28 text-accent/40" />
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="min-w-0 max-w-prose">
               <p className="inline-flex items-center gap-1.5 text-[12px] font-medium text-accent">
