@@ -3,21 +3,23 @@
  * account. The page only ever *asks*: upgrades go to PayPal's approval page
  * and the plan flips when PayPal's signed webhook reaches the backend, so
  * coming back from a payment can be a few seconds ahead of the plan (the
- * polling below, keyed off the ?checkout=done return URL). Cancelling asks
- * the backend, which stops the subscription at PayPal and keeps the plan
- * until the paid period ends. On a backend without billing the plans still
- * show, with the paid buttons waiting.
+ * polling below, keyed off the ?checkout=done return URL). The plan we left
+ * from is remembered in sessionStorage across the PayPal round trip, so the
+ * page knows an upgrade happened even when the webhook beat the browser
+ * back. Cancelling asks the backend, which stops the subscription at PayPal
+ * and keeps the plan until the paid period ends. On a backend without
+ * billing the plans still show, with the paid buttons waiting.
  */
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { ShieldCheck } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth, type Me } from "../App";
 import { ArrowLoopDoodle, StarsDoodle } from "../components/Doodles";
 import { PlanCard } from "../components/PlanCard";
 import { Badge, Button, Card, Modal, Notice, PageHeader, Progress, SectionTitle } from "../components/ui";
 import { formatNumber, friendly, get, poll, post, safeExternalUrl } from "../lib/api";
-import { fetchPlans, type PlansPayload } from "../lib/plans";
+import { fetchPlans, planPerks, type PlansPayload } from "../lib/plans";
 import { useUsage } from "../lib/workspace";
 
 const FINE_PRINT = [
@@ -27,9 +29,9 @@ const FINE_PRINT = [
   "Cancel any time. A paid plan stays active until the period already paid for ends.",
 ];
 
-/** PayPal sends the browser back with `?checkout=done` plus its own
- *  `subscription_id`, `ba_token` and `token`; an abandoned approval lands on
- *  the cancel URL instead, which carries none of this. */
+/** PayPal sends the browser back to the return URL (`?checkout=done`) plus
+ *  its own `subscription_id`, `ba_token` and `token`; an abandoned approval
+ *  lands on the cancel URL instead, which carries no `checkout`. */
 function paymentCameBack(params: URLSearchParams): boolean {
   if (params.get("checkout") !== "done") return false;
   const status = (params.get("status") ?? "").toLowerCase();
@@ -38,9 +40,34 @@ function paymentCameBack(params: URLSearchParams): boolean {
 
 const ACTIVATION_TIMEOUT_MS = 3 * 60_000;
 const RETURN_PARAMS = ["checkout", "status", "subscription_id", "ba_token", "token"];
+/** The plan the account was on when it left for PayPal. */
+const CHECKOUT_FROM_KEY = "ohshi.checkout.from";
+
+function rememberPlan(plan: string) {
+  try {
+    sessionStorage.setItem(CHECKOUT_FROM_KEY, plan);
+  } catch {
+    /* private window, fine */
+  }
+}
+function rememberedPlan(): string | null {
+  try {
+    return sessionStorage.getItem(CHECKOUT_FROM_KEY);
+  } catch {
+    return null;
+  }
+}
+function forgetPlan() {
+  try {
+    sessionStorage.removeItem(CHECKOUT_FROM_KEY);
+  } catch {
+    /* nothing to forget */
+  }
+}
 
 export default function Billing() {
   const { me, setMe } = useAuth();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { usage, reload: reloadUsage } = useUsage(30);
   const [plans, setPlans] = useState<PlansPayload | null>(null);
@@ -51,9 +78,13 @@ export default function Billing() {
   // Captured once from the return URL; the URL is then cleaned, so a refresh,
   // the back button or a bookmark never re-announce a payment.
   const [activating, setActivating] = useState<{ since: number; from: string } | null>(() =>
-    paymentCameBack(params) ? { since: Date.now(), from: me?.user.plan ?? "free" } : null,
+    paymentCameBack(params)
+      ? { since: Date.now(), from: rememberedPlan() ?? me?.user.plan ?? "free" }
+      : null,
   );
   const [timedOut, setTimedOut] = useState(false);
+  // The plan code just arrived at, for the welcome card.
+  const [upgraded, setUpgraded] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelledFetch = false;
@@ -80,12 +111,23 @@ export default function Billing() {
   // Between "payment received" and the webhook moving the plan.
   const waiting = activating !== null && plan === activating.from && !timedOut;
   const locked = busy !== null || waiting;
+  const upgradedRow = upgraded ? rows.find((p) => p.code === upgraded) : undefined;
+  const upgradedLabel = upgradedRow?.label ?? (upgraded ? upgraded[0].toUpperCase() + upgraded.slice(1) : "");
 
   // The return-URL parameters are consumed above; take them off the address
   // bar so nothing downstream reads them twice.
   useEffect(() => {
     if (RETURN_PARAMS.some((key) => params.has(key))) setParams({}, { replace: true });
   }, [params, setParams]);
+
+  // The plan moved away from the one we left on: the upgrade landed. This
+  // also covers the webhook having beaten the browser back to this page.
+  useEffect(() => {
+    if (activating === null || plan === activating.from) return;
+    if (plan !== "free") setUpgraded(plan);
+    forgetPlan();
+    setActivating(null);
+  }, [plan, activating]);
 
   // Restored from the back-forward cache (Back from the PayPal tab): nothing
   // is in flight any more, whatever the buttons were doing when we left.
@@ -121,6 +163,7 @@ export default function Billing() {
     // have been made to carry.
     const safe = safeExternalUrl(url, [".paypal.com"]);
     if (!safe) throw new Error("unexpected billing link");
+    rememberPlan(plan);
     window.location.assign(safe);
   };
 
@@ -129,6 +172,7 @@ export default function Billing() {
     setBusy(target);
     setError(null);
     setCancelled(null);
+    setUpgraded(null);
     post<{ url?: string | null; changed?: boolean }>("/api/billing/checkout", { plan: target })
       .then((answer) => {
         if (answer.changed) {
@@ -173,6 +217,42 @@ export default function Billing() {
         title="Plan and billing"
         description="Ohshi's own allowance on top of the access you connect. The models keep running on your key or your plan; Ohshi never resells model access."
       />
+
+      {upgraded && (
+        <Card className="relative overflow-hidden">
+          <StarsDoodle className="pointer-events-none absolute -right-2 -top-1 h-20 w-28 text-accent/40" />
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="min-w-0 max-w-prose">
+              <p className="inline-flex items-center gap-1.5 text-[12px] font-medium text-accent">
+                <Sparkles className="h-3.5 w-3.5" /> Upgrade complete
+              </p>
+              <h2 className="mt-1 text-[22px] font-semibold leading-tight tracking-tight">
+                Congratulations, you&apos;re on {upgradedLabel}.
+              </h2>
+              <p className="mt-1.5 text-[13px] text-ink-dim">
+                Thank you for supporting Ohshi. Your {upgradedLabel} allowance is live right now, on every model you
+                have connected.{renews ? ` The next payment is on ${renews}.` : ""}
+              </p>
+              {upgradedRow && (
+                <ul className="mt-3 grid gap-x-6 gap-y-1.5 text-[12.5px] sm:grid-cols-2">
+                  {planPerks(upgradedRow).map((perk) => (
+                    <li key={perk} className="flex items-start gap-2">
+                      <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-accent" />
+                      {perk}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={() => navigate("/app")}>Go to the dashboard</Button>
+              <Button tone="ghost" onClick={() => setUpgraded(null)}>
+                Stay here
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {waiting && <Notice tone="accent">Payment received. Activating your plan, this takes a few seconds.</Notice>}
       {activating !== null && timedOut && plan === activating.from && (
