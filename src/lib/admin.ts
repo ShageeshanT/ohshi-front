@@ -134,6 +134,7 @@ export const banUser = (id: string, reason: string, cancelSubscription: boolean)
 export const unbanUser = (id: string) => post<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(id)}/unban`);
 export const revokeSessions = (id: string) => post<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(id)}/sessions/revoke`);
 export const revokeKeys = (id: string) => post<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(id)}/keys/revoke`);
+export const grantPlan = (id: string, plan: string) => post<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(id)}/plan`, { plan });
 
 export function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : typeof v === "number" ? String(v) : fallback;

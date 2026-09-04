@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, KeyRound, LogOut, ShieldBan, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Gift, KeyRound, LogOut, ShieldBan, ShieldCheck } from "lucide-react";
 import { useAuth } from "../App";
 import { Badge, Button, Card, EmptyState, Field, Input, Modal, Notice, PageHeader, Progress, SectionTitle, Spinner, Stat } from "../components/ui";
 import { formatNumber, friendly, timeAgo } from "../lib/api";
@@ -15,6 +15,7 @@ import {
   banUser,
   bool,
   fetchUser,
+  grantPlan,
   num,
   revokeKeys,
   revokeSessions,
@@ -71,6 +72,7 @@ export default function AdminUser() {
   const [banOpen, setBanOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [cancelSub, setCancelSub] = useState(true);
+  const [grantChoice, setGrantChoice] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -138,6 +140,31 @@ export default function AdminUser() {
             <Button tone="ghost" busy={busy === "keys"} disabled={busy !== null || liveKeys === 0} onClick={() => void act("keys", () => revokeKeys(u.id), (r) => `${r.revokedKeys ?? 0} API key${r.revokedKeys === 1 ? "" : "s"} revoked.`)}>
               <KeyRound className="h-3.5 w-3.5" /> Revoke API keys
             </Button>
+            <span className="inline-flex items-center gap-1">
+              <select
+                value={grantChoice || u.plan}
+                onChange={(e) => setGrantChoice(e.target.value)}
+                aria-label="Grant plan"
+                className="h-8 rounded-lg border border-edge bg-panel px-2 text-[12.5px] text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+              >
+                <option value="free">Free</option>
+                <option value="plus">Plus</option>
+                <option value="pro">Pro</option>
+              </select>
+              <Button
+                tone="ghost"
+                busy={busy === "grant"}
+                disabled={busy !== null || (grantChoice || u.plan) === u.plan}
+                onClick={() =>
+                  void act("grant", () => grantPlan(u.id, grantChoice || u.plan), (r) =>
+                    r.user.plan === "free" ? "Back on Free." : `Granted ${r.user.planLabel}, complimentary.`,
+                  ).then(() => setGrantChoice(""))
+                }
+                title="Give this account a plan without a payment"
+              >
+                <Gift className="h-3.5 w-3.5" /> Grant
+              </Button>
+            </span>
             {u.isActive ? (
               <Button tone="danger" disabled={busy !== null || isSelf || u.isAdmin} onClick={() => setBanOpen(true)} title={u.isAdmin ? "Admins cannot be banned from here" : undefined}>
                 <ShieldBan className="h-3.5 w-3.5" /> Ban

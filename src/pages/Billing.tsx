@@ -108,6 +108,8 @@ export default function Billing() {
   const hasPortal = provider === "polar";
   const status = me?.user.subscriptionStatus ?? null;
   const ending = paid && status === "cancelled";
+  // Granted by the operator: no processor, nothing to renew, cancel or manage.
+  const complimentary = paid && status === "complimentary";
   const renews = me?.user.planRenewsMs
     ? new Date(me.user.planRenewsMs).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })
     : null;
@@ -312,11 +314,13 @@ export default function Billing() {
             <p className="mt-1 flex items-center gap-2 text-[22px] font-semibold leading-none tracking-tight">
               {currentLabel}
               {ending && <Badge tone="warn">Cancelled</Badge>}
+              {complimentary && <Badge tone="violet">Complimentary</Badge>}
               {paid && status === "payment_failed" && <Badge tone="warn">Payment failed</Badge>}
               {!paid && !billingEnabled && <Badge tone="ok" dot>Free during beta</Badge>}
             </p>
             <p className="mt-1.5 text-[12.5px] text-ink-dim">
-              {paid && renews
+              {complimentary && "On the house. Nothing to pay and nothing renews."}
+              {paid && !complimentary && renews
                 ? ending
                   ? `Stays active until ${renews}. Renewal is off.`
                   : status === "payment_failed"
@@ -340,12 +344,12 @@ export default function Billing() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {billingEnabled && paid && hasPortal && (
+            {billingEnabled && paid && !complimentary && hasPortal && (
               <Button tone="ghost" busy={busy === "portal"} disabled={locked} onClick={openPortal}>
                 <CreditCard className="h-3.5 w-3.5" /> Manage billing <ArrowUpRight className="h-3.5 w-3.5 text-ink-dim" />
               </Button>
             )}
-            {billingEnabled && paid && !ending && (
+            {billingEnabled && paid && !ending && !complimentary && (
               <Button tone="ghost" disabled={locked} onClick={() => setCancelOpen(true)}>
                 Cancel plan
               </Button>
@@ -390,7 +394,7 @@ export default function Billing() {
               );
             } else if (p.priceUsd === 0) {
               action = (
-                <Button tone="ghost" disabled={locked || ending} onClick={() => setCancelOpen(true)} className="w-full">
+                <Button tone="ghost" disabled={locked || ending || complimentary} onClick={() => setCancelOpen(true)} className="w-full">
                   {ending ? `Free from ${renews ?? "the period end"}` : "Move to Free"}
                 </Button>
               );

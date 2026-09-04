@@ -38,6 +38,7 @@ export function StateBadges(props: { row: Pick<AdminUserRow, "isActive" | "billi
       {r.billingFlag && <Badge tone="warn">{r.billingFlag}</Badge>}
       {r.subscriptionStatus === "cancelled" && <Badge tone="warn">Cancelling</Badge>}
       {r.subscriptionStatus === "payment_failed" && <Badge tone="warn">Payment failed</Badge>}
+      {r.subscriptionStatus === "complimentary" && <Badge tone="violet">Complimentary</Badge>}
       {r.isAdmin && <Badge tone="accent">Admin</Badge>}
       {r.isActive && !r.billingFlag && !r.isAdmin && r.subscriptionStatus !== "cancelled" && <Badge tone="ok" dot>Active</Badge>}
     </span>
