@@ -16,6 +16,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowUpRight, CreditCard, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth, type Me } from "../App";
 import { ArrowLoopDoodle, StarsDoodle } from "../components/Doodles";
+import { OhshiMeter } from "../components/OhshiMeter";
 import { PlanCard } from "../components/PlanCard";
 import { Badge, Button, Card, Modal, Notice, PageHeader, Progress, SectionTitle } from "../components/ui";
 import { formatNumber, friendly, get, poll, post, safeExternalUrl } from "../lib/api";
@@ -342,6 +343,7 @@ export default function Billing() {
                 </div>
               </div>
             )}
+            {entitlement && <OhshiMeter plan={entitlement} />}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {billingEnabled && paid && !complimentary && hasPortal && (

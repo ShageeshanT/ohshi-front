@@ -13,10 +13,12 @@
  * page says it is next, never that it works. Two things are live for Google:
  * the Gemini API key path (supported, billed by Google) and, in Beta, the
  * connector for the Google account behind a plan. The page never presents a
- * consumer subscription as a guaranteed API allowance.
+ * consumer subscription as a guaranteed API allowance. Ohshi's own models
+ * (OHS3, OHS3 Pro) are included with every plan and need nothing connected;
+ * their allowance per plan is the one in lib/plans.ts.
  */
 
-export type ProviderId = "google" | "deepseek" | "openai" | "anthropic" | "xai";
+export type ProviderId = "ohshi" | "google" | "deepseek" | "openai" | "anthropic" | "xai";
 
 export interface Provider {
   id: ProviderId;
@@ -30,6 +32,13 @@ export interface Provider {
 }
 
 export const PROVIDERS: Provider[] = [
+  {
+    id: "ohshi",
+    vendor: "Ohshi",
+    plans: ["Included with every plan, nothing to connect"],
+    models: "OHS3 for quick answers and OHS3 Pro with visible reasoning, on Ohshi's own servers",
+    live: true,
+  },
   {
     id: "google",
     vendor: "Google",
@@ -146,10 +155,10 @@ export const COPY: LandingCopy = {
     line1: "One Key.",
     line2: "Chat and API.",
     paragraph:
-      "Ohshi turns your own AI access into a chat workspace and an OpenAI compatible API. Paste a Gemini or DeepSeek API key, or connect the Google account behind your plan in Beta, and every call runs on it through one ohs_ key.",
+      "Ohshi turns your own AI access into a chat workspace and an OpenAI compatible API. Start on OHS3, Ohshi's own model, with nothing to connect. Then paste a Gemini or DeepSeek API key, or connect the Google account behind your plan in Beta, and every call runs through one ohs_ key.",
     primaryCta: "Get Started",
     secondaryCta: "See the API",
-    trust: ["Bring Your Own Key or Plan", "Live Quota Per Model", "Keys and Tokens Encrypted at Rest"],
+    trust: ["OHS3 Included, Nothing to Connect", "Bring Your Own Key or Plan", "Keys and Tokens Encrypted at Rest"],
   },
   why: {
     eyebrow: "Why Ohshi",
@@ -193,7 +202,7 @@ export const COPY: LandingCopy = {
       },
       {
         title: "Every Source, One Key",
-        text: "Paste a Gemini or DeepSeek API key today, the supported paths. Connect Google AI Pro in Beta, with ChatGPT, Claude and SuperGrok next. Every source sits behind the same ohs_ key.",
+        text: "OHS3 and OHS3 Pro, Ohshi's own models, come with every plan. Paste a Gemini or DeepSeek API key, the supported paths. Connect Google AI Pro in Beta, with ChatGPT, Claude and SuperGrok next. Every source sits behind the same ohs_ key.",
       },
     ],
   },
@@ -201,11 +210,11 @@ export const COPY: LandingCopy = {
     eyebrow: "How It Works",
     title: "From Key to First Call.",
     intro:
-      "Three steps and nothing to buy from Ohshi. Google or DeepSeek bills your API key for what you use; the Beta connector runs on the plan you already hold.",
+      "Three steps and nothing to buy from Ohshi. OHS3 is ready the moment you sign in; Google or DeepSeek bills your API key for what you use, and the Beta connector runs on the plan you already hold.",
     steps: [
       {
         title: "Add a Key or Connect an Account",
-        text: "Paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, the supported paths. Or sign in with Google and paste back the code, in Beta. Ohshi reads which models you can use.",
+        text: "Or skip this step: OHS3 answers from the first sign-in. For more models, paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, the supported paths, or sign in with Google and paste back the code, in Beta. Ohshi reads which models you can use.",
       },
       {
         title: "Pick a Model",
@@ -221,7 +230,7 @@ export const COPY: LandingCopy = {
     eyebrow: "Providers",
     title: "Your Key, or the Plan You Already Pay For.",
     intro:
-      "Gemini and DeepSeek API keys are live today. The Google account connector is in Beta, with ChatGPT, Claude and SuperGrok next. Every source you add shows up in the same picker and behind the same key.",
+      "OHS3 and OHS3 Pro are Ohshi's own and need nothing connected. Gemini and DeepSeek API keys are live today. The Google account connector is in Beta, with ChatGPT, Claude and SuperGrok next. Every source you add shows up in the same picker and behind the same key.",
     hub: "Ohshi",
     hubSub: "one ohs_ key",
     outputs: [
@@ -237,17 +246,17 @@ export const COPY: LandingCopy = {
     eyebrow: "Models",
     title: "Whatever Your Key or Plan Lists.",
     intro:
-      "With a Gemini API key the picker lists every chat model that key can call, Gemini 2.5 and Gemini 3 included, and new ones appear by themselves. With a DeepSeek API key it lists DeepSeek V4 Flash, V4 Pro and the vision preview, each with thinking. With a Google account in Beta it shows Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.1 Pro, Claude Sonnet 4.6, Claude Opus 4.6 with thinking and GPT-OSS 120B, each with its remaining percentage and reset countdown.",
+      "Every plan starts with OHS3 and OHS3 Pro, Ohshi's own models, with a daily and monthly allowance and nothing to connect. With a Gemini API key the picker lists every chat model that key can call, Gemini 2.5 and Gemini 3 included, and new ones appear by themselves. With a DeepSeek API key it lists DeepSeek V4 Flash, V4 Pro and the vision preview, each with thinking. With a Google account in Beta it shows Gemini 3.6 Flash, Gemini 3.5 Flash, Gemini 3.1 Pro, Claude Sonnet 4.6, Claude Opus 4.6 with thinking and GPT-OSS 120B, each with its remaining percentage and reset countdown.",
   },
   pricing: {
     eyebrow: "Pricing",
     title: "Start Free. Upgrade When You Outgrow It.",
     /** Shown while the backend has no payment provider configured. */
     intro:
-      "Every plan is an Ohshi allowance on top of the access you connect. The models themselves keep running on your own key or account, and Ohshi never resells model access. Paid plans open soon; everything is free until then.",
+      "Every plan includes Ohshi's own OHS3 models and an Ohshi allowance on top of the access you connect. The other models keep running on your own key or account, and Ohshi never resells their access. Paid plans open soon; everything is free until then.",
     /** Shown once paid plans can actually be bought. */
     introLive:
-      "Every plan is an Ohshi allowance on top of the access you connect. The models themselves keep running on your own key or account, and Ohshi never resells model access. Paid plans are billed monthly and you can cancel whenever you like.",
+      "Every plan includes Ohshi's own OHS3 models and an Ohshi allowance on top of the access you connect. The other models keep running on your own key or account, and Ohshi never resells their access. Paid plans are billed monthly and you can cancel whenever you like.",
     freeCta: "Start Free",
     paidCta: "Start with",
     fine: [
@@ -292,15 +301,15 @@ export const COPY: LandingCopy = {
     items: [
       {
         q: "Whose Quota Does This Use?",
-        a: "Yours. With a Gemini or DeepSeek API key, that provider bills the key for what you use. With a connected Google account, in Beta, calls run on that plan and count against its limits. Ohshi adds no quota, sells no model access and is not affiliated with Google, DeepSeek, OpenAI, Anthropic or xAI.",
+        a: "OHS3 and OHS3 Pro run on Ohshi's own servers and draw on the allowance in your plan. Everything else is yours: with a Gemini or DeepSeek API key, that provider bills the key for what you use, and with a connected Google account, in Beta, calls run on that plan and count against its limits. Ohshi resells no provider's access and is not affiliated with Google, DeepSeek, OpenAI, Anthropic or xAI.",
       },
       {
         q: "Do I Still Need API Keys From the Providers?",
-        a: "The supported path is your own API key: Gemini from Google AI Studio, or DeepSeek from the DeepSeek platform. Paste it once; Ohshi keeps it encrypted and your code only ever sees the ohs_ key. The Google account connector runs on your plan without an API key, but it is in Beta and is not a guaranteed API entitlement.",
+        a: "Not for OHS3 and OHS3 Pro, which are Ohshi's own. For the others the supported path is your own API key: Gemini from Google AI Studio, or DeepSeek from the DeepSeek platform. Paste it once; Ohshi keeps it encrypted and your code only ever sees the ohs_ key. The Google account connector runs on your plan without an API key, but it is in Beta and is not a guaranteed API entitlement.",
       },
       {
         q: "Which Providers Work Today?",
-        a: "Gemini and DeepSeek API keys are live. Connecting a Google AI account is in Beta. ChatGPT, Claude and SuperGrok are next. Each source appears in the picker and behind the same ohs_ key.",
+        a: "Ohshi's own OHS3 models work for everyone from the first sign-in. Gemini and DeepSeek API keys are live. Connecting a Google AI account is in Beta. ChatGPT, Claude and SuperGrok are next. Each source appears in the picker and behind the same ohs_ key.",
       },
       {
         q: "Is My Account Safe With You?",
@@ -316,13 +325,13 @@ export const COPY: LandingCopy = {
       },
       {
         q: "What Does Ohshi Cost?",
-        a: "The Free plan is $0: 50 successful requests a month, one connected account and one API key. Plus is $7 a month for 200 requests, two accounts and three keys with 90 days of history. Pro is $15 a month for 1,000 requests, five accounts, ten keys and a year of history. The models themselves still run on the API key or the Google account you connect; Google or DeepSeek bills the key for what you use, and Ohshi never resells model access.",
+        a: "The Free plan is $0: OHS3 and OHS3 Pro at 5 replies a day and 30 a month, plus 50 successful requests a month on your own keys and accounts, one connected account and one API key. Plus is $7 a month for 20 replies a day and 300 a month on Ohshi's models, 200 requests, two accounts and three keys with 90 days of history. Pro is $15 a month for 50 a day and 1,000 a month, 1,000 requests, five accounts, ten keys and a year of history. The other models still run on the API key or the Google account you connect; Google or DeepSeek bills the key for what you use, and Ohshi never resells their access.",
       },
     ],
   },
   cta: {
     title: "Start With the Access You Have.",
-    text: "Sign up, paste a Gemini or DeepSeek API key or connect a Google account, and use the same models from chat and from /v1. The Free plan is ready the moment you sign in.",
+    text: "Sign up and chat on OHS3 straight away. Paste a Gemini or DeepSeek API key or connect a Google account whenever you want those models too, from chat and from /v1. The Free plan is ready the moment you sign in.",
     primary: "Create an Account",
     secondary: "Read the Docs",
   },

@@ -6,6 +6,7 @@
 
 import { Link } from "react-router-dom";
 import { ArrowRight, CreditCard } from "lucide-react";
+import { OhshiMeter } from "../components/OhshiMeter";
 import { Badge, Button, Card, EmptyState, PageHeader, Progress, SectionTitle, Spinner, Stat } from "../components/ui";
 import { formatNumber, timeAgo } from "../lib/api";
 import { useUsage } from "../lib/workspace";
@@ -49,6 +50,7 @@ export default function Usage() {
               {plan.requestsRemaining === 0 ? "Paused until the month resets" : `${formatNumber(plan.requestsRemaining)} left`}
             </span>
           </div>
+          <OhshiMeter plan={plan} />
         </Card>
       )}
 

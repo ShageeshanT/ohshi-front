@@ -26,9 +26,16 @@ interface Family {
   recommended: boolean;
 }
 
-const VENDOR_LABEL: Record<string, string> = { google: "Gemini", anthropic: "Claude", openai: "GPT-OSS", deepseek: "DeepSeek" };
+const VENDOR_LABEL: Record<string, string> = {
+  ohshi: "Ohshi",
+  google: "Gemini",
+  anthropic: "Claude",
+  openai: "GPT-OSS",
+  deepseek: "DeepSeek",
+};
 const LANGS = ["Python", "curl", "JavaScript"];
 const PATHS: { kind: RouteKind; tab: string }[] = [
+  { kind: "ohshi", tab: "Ohshi models" },
   { kind: "gemini_api", tab: "Gemini key" },
   { kind: "deepseek_api", tab: "DeepSeek key" },
   { kind: "deepseek_chat", tab: "DeepSeek chat (Beta)" },
@@ -41,6 +48,7 @@ const GEMINI_EFFORTS = ["low", "medium", "high"];
 const DEEPSEEK_EFFORTS = ["low", "high", "max"];
 const CHATGPT_EFFORTS = ["low", "medium", "high", "xhigh"];
 const DEFAULT_ID: Record<RouteKind, string> = {
+  ohshi: "ohs3",
   gemini_api: "gemini-2.5-flash",
   deepseek_api: "deepseek-v4-flash",
   deepseek_chat: "deepseek-v4-flash",
@@ -103,9 +111,11 @@ export default function Docs() {
   const [deepseekCatalog, setDeepSeekCatalog] = useState<Family[] | null>(null);
   const [googleCatalog, setGoogleCatalog] = useState<Family[] | null>(null);
   const [openaiCatalog, setOpenaiCatalog] = useState<Family[] | null>(null);
+  const [ohshiCatalog, setOhshiCatalog] = useState<Family[] | null>(null);
+  const [ohshiAvailable, setOhshiAvailable] = useState(true);
   const [googleDefault, setGoogleDefault] = useState("");
   const [models, setModels] = useState<ChatModelsPayload | null | undefined>(undefined);
-  const [path, setPath] = useState<RouteKind>("gemini_api");
+  const [path, setPath] = useState<RouteKind>("ohshi");
   const [pathChosen, setPathChosen] = useState(false);
   const [modelId, setModelId] = useState<string>("");
   const [effort, setEffort] = useState<string>("");
@@ -128,19 +138,31 @@ export default function Docs() {
     get<{ families: Family[]; default: string }>("/api/openai/catalog")
       .then((d) => setOpenaiCatalog(d.families))
       .catch(() => setOpenaiCatalog([]));
+    get<{ families: Family[]; default: string; available: boolean }>("/api/ohshi/catalog")
+      .then((d) => {
+        setOhshiCatalog(d.families);
+        setOhshiAvailable(d.available);
+      })
+      .catch(() => {
+        setOhshiCatalog([]);
+        setOhshiAvailable(false);
+      });
     get<ChatModelsPayload>("/api/chat/models")
       .then(setModels)
       .catch(() => setModels(null));
   }, []);
 
-  // Open on the path the account is actually set to (once).
+  // Open on the path the account is actually set to (once); with nothing
+  // connected that is Ohshi's own models, unless this backend has none.
   useEffect(() => {
     if (models === undefined || pathChosen) return;
     setPathChosen(true);
     if (models?.route) setPath(models.route);
+    else if (models && models.ohshi?.available === false) setPath("gemini_api");
   }, [models, pathChosen]);
 
   const families = useMemo<Family[] | null>(() => {
+    if (path === "ohshi") return ohshiCatalog;
     if (path === "gemini_api") {
       if (models && models.route === "gemini_api" && models.families.length > 0) return liveKeyFamilies(models, path);
       return geminiCatalog;
@@ -154,9 +176,11 @@ export default function Docs() {
       return openaiCatalog;
     }
     return googleCatalog;
-  }, [path, models, geminiCatalog, deepseekCatalog, googleCatalog, openaiCatalog]);
+  }, [path, models, geminiCatalog, deepseekCatalog, googleCatalog, openaiCatalog, ohshiCatalog]);
 
   const codeAssist = path === "code_assist";
+  const ohshi = path === "ohshi";
+  const paths = ohshiAvailable ? PATHS : PATHS.filter((p) => p.kind !== "ohshi");
 
   // Keep the selection on a model of the current path.
   useEffect(() => {
@@ -185,9 +209,9 @@ export default function Docs() {
     setEffort(codeAssist ? f.defaultEffort : "");
   };
 
-  const pathTab = PATHS.find((p) => p.kind === path)?.tab ?? PATHS[0].tab;
+  const pathTab = paths.find((p) => p.kind === path)?.tab ?? paths[0].tab;
   const onPathTab = (tab: string) => {
-    const next = PATHS.find((p) => p.tab === tab);
+    const next = paths.find((p) => p.tab === tab);
     if (next) setPath(next.kind);
   };
 
@@ -202,15 +226,35 @@ export default function Docs() {
             Any OpenAI compatible client works. Base URL <code className="mono text-[12px] text-ink">{base}</code>, key
             from the API keys page.{" "}
             {models?.route
-              ? `Right now your calls run on ${routeLabel(models)}.`
-              : "Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account, on the Connected accounts page first."}{" "}
+              ? `Right now your calls run on ${routeLabel(models)}; ohs3 and ohs3-pro, Ohshi's own models, work alongside it.`
+              : ohshiAvailable
+                ? "Right now ohs3 and ohs3-pro, Ohshi's own models, answer your calls. Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account, on the Connected accounts page for those models too."
+                : "Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account, on the Connected accounts page first."}{" "}
             Nothing in your code says which one; switching the default on the Connected accounts page is enough.
           </>
         }
       />
 
-      <Card title="Before you start" aside={<Tabs tabs={PATHS.map((p) => p.tab)} active={pathTab} onChange={onPathTab} />}>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <Card title="Before you start" aside={<Tabs tabs={paths.map((p) => p.tab)} active={pathTab} onChange={onPathTab} />}>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {ohshiAvailable && (
+            <PathBox active={ohshi} title="Ohshi's own models" badge={<Badge tone="ok" dot>Included</Badge>}>
+              <li>
+                Nothing to connect. <code className="mono text-ink">ohs3</code> answers straight away;{" "}
+                <code className="mono text-ink">ohs3-pro</code> thinks first and streams the reasoning as{" "}
+                <code className="mono text-ink">reasoning_content</code>.
+              </li>
+              <li>
+                Metered by your plan, separately from the request allowance: Free 5 replies a day and 30 a month, Plus
+                20 and 300, Pro 50 and 1,000. Failed calls do not count.
+              </li>
+              <li>
+                Same <code className="mono text-ink">ohs_</code> key, same <code className="mono text-ink">/v1</code>. One
+                reply runs at a time on Ohshi&apos;s host, so a busy moment is a 503 with{" "}
+                <code className="mono text-ink">Retry-After</code>.
+              </li>
+            </PathBox>
+          )}
           <PathBox active={gemini} title="Gemini API key" badge={<Badge tone="ok" dot>Live</Badge>}>
             <li>
               Create a key at{" "}
@@ -257,6 +301,8 @@ export default function Docs() {
         description={
           families === null
             ? undefined
+            : ohshi
+              ? "Ohshi's own models, on Ohshi's servers. Nothing to connect; the ids never change."
             : keyPath
               ? live
                 ? `What your key lists on the ${deepseek ? "DeepSeek" : "Gemini"} API right now (${families.length} chat models). Anything ${vendorName} adds appears here by itself.`
@@ -299,6 +345,26 @@ export default function Docs() {
               );
             })}
           </div>
+        )}
+
+        {ohshi && family && (
+          <p className="mt-4 border-t border-edge pt-4 text-[12px] leading-relaxed text-ink-dim">
+            {family.id === "ohs3-pro" ? (
+              <>
+                <code className="mono text-ink">ohs3-pro</code> reasons before it answers and streams that reasoning as{" "}
+                <code className="mono text-ink">reasoning_content</code>. Send{" "}
+                <code className="mono text-ink">reasoning_effort: &quot;none&quot;</code> to skip it. Tool calling works;
+                images do not.
+              </>
+            ) : (
+              <>
+                <code className="mono text-ink">ohs3</code> answers straight away and can read images sent as data URIs.
+                It takes no <code className="mono text-ink">tools</code>; send those to{" "}
+                <code className="mono text-ink">ohs3-pro</code>.
+              </>
+            )}{" "}
+            Replies are capped at about 1,500 tokens and the conversation sent is trimmed to the most recent turns.
+          </p>
         )}
 
         {family && family.efforts.length > 0 && (
@@ -419,8 +485,12 @@ export default function Docs() {
             </ErrorRow>
             <ErrorRow code="429" tone="warn" name="rate_limit_error">
               The provider&apos;s limit on your key, quota exhausted on every Code Assist endpoint, the ChatGPT plan&apos;s
-              window used up, or this key over its per minute burst limit. <code className="mono">Retry-After</code>{" "}
-              says when to try again.
+              window used up, the day or month meter of Ohshi&apos;s own models empty, or this key over its per minute
+              burst limit. <code className="mono">Retry-After</code> says when to try again.
+            </ErrorRow>
+            <ErrorRow code="503" tone="dim" name="server_error">
+              Ohshi&apos;s own models are busy: one reply runs at a time on their host.{" "}
+              <code className="mono">Retry-After</code> says when to try again; your allowance was not used.
             </ErrorRow>
             <ErrorRow code="404" tone="dim" name="invalid_request_error">
               That model isn&apos;t available on this key or plan.

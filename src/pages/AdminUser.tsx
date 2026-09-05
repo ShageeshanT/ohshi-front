@@ -195,7 +195,7 @@ export default function AdminUser() {
         </Notice>
       )}
 
-      <div className="tiles grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+      <div className="tiles grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
         <Stat
           label="Plan"
           value={<Badge tone={planTone(u.plan)}>{u.planLabel}</Badge>}
@@ -206,6 +206,11 @@ export default function AdminUser() {
           }
         />
         <Stat label="This month" value={`${formatNumber(u.requestsMonth)} / ${formatNumber(u.requestLimit)}`} sub={<Progress percent={pct} tone={pct >= 100 ? "danger" : pct >= 80 ? "warn" : "accent"} className="mt-1" />} />
+        <Stat
+          label="OHS3 today"
+          value={`${formatNumber(u.ohshiRequestsDay ?? 0)} / ${formatNumber(u.ohshiDailyLimit ?? 0)}`}
+          sub={`${formatNumber(u.ohshiRequestsMonth ?? 0)} / ${formatNumber(u.ohshiMonthlyLimit ?? 0)} this month`}
+        />
         <Stat label="Requests, 30 days" value={formatNumber(u.requests30d)} sub={u.lastRequestMs ? `last ${timeAgo(u.lastRequestMs)}` : "none"} />
         <Stat label="Errors, 30 days" value={formatNumber(u.errors30d)} tone={u.errors30d ? "warn" : undefined} sub={u.requests30d ? `${Math.round((u.errors30d / u.requests30d) * 100)}%` : "—"} />
         <Stat label="Tokens, 30 days" value={formatNumber(u.tokens30d)} />

@@ -4,8 +4,25 @@
  * sits in. Contract: viewBox 0 0 24 24, default size h-5 w-5, overridable.
  */
 
+import { useBrandArt } from "./brand";
+
 interface LogoProps {
   className?: string;
+}
+
+/** Ohshi's own mark, for ohs3 / ohs3-pro. The art is theme-specific and
+ *  taller than wide; object-contain keeps it inside whatever box it gets. */
+export function OhshiLogo({ className }: LogoProps) {
+  const { mark } = useBrandArt();
+  return (
+    <img
+      src={mark}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={`select-none object-contain ${className ?? "h-5 w-5"}`}
+    />
+  );
 }
 
 const EIGHT = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -120,6 +137,7 @@ export function ModelFallbackLogo({ className }: LogoProps) {
 
 /** The right mark for a model family's vendor. */
 export function vendorLogo(vendor: string) {
+  if (vendor === "ohshi") return OhshiLogo;
   if (vendor === "anthropic") return ClaudeLogo;
   if (vendor === "openai") return OpenAILogo;
   if (vendor === "google") return GeminiLogo;

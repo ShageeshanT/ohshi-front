@@ -177,7 +177,8 @@ export interface QuotaState {
   loading: boolean;
 }
 
-/** Ohshi's own monthly allowance (billing backend only). */
+/** Ohshi's own monthly allowance (billing backend only), and the separate
+ *  meter behind Ohshi's own models (ohs3 / ohs3-pro): per UTC day and per month. */
 export interface Entitlement {
   plan: string;
   label: string;
@@ -185,6 +186,14 @@ export interface Entitlement {
   requestLimit: number;
   requestsUsed: number;
   requestsRemaining: number;
+  ohshiDailyLimit?: number;
+  ohshiDailyUsed?: number;
+  ohshiDailyRemaining?: number;
+  ohshiMonthlyLimit?: number;
+  ohshiMonthlyUsed?: number;
+  ohshiMonthlyRemaining?: number;
+  ohshiDayResetMs?: number;
+  ohshiMonthResetMs?: number;
 }
 
 export interface UsageSummary {

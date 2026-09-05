@@ -6,9 +6,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
-import type { ChatModelsPayload, ModelFamily } from "../lib/chat";
+import type { ChatModelsPayload, ModelFamily, OhshiMeter } from "../lib/chat";
 import { countdown, timeAgo } from "../lib/api";
-import { effortLabel, familyName, modelLabel, routeLabel, splitPopular } from "../lib/chat";
+import { OHSHI_VENDOR, effortLabel, familyName, modelLabel, routeLabel, splitPopular } from "../lib/chat";
 import { vendorLogo } from "./logos";
 import { Spinner, quotaTone, toneTextClass } from "./ui";
 
@@ -112,7 +112,9 @@ export default function ModelPicker(props: {
                           ? `, list ${timeAgo(m.fetchedMs)}`
                           : ""
                     }`
-                  : "Built-in catalog. Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account"}
+                  : m?.ohshi?.available
+                    ? "Ohshi's own models need no account. Add a key or connect an account for more"
+                    : "Built-in catalog. Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account"}
               </p>
               {m?.error && <p className="mt-0.5 text-[11.5px] text-warn">{m.error}</p>}
             </div>
@@ -136,7 +138,7 @@ export default function ModelPicker(props: {
             ) : (
               <>
                 {popular.map((f) => (
-                  <FamilyRow key={f.id} family={f} value={props.value} onPick={pick} />
+                  <FamilyRow key={f.id} family={f} value={props.value} onPick={pick} meter={m.ohshi} />
                 ))}
 
                 {other.length > 0 && (
@@ -166,7 +168,29 @@ export default function ModelPicker(props: {
   );
 }
 
-function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: string) => void }) {
+/** The right-hand figure of a row: the plan's meter for Ohshi's own models
+ *  ("3/5 today"), the live percentage for everything else. */
+function remainingLabel(f: ModelFamily, meter: OhshiMeter | undefined): string {
+  if (f.vendor === OHSHI_VENDOR) {
+    if (f.exhausted) return `out${f.resetMs ? `, ${countdown(f.resetMs)}` : ""}`;
+    if (!meter?.available || meter.dailyLimit === undefined || meter.monthlyLimit === undefined) return "";
+    const day = meter.dailyRemaining ?? 0;
+    const month = meter.monthlyRemaining ?? 0;
+    const dayFrac = meter.dailyLimit > 0 ? day / meter.dailyLimit : 0;
+    const monthFrac = meter.monthlyLimit > 0 ? month / meter.monthlyLimit : 0;
+    return monthFrac < dayFrac ? `${month}/${meter.monthlyLimit} this month` : `${day}/${meter.dailyLimit} today`;
+  }
+  if (f.remainingPercent === null) return "";
+  if (f.exhausted) return `out${f.resetMs ? `, ${countdown(f.resetMs)}` : ""}`;
+  return `${f.remainingPercent}%`;
+}
+
+function FamilyRow(props: {
+  family: ModelFamily;
+  value: string;
+  onPick: (id: string) => void;
+  meter?: OhshiMeter;
+}) {
   const f = props.family;
   const tone = quotaTone(f.remainingPercent);
   const Logo = vendorLogo(f.vendor);
@@ -187,11 +211,7 @@ function FamilyRow(props: { family: ModelFamily; value: string; onPick: (id: str
           {single && props.value === f.variants[0].id && <Check className="h-3.5 w-3.5 shrink-0 text-ink" />}
         </button>
         <span className={`tnum shrink-0 text-[11.5px] font-medium ${toneTextClass(tone)}`}>
-          {f.remainingPercent === null
-            ? ""
-            : f.exhausted
-              ? `out${f.resetMs ? `, ${countdown(f.resetMs)}` : ""}`
-              : `${f.remainingPercent}%`}
+          {remainingLabel(f, props.meter)}
         </span>
       </div>
       {!single && (

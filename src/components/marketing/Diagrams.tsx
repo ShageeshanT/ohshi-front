@@ -28,13 +28,14 @@ import {
 import type { ComponentType, ReactNode } from "react";
 import { COPY, PROVIDERS, type Provider, type ProviderId } from "../../content/landing";
 import { BrandMark } from "../brand";
-import { ClaudeLogo, DeepSeekLogo, GeminiLogo, GoogleLogo, OpenAILogo, XaiLogo } from "../logos";
+import { ClaudeLogo, DeepSeekLogo, GeminiLogo, GoogleLogo, OhshiLogo, OpenAILogo, XaiLogo } from "../logos";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
 type Logo = ComponentType<{ className?: string }>;
 
 export const PROVIDER_LOGOS: Record<ProviderId, Logo> = {
+  ohshi: OhshiLogo,
   google: GoogleLogo,
   deepseek: DeepSeekLogo,
   openai: OpenAILogo,

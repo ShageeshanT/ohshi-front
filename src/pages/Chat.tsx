@@ -62,6 +62,7 @@ import {
   formatBytes,
   isKeyRoute,
   loadStoredModel,
+  meterLine,
   modelLabel,
   routeLabel,
   storeModel,
@@ -573,7 +574,7 @@ export default function Chat() {
       onSend={() => void send()}
       onStop={stop}
       busy={busy}
-      disabled={Boolean(loadError) || (models !== null && !models.connected)}
+      disabled={Boolean(loadError) || (models !== null && !models.connected && !models.ohshi?.available)}
       models={models}
       model={model}
       onModelChange={chooseModel}
@@ -600,15 +601,27 @@ export default function Chat() {
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
           <div className="rise-in flex w-full max-w-[720px] flex-col items-center">
             <BrandHero />
-            <p className="mt-3 text-center text-[13px] text-ink-dim">Ask anything, or drop a file in. Replies run on your own key or plan.</p>
+            <p className="mt-3 text-center text-[13px] text-ink-dim">
+              Ask anything, or drop a file in. OHS3 is Ohshi's own; your key or plan runs the rest.
+            </p>
             {models && !models.connected && (
               <div className="mt-6 w-full max-w-lg">
-                <Notice tone="warn">
-                  Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account first. Every reply runs on your own key or plan.{" "}
-                  <Link to="/app/accounts" className="inline-flex items-center gap-1 font-medium underline underline-offset-2">
-                    Connected accounts <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </Notice>
+                {models.ohshi?.available ? (
+                  <Notice tone="accent">
+                    You are on OHS3, Ohshi's own model, with {meterLine(models.ohshi) || "your plan's allowance"}. Add a
+                    Gemini or DeepSeek API key, or connect a Google or ChatGPT account, for those models too.{" "}
+                    <Link to="/app/accounts" className="inline-flex items-center gap-1 font-medium underline underline-offset-2">
+                      Connected accounts <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Notice>
+                ) : (
+                  <Notice tone="warn">
+                    Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account first. Every reply runs on your own key or plan.{" "}
+                    <Link to="/app/accounts" className="inline-flex items-center gap-1 font-medium underline underline-offset-2">
+                      Connected accounts <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Notice>
+                )}
               </div>
             )}
             {turnError && (

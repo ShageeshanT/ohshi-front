@@ -16,17 +16,20 @@ export interface PlanRow {
   maxApiKeys: number;
   historyDays: number;
   perMinuteLimit: number;
+  /** Ohshi's own models (OHS3, OHS3 Pro): replies per UTC day and per month. */
+  ohshiDailyLimit?: number;
+  ohshiMonthlyLimit?: number;
 }
 
 export const PLAN_FALLBACK: PlanRow[] = [
-  { code: "free", label: "Free", priceUsd: 0, monthlyRequestLimit: 50, maxConnections: 1, maxApiKeys: 1, historyDays: 7, perMinuteLimit: 3 },
-  { code: "plus", label: "Plus", priceUsd: 7, monthlyRequestLimit: 200, maxConnections: 2, maxApiKeys: 3, historyDays: 90, perMinuteLimit: 14 },
-  { code: "pro", label: "Pro", priceUsd: 15, monthlyRequestLimit: 1000, maxConnections: 5, maxApiKeys: 10, historyDays: 365, perMinuteLimit: 30 },
+  { code: "free", label: "Free", priceUsd: 0, monthlyRequestLimit: 50, maxConnections: 1, maxApiKeys: 1, historyDays: 7, perMinuteLimit: 3, ohshiDailyLimit: 5, ohshiMonthlyLimit: 30 },
+  { code: "plus", label: "Plus", priceUsd: 7, monthlyRequestLimit: 200, maxConnections: 2, maxApiKeys: 3, historyDays: 90, perMinuteLimit: 14, ohshiDailyLimit: 20, ohshiMonthlyLimit: 300 },
+  { code: "pro", label: "Pro", priceUsd: 15, monthlyRequestLimit: 1000, maxConnections: 5, maxApiKeys: 10, historyDays: 365, perMinuteLimit: 30, ohshiDailyLimit: 50, ohshiMonthlyLimit: 1000 },
 ];
 
 /** One line per plan, the pitch under the price. */
 export const PLAN_TAGLINE: Record<string, string> = {
-  free: "Try it on your own key. Nothing to pay.",
+  free: "Chat on OHS3 from day one. Nothing to pay, nothing to connect.",
   plus: "For daily chat and a couple of agents.",
   pro: "For teams of agents and long histories.",
 };
@@ -34,8 +37,13 @@ export const PLAN_TAGLINE: Record<string, string> = {
 export const historyLabel = (days: number) => (days >= 365 ? "1 year" : `${days} days`);
 
 export function planPerks(plan: PlanRow): string[] {
+  const own =
+    plan.ohshiDailyLimit && plan.ohshiMonthlyLimit
+      ? [`OHS3 and OHS3 Pro: ${plan.ohshiDailyLimit} replies a day, ${plan.ohshiMonthlyLimit.toLocaleString()} a month`]
+      : [];
   return [
-    `${plan.monthlyRequestLimit.toLocaleString()} successful requests a month`,
+    ...own,
+    `${plan.monthlyRequestLimit.toLocaleString()} successful requests a month on your own keys and accounts`,
     `${plan.maxConnections} connected account${plan.maxConnections === 1 ? "" : "s"}`,
     `${plan.maxApiKeys} API key${plan.maxApiKeys === 1 ? "" : "s"}`,
     `${historyLabel(plan.historyDays)} of history`,

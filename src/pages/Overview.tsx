@@ -23,6 +23,7 @@ import { useAuth } from "../App";
 import { keyName } from "../components/GeminiKeysCard";
 import { DeepSeekLogo, GeminiLogo, GoogleLogo, OpenAILogo } from "../components/logos";
 import { FamilyRow } from "../components/QuotaGrid";
+import { OhshiMeter } from "../components/OhshiMeter";
 import { Badge, Button, Card, PageHeader, Progress, Skeleton, Stat } from "../components/ui";
 import { formatNumber } from "../lib/api";
 import {
@@ -157,6 +158,7 @@ export default function Overview() {
               />
             </div>
           </div>
+          <OhshiMeter plan={plan} />
         </Card>
       )}
 

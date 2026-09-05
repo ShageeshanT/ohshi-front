@@ -90,15 +90,48 @@ export interface ModelFamily {
   variants: ModelVariant[];
 }
 
-/** Which credential the picker's list came from. */
-export type RouteKind = "gemini_api" | "deepseek_api" | "code_assist" | "chatgpt" | "deepseek_chat";
+/** Which credential the picker's list came from — or "ohshi", Ohshi's own models. */
+export type RouteKind = "gemini_api" | "deepseek_api" | "code_assist" | "chatgpt" | "deepseek_chat" | "ohshi";
 
 /** The pasted-key routes: the user's own key on a supported API (not Beta). */
 export function isKeyRoute(kind: RouteKind | null | undefined): boolean {
   return kind === "gemini_api" || kind === "deepseek_api";
 }
 
+/** The vendor the picker groups Ohshi's own models (ohs3 / ohs3-pro) under. */
+export const OHSHI_VENDOR = "ohshi";
+
+/** The plan's meter behind Ohshi's own models (see ohshi/ollama/quota.py). */
+export interface OhshiMeter {
+  available: boolean;
+  default?: string;
+  models?: string[];
+  exhausted?: boolean;
+  resetMs?: number | null;
+  dailyLimit?: number;
+  dailyUsed?: number;
+  dailyRemaining?: number;
+  monthlyLimit?: number;
+  monthlyUsed?: number;
+  monthlyRemaining?: number;
+  dayResetMs?: number;
+  monthResetMs?: number;
+}
+
+/** "3 of 5 left today", or the month when that is the tighter window. */
+export function meterLine(meter: OhshiMeter | null | undefined): string {
+  if (!meter?.available || meter.dailyLimit === undefined || meter.monthlyLimit === undefined) return "";
+  const day = meter.dailyRemaining ?? 0;
+  const month = meter.monthlyRemaining ?? 0;
+  const dayFrac = meter.dailyLimit > 0 ? day / meter.dailyLimit : 0;
+  const monthFrac = meter.monthlyLimit > 0 ? month / meter.monthlyLimit : 0;
+  if (monthFrac < dayFrac) return `${month} of ${meter.monthlyLimit} left this month`;
+  return `${day} of ${meter.dailyLimit} left today`;
+}
+
 export interface ChatModelsPayload {
+  /** Ohshi's own models: whether they exist here, and the plan's meter. */
+  ohshi?: OhshiMeter;
   connected: boolean;
   /** null when nothing usable is configured (the built-in list is shown). */
   route: RouteKind | null;
@@ -136,16 +169,18 @@ export const POPULAR_FAMILIES = [
 
 /** Split a model list into the famous few and the long tail (order preserved).
  *  The backend names the top section on the Gemini API route; the Code Assist
- *  list falls back to POPULAR_FAMILIES. */
-export function splitPopular<T extends { id: string }>(
+ *  list falls back to POPULAR_FAMILIES. Ohshi's own models always lead. */
+export function splitPopular<T extends { id: string; vendor?: string }>(
   families: T[],
   popularIds: string[] | null = null,
 ): { popular: T[]; other: T[] } {
+  const own = families.filter((f) => f.vendor === OHSHI_VENDOR);
+  const rest = families.filter((f) => f.vendor !== OHSHI_VENDOR);
   const rank = new Map((popularIds ?? POPULAR_FAMILIES).map((id, i) => [id, i]));
-  const popular = families
+  const popular = rest
     .filter((f) => rank.has(f.id))
     .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
-  return { popular, other: families.filter((f) => !rank.has(f.id)) };
+  return { popular: [...own, ...popular], other: rest.filter((f) => !rank.has(f.id)) };
 }
 
 export const MODEL_STORAGE_KEY = "ohshi.chat.model";
@@ -203,6 +238,7 @@ export function modelLabel(models: ChatModelsPayload | null, id: string): string
  *  "me@openai.com (ChatGPT, Beta)" for the picker header and route pill. */
 export function routeLabel(models: ChatModelsPayload | null): string {
   if (!models || !models.route) return "";
+  if (models.route === "ohshi") return "Ohshi's own models";
   if (models.route === "gemini_api") {
     return models.routeLabel ? `Gemini API key ‘${models.routeLabel}’` : "Gemini API key";
   }

@@ -31,7 +31,7 @@ import heroMobileDark from "../assets/hero-mobile-dark.webp";
 import heroMobileLight from "../assets/hero-mobile-light.webp";
 import { BrandMark } from "../components/brand";
 import { SparkleDoodle, SquiggleDoodle } from "../components/Doodles";
-import { ClaudeLogo, DeepSeekLogo, GeminiLogo, OpenAILogo, XaiLogo } from "../components/logos";
+import { ClaudeLogo, DeepSeekLogo, GeminiLogo, OhshiLogo, OpenAILogo, XaiLogo } from "../components/logos";
 import { PlanCard } from "../components/PlanCard";
 import {
   PayTwiceDiagram,
@@ -252,6 +252,8 @@ function HowItWorks() {
 }
 
 const MODELS = [
+  { name: "OHS3", vendor: "Ohshi", note: "Ohshi's own, included with every plan", Logo: OhshiLogo },
+  { name: "OHS3 Pro", vendor: "Ohshi", note: "Thinks first, shows the reasoning, included", Logo: OhshiLogo },
   { name: "Gemini 3.6 Flash", vendor: "Google", note: "Fast default, three effort levels", Logo: GeminiLogo },
   { name: "Gemini 3.1 Pro", vendor: "Google", note: "Deepest Gemini, two effort levels", Logo: GeminiLogo },
   { name: "Claude Sonnet 4.6", vendor: "Anthropic", note: "Thinking, 250k context", Logo: ClaudeLogo },

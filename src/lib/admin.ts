@@ -24,6 +24,11 @@ export interface AdminUserRow {
   hasSubscription: boolean;
   requestsMonth: number;
   requestLimit: number;
+  /** Ohshi's own models (ohs3 / ohs3-pro): replies today and this month against the plan's meter. */
+  ohshiRequestsDay: number;
+  ohshiDailyLimit: number;
+  ohshiRequestsMonth: number;
+  ohshiMonthlyLimit: number;
   requests30d: number;
   errors30d: number;
   tokens30d: number;

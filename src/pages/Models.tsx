@@ -10,10 +10,11 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Plug, RefreshCw, Star } from "lucide-react";
 import { WindowChip } from "../components/ChatGPTAccountCard";
 import { keyName, type KeyRow, type RouteKind } from "../components/ProviderKeysCard";
-import { DeepSeekLogo, GeminiLogo, GoogleLogo, OpenAILogo } from "../components/logos";
+import { DeepSeekLogo, GeminiLogo, GoogleLogo, OhshiLogo, OpenAILogo } from "../components/logos";
 import { QuotaGrid } from "../components/QuotaGrid";
 import { Badge, Button, Card, EmptyState, Notice, PageHeader, SectionTitle, Spinner } from "../components/ui";
-import { formatNumber, get, timeAgo } from "../lib/api";
+import { formatNumber, get, poll, timeAgo } from "../lib/api";
+import { type OhshiMeter } from "../lib/chat";
 import {
   quotaFor,
   usageFor,
@@ -49,6 +50,78 @@ const ROUTE_LOGO: Record<RouteKind, ComponentType<{ className?: string }>> = {
   code_assist: GoogleLogo,
   chatgpt: OpenAILogo,
 };
+
+const OHSHI_MODELS = [
+  { id: "ohs3", label: "OHS3", note: "Answers straight away" },
+  { id: "ohs3-pro", label: "OHS3 Pro", note: "Thinks first and shows the reasoning; slower" },
+];
+
+/** Ohshi's own models and the plan's meter behind them. Nothing to connect,
+ *  so this card is there from the first sign-in; it disappears only when the
+ *  backend has no host for them. */
+function OhshiModelsCard() {
+  const [meter, setMeter] = useState<OhshiMeter | null | undefined>(undefined);
+  useEffect(
+    () =>
+      poll(
+        () =>
+          get<OhshiMeter>("/api/ohshi/allowance")
+            .then(setMeter)
+            .catch(() => setMeter(null)),
+        60_000,
+      ),
+    [],
+  );
+  if (meter === null || (meter && !meter.available)) return null;
+  const cells = (limit?: number, remaining?: number) =>
+    meter && limit !== undefined ? `${formatNumber(remaining ?? 0)} of ${formatNumber(limit)}` : "…";
+  return (
+    <section className="space-y-3">
+      <SectionTitle
+        icon={OhshiLogo}
+        title="Ohshi's own models"
+        badge={<Badge tone="ok" dot>Included</Badge>}
+        description="Hosted by Ohshi, nothing to connect. Your plan meters them per UTC day and per month, separately from the request allowance."
+      />
+      <Card flush>
+        <div className="overflow-x-auto">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Left today</th>
+                <th>Left this month</th>
+                <th className="num" />
+              </tr>
+            </thead>
+            <tbody>
+              {OHSHI_MODELS.map((m) => (
+                <tr key={m.id}>
+                  <td>
+                    <span className="flex items-center gap-2">
+                      <OhshiLogo className="h-3.5 w-3.5 shrink-0" />
+                      <span className="font-medium">{m.label}</span>
+                      <span className="mono text-[11px] text-ink-dim">{m.id}</span>
+                    </span>
+                    <span className="block text-[11.5px] text-ink-dim">{m.note}</span>
+                  </td>
+                  <td className="tnum">{cells(meter?.dailyLimit, meter?.dailyRemaining)}</td>
+                  <td className="tnum">{cells(meter?.monthlyLimit, meter?.monthlyRemaining)}</td>
+                  <td className="num">{m.id === (meter?.default ?? "ohs3") && <Badge tone="accent">Default</Badge>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {meter?.exhausted && (
+          <p className="border-t border-edge px-4 py-2 text-[12px] text-warn">
+            Used up for now{meter.resetMs ? `, more ${timeAgo(meter.resetMs)}` : ""}. Your own keys and accounts keep working.
+          </p>
+        )}
+      </Card>
+    </section>
+  );
+}
 
 export default function Models() {
   const { connections } = useConnections();
@@ -96,6 +169,8 @@ export default function Models() {
         }
       />
 
+      <OhshiModelsCard />
+
       {!known ? (
         <Card>
           <Spinner label="Reading your sources…" />
@@ -103,7 +178,7 @@ export default function Models() {
       ) : nothing ? (
         <Card>
           <EmptyState
-            title="Nothing to show yet"
+            title="Nothing else to show yet"
             hint="Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account, and the models it can use show up here with what is left on the plan."
             action={
               <Link to="/app/accounts?add=key">
