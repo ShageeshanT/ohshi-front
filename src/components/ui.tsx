@@ -118,12 +118,12 @@ export function Card(props: {
   return (
     <section className={`card ${props.className ?? ""}`}>
       {hasHeader && (
-        <header className="flex items-start justify-between gap-3 border-b border-edge px-4 py-3">
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-edge px-4 py-3">
           <div className="min-w-0">
             {props.title && <h2 className="text-[13px] font-semibold tracking-tight text-ink">{props.title}</h2>}
             {props.description && <p className="mt-0.5 text-[12px] text-ink-dim">{props.description}</p>}
           </div>
-          {props.aside}
+          {props.aside && <div className="min-w-0 max-w-full">{props.aside}</div>}
         </header>
       )}
       <div className={props.flush ? "" : props.compact ? "p-3" : "p-4"}>{props.children}</div>
@@ -301,7 +301,7 @@ export function Toggle(props: {
 /** Segmented control. */
 export function Tabs(props: { tabs: string[]; active: string; onChange: (tab: string) => void }) {
   return (
-    <div role="tablist" className="inline-flex gap-0.5 rounded-lg bg-panel-2 p-0.5">
+    <div role="tablist" className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-lg bg-panel-2 p-0.5">
       {props.tabs.map((t, index) => (
         <button
           key={t}
@@ -317,7 +317,7 @@ export function Tabs(props: { tabs: string[]; active: string; onChange: (tab: st
             const next = (index + delta + props.tabs.length) % props.tabs.length;
             props.onChange(props.tabs[next]);
           }}
-          className={`h-7 rounded-[6px] px-2.5 text-[12px] font-medium transition-colors ${
+          className={`h-7 shrink-0 whitespace-nowrap rounded-[6px] px-2.5 text-[12px] font-medium transition-colors ${
             t === props.active ? "bg-panel text-ink shadow-[0_1px_2px_rgb(0_0_0/0.08)]" : "text-ink-dim hover:text-ink"
           }`}
         >

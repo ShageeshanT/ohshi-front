@@ -13,7 +13,7 @@ import { Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams 
 import { AuthenticateWithRedirectCallback, useAuth as useClerkAuth } from "@clerk/react";
 import { ReactLenis } from "lenis/react";
 import { get, onAuthRequired, post, setTokenSource } from "./lib/api";
-import { AFTER_AUTH_PATH, CLERK_ENABLED, SSO_CALLBACK_PATH, clerkFrontendApi } from "./lib/clerk";
+import { CLERK_ENABLED, SSO_CALLBACK_PATH, afterAuthPath, clerkFrontendApi, peekAfterAuth } from "./lib/clerk";
 import { useClerkReady } from "./pages/auth/useClerkReady";
 import type { ChatSummary } from "./lib/chat";
 import SearchDialog from "./components/SearchDialog";
@@ -52,6 +52,8 @@ export interface Me {
     plan?: string;
     subscriptionStatus?: string | null;
     planRenewsMs?: number | null;
+    /** Set while a chargeback is open (or was lost); checkout is refused. */
+    billingFlag?: string | null;
     /** Listed in the backend's OHSHI_ADMIN_EMAILS: may open /app/admin. */
     isAdmin?: boolean;
   };
@@ -285,6 +287,10 @@ function ClerkAuthGate() {
       setAuthError(null);
       return;
     }
+    // Signed in at Clerk, profile still loading — keep `me` unknown so /app
+    // waits instead of bouncing through /login and dropping `?next=`.
+    setMeState(undefined);
+    setAuthError(null);
     let cancelled = false;
     get<Me>("/api/auth/me")
       .then((value) => {
@@ -354,6 +360,8 @@ function AuthedRoutes(props: {
   const location = useLocation();
   const lazyPage = (node: ReactNode) => <Suspense fallback={<PageFallback />}>{node}</Suspense>;
   const loginPath = `/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
+  const afterAuth = afterAuthPath(new URLSearchParams(location.search).get("next"));
+  const ssoAfterAuth = peekAfterAuth();
 
   return (
     <AuthContext.Provider value={{ me: me ?? null, setMe, signOut, authError }}>
@@ -361,8 +369,8 @@ function AuthedRoutes(props: {
         <Route path="/" element={lazyPage(<Landing />)} />
         <Route path="/terms" element={lazyPage(<Terms />)} />
         <Route path="/privacy" element={lazyPage(<Privacy />)} />
-        <Route path="/login" element={me ? <Navigate to="/app" replace /> : lazyPage(<Login />)} />
-        <Route path="/signup" element={me ? <Navigate to="/app" replace /> : lazyPage(<Signup />)} />
+        <Route path="/login" element={me ? <Navigate to={afterAuth} replace /> : lazyPage(<Login />)} />
+        <Route path="/signup" element={me ? <Navigate to={afterAuth} replace /> : lazyPage(<Signup />)} />
         {/* Where Clerk drops the browser back after a social sign-in round
             trip; it finishes the handshake and then routes on. */}
         {CLERK_ENABLED && (
@@ -372,8 +380,8 @@ function AuthedRoutes(props: {
               <>
                 <PageFallback />
                 <AuthenticateWithRedirectCallback
-                  signInFallbackRedirectUrl={AFTER_AUTH_PATH}
-                  signUpFallbackRedirectUrl={AFTER_AUTH_PATH}
+                  signInFallbackRedirectUrl={ssoAfterAuth}
+                  signUpFallbackRedirectUrl={ssoAfterAuth}
                 />
               </>
             }

@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { ExternalLink, Laptop, Plug, Plus, RefreshCw } from "lucide-react";
 import { ChatGPTAccountCard } from "../components/ChatGPTAccountCard";
 import ConnectChatGPTModal from "../components/ConnectChatGPTModal";
@@ -43,6 +43,7 @@ import {
 } from "../lib/workspace";
 
 export default function Accounts() {
+  const { hash } = useLocation();
   const [params, setParams] = useSearchParams();
   const { connections, setConnections, error: loadError, reload: loadConnections } = useConnections();
   const { gemini, error: geminiError, reload: loadGemini } = useGeminiKeys();
@@ -73,6 +74,17 @@ export default function Accounts() {
   useEffect(() => {
     if (["connected", "connect_error", "add", "connect"].some((k) => params.has(k))) setParams({}, { replace: true });
   }, [params, setParams]);
+
+  // Connections "Manage" lands on /app/accounts#deepseek — the page scrolls in
+  // a Lenis pane, so native hash scrolling never reaches the section.
+  useEffect(() => {
+    const id = hash.replace(/^#/, "");
+    if (!id || !/^[A-Za-z][\w-]*$/.test(id)) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [hash, connections, gemini, deepseek, chatgpt, deepseekChat]);
 
   const activeConnections = (connections ?? []).filter((c) => c.status === "active");
   const preferLocalCount = activeConnections.filter((c) => c.executeMode === "prefer_local").length;
@@ -314,9 +326,7 @@ export default function Accounts() {
         />
         {deepseekChatError && <Notice tone="warn">{deepseekChatError}</Notice>}
         {deepseekChatRows === null ? (
-          <Card>
-            <Spinner label="Checking your DeepSeek accounts…" />
-          </Card>
+          <LoadFailed error={deepseekChatError} onRetry={() => void loadDeepSeekChat()} label="Checking your DeepSeek accounts…" />
         ) : deepseekChatRows.length === 0 ? (
           <Card>
             <EmptyState
@@ -364,9 +374,7 @@ export default function Accounts() {
         />
         {chatgptError && <Notice tone="warn">{chatgptError}</Notice>}
         {chatgptRows === null ? (
-          <Card>
-            <Spinner label="Checking your ChatGPT accounts…" />
-          </Card>
+          <LoadFailed error={chatgptError} onRetry={() => void loadChatgpt()} label="Checking your ChatGPT accounts…" />
         ) : chatgptRows.length === 0 ? (
           <Card>
             <EmptyState
@@ -418,9 +426,7 @@ export default function Accounts() {
         />
 
         {connections === null ? (
-          <Card>
-            <Spinner label="Checking your Google accounts…" />
-          </Card>
+          <LoadFailed error={loadError} onRetry={() => void loadConnections()} label="Checking your Google accounts…" />
         ) : connections.length === 0 ? (
           <Card>
             <EmptyState
@@ -474,5 +480,28 @@ export default function Accounts() {
         onDone={onDeepSeekChatConnected}
       />
     </div>
+  );
+}
+
+function LoadFailed(props: { error: string | null; onRetry: () => void; label: string }) {
+  if (props.error) {
+    return (
+      <Card>
+        <EmptyState
+          title="Couldn't load this list"
+          hint={props.error}
+          action={
+            <Button tone="ghost" onClick={props.onRetry}>
+              Try again
+            </Button>
+          }
+        />
+      </Card>
+    );
+  }
+  return (
+    <Card>
+      <Spinner label={props.label} />
+    </Card>
   );
 }

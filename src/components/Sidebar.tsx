@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import type { ChatSummary } from "../lib/chat";
 import { groupChatsByDate } from "../lib/chat";
+import { searchHotkey } from "../lib/api";
 import { BrandMark, Wordmark } from "./brand";
 import { Avatar } from "./ui";
 
@@ -65,12 +66,26 @@ const MANAGE: { to: string; icon: Icon; label: string }[] = [
   { to: "/app/docs", icon: BookOpen, label: "Docs" },
 ];
 
+function useWideScreen() {
+  const [wide, setWide] = useState(() =>
+    typeof window === "undefined" ? true : window.matchMedia("(min-width: 768px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onChange = () => setWide(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return wide;
+}
+
 export default function Sidebar(p: SidebarProps) {
   const location = useLocation();
   const onNewChat = location.pathname === "/app";
   const groups = groupChatsByDate(p.chats);
   const name = p.user.displayName || p.user.email.split("@")[0];
-  const c = p.collapsed;
+  const wide = useWideScreen();
+  const c = p.collapsed && wide;
   const plan = (p.plan || "free").toLowerCase();
   const planName = PLAN_MARK[plan]?.label ?? "Free";
 
@@ -108,7 +123,7 @@ export default function Sidebar(p: SidebarProps) {
 
         <nav className={`space-y-0.5 ${c ? "px-2" : "px-2"}`}>
           <SideLink icon={SquarePen} label="New chat" to="/app" active={onNewChat} collapsed={c} onClick={p.onMobileClose} />
-          <SideButton icon={Search} label="Search" hint="Ctrl K" collapsed={c} onClick={p.onSearch} />
+          <SideButton icon={Search} label="Search" hint={searchHotkey()} collapsed={c} onClick={p.onSearch} />
         </nav>
 
         <Divider collapsed={c} label="Workspace" />
@@ -363,7 +378,7 @@ function HistoryRow(props: {
       >
         {props.chat.title || "New chat"}
       </Link>
-      <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+      <div className="flex shrink-0 items-center opacity-100 transition-opacity md:opacity-0 md:focus-within:opacity-100 md:group-hover:opacity-100">
         <button
           type="button"
           onClick={() => {

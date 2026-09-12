@@ -49,8 +49,8 @@ export const PROVIDERS: Provider[] = [
   {
     id: "deepseek",
     vendor: "DeepSeek",
-    plans: ["DeepSeek API key from the platform"],
-    models: "DeepSeek V4 Flash and V4 Pro with thinking, plus the vision preview, on your prepaid balance",
+    plans: ["DeepSeek API key from the platform", "DeepSeek chat account (Beta)"],
+    models: "DeepSeek V4 Flash and V4 Pro with thinking, plus the vision preview, on your prepaid balance or the free chat account",
     live: true,
   },
   {
@@ -202,7 +202,7 @@ export const COPY: LandingCopy = {
       },
       {
         title: "Every Source, One Key",
-        text: "OHS3 and OHS3 Pro, Ohshi's own models, come with every plan. Paste a Gemini or DeepSeek API key, the supported paths. Connect Google AI Pro in Beta, with ChatGPT, Claude and SuperGrok next. Every source sits behind the same ohs_ key.",
+        text: "OHS3 and OHS3 Pro, Ohshi's own models, come with every plan. Paste a Gemini or DeepSeek API key, the supported paths. Connect Google AI Pro, ChatGPT or a DeepSeek chat account in Beta. Claude and SuperGrok are next. Every source sits behind the same ohs_ key.",
       },
     ],
   },
@@ -214,7 +214,7 @@ export const COPY: LandingCopy = {
     steps: [
       {
         title: "Add a Key or Connect an Account",
-        text: "Or skip this step: OHS3 answers from the first sign-in. For more models, paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, the supported paths, or sign in with Google and paste back the code, in Beta. Ohshi reads which models you can use.",
+        text: "Or skip this step: OHS3 answers from the first sign-in. For more models, paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, the supported paths, or connect a Google, ChatGPT or DeepSeek chat account in Beta. Ohshi reads which models you can use.",
       },
       {
         title: "Pick a Model",
@@ -222,7 +222,7 @@ export const COPY: LandingCopy = {
       },
       {
         title: "Chat, or Call /v1",
-        text: "Start a chat, or create an ohs_ key and point your code at /v1. Either way the request runs on your key or your plan. Ohshi adds no quota of its own.",
+        text: "Start a chat, or create an ohs_ key and point your code at /v1. Connected models run on your key or your plan. OHS3 and OHS3 Pro use the allowance in your Ohshi plan.",
       },
     ],
   },
@@ -230,7 +230,7 @@ export const COPY: LandingCopy = {
     eyebrow: "Providers",
     title: "Your Key, or the Plan You Already Pay For.",
     intro:
-      "OHS3 and OHS3 Pro are Ohshi's own and need nothing connected. Gemini and DeepSeek API keys are live today. The Google account connector is in Beta, with ChatGPT, Claude and SuperGrok next. Every source you add shows up in the same picker and behind the same key.",
+      "OHS3 and OHS3 Pro are Ohshi's own and need nothing connected. Gemini and DeepSeek API keys are live today. Google, ChatGPT and DeepSeek chat accounts are in Beta. Claude and SuperGrok are next. Every source you add shows up in the same picker and behind the same key.",
     hub: "Ohshi",
     hubSub: "one ohs_ key",
     outputs: [
@@ -309,7 +309,7 @@ export const COPY: LandingCopy = {
       },
       {
         q: "Which Providers Work Today?",
-        a: "Ohshi's own OHS3 models work for everyone from the first sign-in. Gemini and DeepSeek API keys are live. Connecting a Google AI account is in Beta. ChatGPT, Claude and SuperGrok are next. Each source appears in the picker and behind the same ohs_ key.",
+        a: "Ohshi's own OHS3 models work for everyone from the first sign-in. Gemini and DeepSeek API keys are live. Connecting a Google AI, ChatGPT or DeepSeek chat account is in Beta. Claude and SuperGrok are next. Each source appears in the picker and behind the same ohs_ key.",
       },
       {
         q: "Is My Account Safe With You?",
@@ -321,7 +321,7 @@ export const COPY: LandingCopy = {
       },
       {
         q: "Can I Add More Than One Source?",
-        a: "Yes. Save several Gemini and DeepSeek API keys, connect several Google accounts, and pick one as the default. The chat page and the dashboard both let you switch it, and the dashboard shows what each account has left.",
+        a: "Yes. Save several Gemini and DeepSeek API keys, connect Google, ChatGPT and DeepSeek chat accounts, and pick one as the default. The chat page and the dashboard both let you switch it, and the dashboard shows what each account has left.",
       },
       {
         q: "What Does Ohshi Cost?",
@@ -331,7 +331,7 @@ export const COPY: LandingCopy = {
   },
   cta: {
     title: "Start With the Access You Have.",
-    text: "Sign up and chat on OHS3 straight away. Paste a Gemini or DeepSeek API key or connect a Google account whenever you want those models too, from chat and from /v1. The Free plan is ready the moment you sign in.",
+    text: "Sign up and chat on OHS3 straight away. Paste a Gemini or DeepSeek API key or connect a Google, ChatGPT or DeepSeek chat account whenever you want those models too, from chat and from /v1. The Free plan is ready the moment you sign in.",
     primary: "Create an Account",
     secondary: "Read the Docs",
   },

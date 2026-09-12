@@ -279,6 +279,8 @@ export function poll(fn: () => void | Promise<void>, ms: number, jitter = 0): ()
 export function timeAgo(ms?: number | null): string {
   if (!ms) return "never";
   const diff = Date.now() - ms;
+  // A future timestamp is a reset or renewal, not "just now".
+  if (diff < -45_000) return countdown(ms);
   if (diff < 0) return "just now";
   const s = Math.round(diff / 1000);
   if (s < 45) return "just now";
@@ -313,6 +315,12 @@ export function formatNumber(n?: number | null): string {
   if (v >= 10_000) return `${(v / 1000).toFixed(0)}k`;
   if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
   return v.toLocaleString();
+}
+
+/** Search shortcut shown in the chrome: ⌘K on Apple, Ctrl K elsewhere. */
+export function searchHotkey(): string {
+  if (typeof navigator === "undefined") return "Ctrl K";
+  return /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? "⌘K" : "Ctrl K";
 }
 
 export async function copyText(text: string): Promise<boolean> {

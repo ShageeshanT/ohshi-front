@@ -279,7 +279,7 @@ export default function Billing() {
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={() => navigate("/app")}>Go to the dashboard</Button>
+              <Button onClick={() => navigate("/app/dashboard")}>Go to Overview</Button>
               <Button tone="ghost" onClick={() => setUpgraded(null)}>
                 Stay here
               </Button>
@@ -306,6 +306,11 @@ export default function Billing() {
           {error}
         </Notice>
       )}
+      {me?.user.billingFlag === "disputed" && (
+        <Notice tone="danger">
+          A payment on this account is disputed, so a new plan cannot be bought until that is resolved.
+        </Notice>
+      )}
 
       <Card className="relative overflow-hidden">
         <StarsDoodle className="pointer-events-none absolute -right-2 -top-1 h-20 w-28 text-ink-faint" />
@@ -317,6 +322,7 @@ export default function Billing() {
               {ending && <Badge tone="warn">Cancelled</Badge>}
               {complimentary && <Badge tone="violet">Complimentary</Badge>}
               {paid && status === "payment_failed" && <Badge tone="warn">Payment failed</Badge>}
+              {me?.user.billingFlag === "disputed" && <Badge tone="danger">Payment disputed</Badge>}
               {!paid && !billingEnabled && <Badge tone="ok" dot>Free during beta</Badge>}
             </p>
             <p className="mt-1.5 text-[12.5px] text-ink-dim">
@@ -325,7 +331,7 @@ export default function Billing() {
                 ? ending
                   ? `Stays active until ${renews}. Renewal is off.`
                   : status === "payment_failed"
-                    ? `PayPal could not collect the last payment and will retry. The plan renews ${renews} once it goes through.`
+                    ? `${provider === "polar" ? "Polar" : "PayPal"} could not collect the last payment and will retry. The plan renews ${renews} once it goes through.`
                     : `Renews ${renews}${provider === "paypal" ? " through PayPal" : ""}.`
                 : null}
               {!paid && (billingEnabled ? "Nothing on file. Upgrade whenever you outgrow it." : "Paid plans open soon. Everything is free until then.")}
@@ -429,9 +435,11 @@ export default function Billing() {
         </ul>
         <p className="mt-4 inline-flex items-start gap-2 text-[12px] text-ink-dim">
           <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0 text-ok" />
-          {hasPortal
-            ? "Checkout, tax, invoices and your payment method are handled by Polar, the merchant of record. Your card details never touch Ohshi. Switching plans applies at once and the difference is prorated."
-            : "Payments are processed by PayPal. Your card or PayPal details never touch Ohshi; receipts and your payment method live in your PayPal account. Switching plans asks you to approve the new price on PayPal."}
+          {!billingEnabled
+            ? "Paid plans are not taking payments on this server yet. The catalogue still shows what each plan includes."
+            : hasPortal
+              ? "Checkout, tax, invoices and your payment method are handled by Polar, the merchant of record. Your card details never touch Ohshi. Switching plans applies at once and the difference is prorated."
+              : "Payments are processed by PayPal. Your card or PayPal details never touch Ohshi; receipts and your payment method live in your PayPal account. Switching plans asks you to approve the new price on PayPal."}
         </p>
       </Card>
 

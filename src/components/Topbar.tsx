@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, CreditCard, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Search, Settings, Sun } from "lucide-react";
 import { useAuth, useShell } from "../App";
+import { searchHotkey } from "../lib/api";
 import { useTheme } from "../lib/theme";
 import { Avatar, IconButton } from "./ui";
 
@@ -32,7 +33,7 @@ export function Topbar(props: { title: ReactNode; aside?: ReactNode; actions?: R
         >
           <Search className="h-3.5 w-3.5" />
           Search
-          <kbd className="kbd ml-auto">Ctrl K</kbd>
+          <kbd className="kbd ml-auto">{searchHotkey()}</kbd>
         </button>
         <IconButton icon={Search} label="Search" onClick={openSearch} className="lg:hidden" />
         <IconButton icon={dark ? Sun : Moon} label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={toggle} />

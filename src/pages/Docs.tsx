@@ -196,7 +196,9 @@ export default function Docs() {
   const family = useMemo(() => families?.find((f) => f.id === modelId) ?? null, [families, modelId]);
   const keyPath = isKeyRoute(path);
   const gemini = path === "gemini_api";
-  const deepseek = path === "deepseek_api" || path === "deepseek_chat";
+  const deepseekKey = path === "deepseek_api";
+  const deepseekChat = path === "deepseek_chat";
+  const deepseek = deepseekKey || deepseekChat;
   const chatgpt = path === "chatgpt";
   const resolved = family
     ? (family.variants[effort] ?? family.variants[family.defaultEffort] ?? Object.values(family.variants)[0])
@@ -269,7 +271,7 @@ export default function Docs() {
               The Gemini key stays on the server.
             </li>
           </PathBox>
-          <PathBox active={deepseek} title="DeepSeek API key" badge={<Badge tone="ok" dot>Live</Badge>}>
+          <PathBox active={deepseekKey} title="DeepSeek API key" badge={<Badge tone="ok" dot>Live</Badge>}>
             <li>
               Create a key at{" "}
               <a href={PLATFORM_URL} target="_blank" rel="noreferrer" className="font-medium text-accent underline-offset-2 hover:underline">
@@ -282,6 +284,11 @@ export default function Docs() {
               Same <code className="mono text-ink">ohs_</code> key, same <code className="mono text-ink">/v1</code>. Thinking
               streams as <code className="mono text-ink">reasoning_content</code>.
             </li>
+          </PathBox>
+          <PathBox active={deepseekChat} title="DeepSeek chat account" badge={<Badge tone="violet">Beta</Badge>}>
+            <li>Sign in with the email and password of your free DeepSeek chat account at chat.deepseek.com.</li>
+            <li>Calls run on that consumer account. A DeepSeek API key is the supported path; this one is Beta.</li>
+            <li>Same <code className="mono text-ink">ohs_</code> key, same <code className="mono text-ink">/v1</code>. Thinking streams as <code className="mono text-ink">reasoning_content</code>.</li>
           </PathBox>
           <PathBox active={codeAssist} title="Google account" badge={<Badge tone="violet">Beta</Badge>}>
             <li>Connect the Google account behind your Google AI plan and paste back the code.</li>
@@ -305,12 +312,16 @@ export default function Docs() {
               ? "Ohshi's own models, on Ohshi's servers. Nothing to connect; the ids never change."
             : keyPath
               ? live
-                ? `What your key lists on the ${deepseek ? "DeepSeek" : "Gemini"} API right now (${families.length} chat models). Anything ${vendorName} adds appears here by itself.`
-                : `The built-in ${deepseek ? "DeepSeek" : "Gemini API"} list. Once a key is saved, this shows what that key can actually call.`
+                ? `What your key lists on the ${deepseekKey ? "DeepSeek" : "Gemini"} API right now (${families.length} chat models). Anything ${vendorName} adds appears here by itself.`
+                : `The built-in ${deepseekKey ? "DeepSeek" : "Gemini API"} list. Once a key is saved, this shows what that key can actually call.`
               : chatgpt
                 ? live
                   ? `What your ChatGPT plan lists right now (${families.length} models). Anything OpenAI adds to the plan appears here by itself.`
                   : "The built-in ChatGPT list. Once an account is connected, this shows what that plan can actually call."
+                : deepseekChat
+                  ? live
+                    ? `What your DeepSeek chat account lists right now (${families.length} models).`
+                    : "The built-in DeepSeek list. Once a chat account is connected, this shows what that account can actually call."
                 : "The Code Assist families a connected Google account serves. Effort levels are separate backend ids."
         }
       >

@@ -8,7 +8,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { AuthShell } from "../components/auth/AuthShell";
 import { paramText } from "../lib/api";
-import { afterAuthPath, CLERK_ENABLED } from "../lib/clerk";
+import { afterAuthPath, CLERK_ENABLED, rememberAfterAuth } from "../lib/clerk";
 import { ClerkLoginForm } from "./auth/ClerkLoginForm";
 import { ClerkSessionGuard } from "./auth/ClerkSessionGuard";
 import { PasswordLoginForm } from "./auth/PasswordLoginForm";
@@ -21,6 +21,7 @@ export default function Login() {
   const connectError = paramText(params.get("connect_error"));
   const initialError = connectError ? `Connecting Google did not finish: ${connectError}` : null;
   const next = afterAuthPath(params.get("next"));
+  rememberAfterAuth(next);
   const signupLink = next === "/app" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`;
 
   return (

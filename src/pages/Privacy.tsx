@@ -6,12 +6,13 @@ export default function Privacy() {
     <LegalLayout
       eyebrow="Legal"
       title="Privacy Policy"
-      updated="30 August 2026"
+      updated="12 September 2026"
       intro={
         <>
           This policy explains what Ohshi (<strong>ohshi.space</strong>) collects, why, where it goes and how long it
-          stays. The short version: we keep the minimum needed to run the Service, we encrypt your Google tokens, we
-          don't run ads or sell data, and your prompts go to Google under your own account. It sits alongside our{" "}
+          stays. The short version: we keep the minimum needed to run the Service, we encrypt provider tokens and
+          pasted keys, we don&apos;t run ads or sell data, and prompts for a connected provider go to that provider
+          under your own account. It sits alongside our{" "}
           <Link to="/terms" className="text-accent underline underline-offset-4">
             Terms and Conditions
           </Link>
@@ -22,19 +23,20 @@ export default function Privacy() {
       <h2 id="collect">1. What we collect</h2>
       <h3>Account</h3>
       <ul>
-        <li>Your email address and a password hash (Argon2id, we never store the password itself).</li>
+        <li>Your email address and, when you sign in with a password, a password hash (Argon2id, we never store the password itself).</li>
+        <li>When sign-in is through Clerk, Clerk&apos;s user id and the email and name Clerk sends us.</li>
         <li>An optional display name.</li>
         <li>The date you accepted the Terms, and which version.</li>
       </ul>
-      <h3>Google connection</h3>
+      <h3>Connected accounts and pasted keys</h3>
       <ul>
-        <li>The email address and identifier of each Google account you connect.</li>
+        <li>The email address and identifier of each Google, ChatGPT or DeepSeek chat account you connect.</li>
         <li>
-          OAuth access and refresh tokens for that account, <strong>encrypted at rest</strong> with a key that is not
-          stored alongside the database.
+          OAuth access and refresh tokens, session tokens, and pasted Gemini or DeepSeek API keys,{" "}
+          <strong>encrypted at rest</strong> with a key that is not stored alongside the database. For a DeepSeek chat
+          account we also keep the password encrypted so a dropped session can sign in again.
         </li>
-        <li>The managed project identifier and licence tier that Google assigns to the account.</li>
-        <li>Health information about the connection: when it last worked, the last error, latency.</li>
+        <li>Health information about each connection or key: when it last worked, the last error, latency.</li>
       </ul>
       <h3>Content</h3>
       <ul>
@@ -60,7 +62,7 @@ export default function Privacy() {
 
       <h2 id="use">2. How we use it</h2>
       <ul>
-        <li>To operate the Service: sign you in, call Google's models on your behalf, show your chats and quota.</li>
+        <li>To operate the Service: sign you in, call models on your behalf, show your chats and quota.</li>
         <li>To keep it safe: rate limiting, abuse detection, debugging failures.</li>
         <li>To show you your own usage in the dashboard.</li>
         <li>To contact you about the Service, such as material changes to these policies or security issues.</li>
@@ -79,17 +81,18 @@ export default function Privacy() {
       </p>
       <ul>
         <li>
-          <strong>Google.</strong> Your prompts, chat history sent as context, and model settings are transmitted to
-          Google's model services using your own account's tokens. Google's handling of that data is governed by
-          Google's privacy policy and the terms of your plan. Ohshi is not a party to that relationship.
+          <strong>Model providers.</strong> Prompts, chat history sent as context, and model settings for a connected
+          source are transmitted to that provider (Google, DeepSeek, OpenAI, or Ohshi&apos;s own host for OHS3).
+          Each provider&apos;s handling of that data is governed by its own privacy policy. Ohshi is not a party to
+          that relationship.
         </li>
         <li>
           <strong>Hosting.</strong> The Service runs on Railway (railway.com) infrastructure. Data is stored on
           Railway-managed volumes or databases in the region of our deployment.
         </li>
         <li>
-          <strong>Authentication provider.</strong> If we adopt a third party sign in provider, your email and sign in
-          events will be processed by that provider under its own policy; we will update this page when that happens.
+          <strong>Clerk.</strong> When this deployment signs in through Clerk, your email and sign-in events are
+          processed by Clerk under its own policy.
         </li>
         <li>
           <strong>Legal.</strong> We may disclose data if required by law or to protect the rights and safety of users
@@ -104,20 +107,21 @@ export default function Privacy() {
         <li>Pending Google sign in state: 15 minutes.</li>
         <li>API usage metadata: 90 days, then pruned automatically.</li>
         <li>Chats: until you delete them.</li>
-        <li>Google tokens: until you disconnect the account, delete your account, or Google invalidates them.</li>
+        <li>Provider tokens and pasted keys: until you disconnect or revoke them, delete your account, or the provider invalidates them.</li>
         <li>Your account: until you ask us to delete it.</li>
       </ul>
 
       <h2 id="security">5. Security</h2>
       <p>
-        Google tokens are encrypted at rest; passwords are hashed with Argon2id; traffic is encrypted in transit with
-        TLS; API keys are hashed; sessions are HttpOnly cookies protected against cross-site requests. No system is
-        perfectly secure. If we learn of a breach affecting you, we will tell you without undue delay.
+        Provider tokens and pasted keys are encrypted at rest; passwords are hashed with Argon2id; traffic is encrypted
+        in transit with TLS; ohs_ keys are stored hashed; sessions are HttpOnly cookies protected against cross-site
+        requests. No system is perfectly secure. If we learn of a breach affecting you, we will tell you without undue
+        delay.
       </p>
 
       <h2 id="rights">6. Your choices and rights</h2>
       <ul>
-        <li>Disconnect a Google account at any time from the accounts page; this deletes the tokens we hold.</li>
+        <li>Disconnect a connected account or revoke a pasted key at any time from the accounts page; this deletes the credentials we hold.</li>
         <li>
           To revoke Ohshi on Google's side too, remove it under your Google account's third party access settings.
         </li>

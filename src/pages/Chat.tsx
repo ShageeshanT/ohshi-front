@@ -153,6 +153,10 @@ export default function Chat() {
   const [atBottom, setAtBottom] = useState(true);
 
   const abortRef = useRef<AbortController | null>(null);
+  const chatIdRef = useRef(chatId);
+  chatIdRef.current = chatId;
+  // Bumped when the open chat changes so an in-flight turn cannot write into the next one.
+  const turnGenRef = useRef(0);
   // The reply as received, how much of it is on screen, and the loop that closes the gap.
   const targetRef = useRef<StreamState>({ content: "", reasoning: "" });
   const shownRef = useRef({ content: 0, reasoning: 0 });
@@ -202,6 +206,7 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
+    turnGenRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
     stopTick();
@@ -213,7 +218,10 @@ export default function Chat() {
     setStream(null);
     setTurnError(null);
     setInput("");
-    setFiles([]);
+    setFiles((list) => {
+      for (const f of list) if (f.preview) URL.revokeObjectURL(f.preview);
+      return [];
+    });
     stickRef.current = true;
     setAtBottom(true);
     if (!chatId) {
@@ -311,6 +319,9 @@ export default function Chat() {
   const runTurn = useCallback(
     async (opts: { content?: string; attachments?: string[] }) => {
       if (!chatId || abortRef.current) return;
+      const startedFor = chatId;
+      const gen = turnGenRef.current;
+      const stillHere = () => chatIdRef.current === startedFor && turnGenRef.current === gen;
       const controller = new AbortController();
       abortRef.current = controller;
       const chosenModel = modelRef.current;
@@ -338,6 +349,7 @@ export default function Chat() {
       setStream({ content: "", reasoning: "" });
 
       const finishWithPartial = (status: ChatMessage["status"]) => {
+        if (!stillHere()) return;
         stopTick();
         finishRef.current = null;
         const target = targetRef.current;
@@ -358,6 +370,7 @@ export default function Chat() {
             ? await streamPost(`/api/chats/${chatId}/messages`, body, controller.signal)
             : await streamPost(`/api/chats/${chatId}/regenerate`, { model: chosenModel }, controller.signal);
         await readSSE(resp, (raw) => {
+          if (!stillHere()) return;
           const ev = raw as unknown as ChatEvent;
           switch (ev.type) {
             case "user":
@@ -365,7 +378,10 @@ export default function Chat() {
               setMessages((m) => [...m.filter((x) => !(x.id < 0 && x.role === "user")), ev.message]);
               setChat(ev.chat);
               upsert(ev.chat);
-              setFiles([]);
+              setFiles((list) => {
+                for (const f of list) if (f.preview) URL.revokeObjectURL(f.preview);
+                return [];
+              });
               break;
             case "delta":
               targetRef.current.content += ev.content;
@@ -380,6 +396,7 @@ export default function Chat() {
             case "done": {
               settled = true;
               const commit = () => {
+                if (!stillHere()) return;
                 setMessages((m) => [...m, ev.message]);
                 setChat(ev.chat);
                 upsert(ev.chat);
@@ -400,7 +417,7 @@ export default function Chat() {
             case "error":
               settled = true;
               finishWithPartial("interrupted");
-              setTurnError(ev.message);
+              if (stillHere()) setTurnError(ev.message);
               break;
           }
         });
@@ -410,11 +427,11 @@ export default function Chat() {
           finishWithPartial("interrupted");
         } else {
           finishWithPartial("interrupted");
-          setTurnError(friendly(e, "Couldn't reach the server. Please try again."));
+          if (stillHere()) setTurnError(friendly(e, "Couldn't reach the server. Please try again."));
         }
       } finally {
-        abortRef.current = null;
-        if (!finishRef.current) setStream((s) => (s && !settled ? null : s));
+        if (abortRef.current === controller) abortRef.current = null;
+        if (stillHere() && !finishRef.current) setStream((s) => (s && !settled ? null : s));
       }
     },
     [chatId, upsert, nudge, showAll, stopTick, pollTitle],
@@ -496,7 +513,6 @@ export default function Chat() {
     if (!chatId) {
       try {
         const created = await post<{ chat: ChatSummary }>("/api/chats", { model: modelRef.current });
-        upsert(created.chat);
         const ids: string[] = [];
         let failed = false;
         for (const f of usable) {
@@ -505,12 +521,14 @@ export default function Chat() {
           else failed = true;
         }
         if (failed) {
-          // Keep the text and the files (the failed chip says why); drop the empty chat.
+          // Keep the text and the files (the failed chip says why); drop the empty chat
+          // before it ever lands in the sidebar.
           setInput(text);
           setTurnError("A file could not be uploaded. Remove it or try again, then send.");
           void post(`/api/chats/${created.chat.id}/delete`).catch(() => {});
           return;
         }
+        upsert(created.chat);
         navigate(`/app/c/${created.chat.id}`, { state: { pending: text, attachments: ids } satisfies PendingState });
       } catch (e) {
         setInput(text);
@@ -827,7 +845,13 @@ function Composer(props: {
         onChange={(e) => props.onChange(e.target.value)}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
-        placeholder={props.disabled ? "Add a key or connect an account to start chatting" : "Ask anything…"}
+        placeholder={
+          props.disabled
+            ? props.models && !props.models.connected && props.models.ohshi && !props.models.ohshi.available
+              ? "Ohshi's own models are used up for now"
+              : "Add a key or connect an account to start chatting"
+            : "Ask anything…"
+        }
         rows={1}
         autoFocus={props.autoFocus}
         disabled={props.disabled}
@@ -976,7 +1000,11 @@ function AssistantMessage(props: {
   const streaming = Boolean(props.streaming);
   const [copied, setCopied] = useState(false);
   const [showReasoning, setShowReasoning] = useState(false);
+  const [holdReasoningClosed, setHoldReasoningClosed] = useState(false);
   const modelId = props.message?.model || props.modelId || "";
+  // While only reasoning is streaming, open the panel so ohs3-pro does not look hung.
+  const autoReasoning = streaming && Boolean(reasoning) && !content && !holdReasoningClosed;
+  const reasoningOpen = showReasoning || autoReasoning;
 
   return (
     <div className="msg-in flex gap-3">
@@ -986,13 +1014,20 @@ function AssistantMessage(props: {
           <div className="mb-2">
             <button
               type="button"
-              onClick={() => setShowReasoning((v) => !v)}
+              onClick={() => {
+                if (autoReasoning) {
+                  setHoldReasoningClosed(true);
+                  setShowReasoning(false);
+                  return;
+                }
+                setShowReasoning((v) => !v);
+              }}
               className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-dim hover:text-ink"
             >
-              {showReasoning ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              {reasoningOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               {streaming && !content ? "Thinking…" : "Thought process"}
             </button>
-            {showReasoning && (
+            {reasoningOpen && (
               <div className="mt-1.5 whitespace-pre-wrap border-l-2 border-edge pl-3 text-[13px] leading-relaxed text-ink-dim">
                 {reasoning}
               </div>

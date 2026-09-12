@@ -41,7 +41,7 @@ const PAGES: PageHit[] = [
   { to: "/app/models", label: "Models", hint: "Quota per model", icon: Layers },
   { to: "/app/usage", label: "Usage", hint: "The gateway ledger", icon: Activity },
   { to: "/app/connections", label: "Connections", hint: "Providers, live and coming", icon: Network },
-  { to: "/app/accounts", label: "Accounts", hint: "Gemini keys, DeepSeek keys, Google and ChatGPT accounts, connector", icon: Plug },
+  { to: "/app/accounts", label: "Accounts", hint: "Gemini keys, DeepSeek keys, Google, ChatGPT and DeepSeek chat accounts, connector", icon: Plug },
   { to: "/app/keys", label: "API keys", hint: "Keys for /v1", icon: KeyRound },
   { to: "/app/billing", label: "Plan and billing", hint: "Your plan", icon: CreditCard },
   { to: "/app/docs", label: "Docs", hint: "Request snippets", icon: BookOpen },
@@ -131,7 +131,12 @@ export default function SearchDialog(props: { open: boolean; onClose: () => void
         if (e.target === e.currentTarget) props.onClose();
       }}
     >
-      <div className="modal-in w-full max-w-lg overflow-hidden rounded-xl border border-edge bg-panel shadow-[0_24px_60px_-24px_rgb(0_0_0/0.45)]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search"
+        className="modal-in w-full max-w-lg overflow-hidden rounded-xl border border-edge bg-panel shadow-[0_24px_60px_-24px_rgb(0_0_0/0.45)]"
+      >
         <div className="flex items-center gap-2.5 border-b border-edge px-3.5 py-2.5">
           <Search className="h-4 w-4 text-ink-dim" />
           <input

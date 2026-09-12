@@ -8,7 +8,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../App";
 import { AuthShell } from "../components/auth/AuthShell";
 import { get } from "../lib/api";
-import { afterAuthPath, CLERK_ENABLED } from "../lib/clerk";
+import { afterAuthPath, CLERK_ENABLED, rememberAfterAuth } from "../lib/clerk";
 import { ClerkSignupForm } from "./auth/ClerkSignupForm";
 import { ClerkSessionGuard } from "./auth/ClerkSessionGuard";
 import { PasswordSignupForm } from "./auth/PasswordSignupForm";
@@ -33,6 +33,7 @@ export default function Signup() {
     };
   }, []);
   const next = afterAuthPath(params.get("next"));
+  rememberAfterAuth(next);
   const loginLink = next === "/app" ? "/login" : `/login?next=${encodeURIComponent(next)}`;
 
   return (

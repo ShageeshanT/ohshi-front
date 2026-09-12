@@ -13,7 +13,7 @@ import { keyName, type KeyRow, type RouteKind } from "../components/ProviderKeys
 import { DeepSeekLogo, GeminiLogo, GoogleLogo, OhshiLogo, OpenAILogo } from "../components/logos";
 import { QuotaGrid } from "../components/QuotaGrid";
 import { Badge, Button, Card, EmptyState, Notice, PageHeader, SectionTitle, Spinner } from "../components/ui";
-import { formatNumber, get, poll, timeAgo } from "../lib/api";
+import { countdown, formatNumber, get, poll, timeAgo } from "../lib/api";
 import { type OhshiMeter } from "../lib/chat";
 import {
   quotaFor,
@@ -115,7 +115,7 @@ function OhshiModelsCard() {
         </div>
         {meter?.exhausted && (
           <p className="border-t border-edge px-4 py-2 text-[12px] text-warn">
-            Used up for now{meter.resetMs ? `, more ${timeAgo(meter.resetMs)}` : ""}. Your own keys and accounts keep working.
+            Used up for now{meter.resetMs ? `, more ${countdown(meter.resetMs)}` : ""}. Your own keys and accounts keep working.
           </p>
         )}
       </Card>
@@ -179,7 +179,7 @@ export default function Models() {
         <Card>
           <EmptyState
             title="Nothing else to show yet"
-            hint="Add a Gemini or DeepSeek API key, or connect a Google or ChatGPT account, and the models it can use show up here with what is left on the plan."
+            hint="Add a Gemini or DeepSeek API key, or connect a Google, ChatGPT or DeepSeek chat account, and the models it can use show up here with what is left on the plan."
             action={
               <Link to="/app/accounts?add=key">
                 <Button arrow>

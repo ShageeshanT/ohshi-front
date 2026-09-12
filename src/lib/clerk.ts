@@ -39,6 +39,7 @@ export function clerkFrontendApi(): string {
 /** Where Clerk sends the browser back to once a social sign-in completes. */
 export const SSO_CALLBACK_PATH = "/sso-callback";
 export const AFTER_AUTH_PATH = "/app";
+const AFTER_AUTH_STORAGE = "ohshi.afterAuth";
 
 /**
  * A protected deep-link should survive the sign-in screen. Only accept a
@@ -55,6 +56,24 @@ export function afterAuthPath(next?: string | null): string {
     const url = new URL(next, window.location.origin);
     if (url.origin !== window.location.origin) return AFTER_AUTH_PATH;
     return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return AFTER_AUTH_PATH;
+  }
+}
+
+/** Remember where to land after a social round-trip; Clerk's fallback is /app. */
+export function rememberAfterAuth(path: string): void {
+  try {
+    sessionStorage.setItem(AFTER_AUTH_STORAGE, afterAuthPath(path));
+  } catch {
+    /* private window */
+  }
+}
+
+/** The path stored for the SSO callback, or `/app`. */
+export function peekAfterAuth(): string {
+  try {
+    return afterAuthPath(sessionStorage.getItem(AFTER_AUTH_STORAGE));
   } catch {
     return AFTER_AUTH_PATH;
   }

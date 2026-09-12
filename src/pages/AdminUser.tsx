@@ -65,6 +65,7 @@ function AccountRows(props: { rows: Loose[]; kind: "google" | "chatgpt" | "deeps
 export default function AdminUser() {
   const { userId = "" } = useParams();
   const { me } = useAuth();
+  const processor = me?.config.billingProvider === "polar" ? "Polar" : "PayPal";
   const [d, setD] = useState<AdminUserDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -365,7 +366,7 @@ export default function AdminUser() {
       </Card>
 
       {d.billingEvents.length > 0 && (
-        <Card title="Billing events" description="What PayPal told us about this account, newest first." flush>
+        <Card title="Billing events" description={`What ${processor} told us about this account, newest first.`} flush>
           <div className="overflow-x-auto">
             <table className="tbl">
               <thead>
@@ -403,7 +404,7 @@ export default function AdminUser() {
             <label className="flex items-start gap-2 text-[12.5px]">
               <input type="checkbox" checked={cancelSub} onChange={(e) => setCancelSub(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 accent-accent" />
               <span>
-                Also cancel their {u.planLabel} subscription at PayPal, so they are not charged again.
+                Also cancel their {u.planLabel} subscription at {processor}, so they are not charged again.
                 <span className="block text-ink-dim">Untick to keep billing them, for example while a dispute is open.</span>
               </span>
             </label>
@@ -420,7 +421,7 @@ export default function AdminUser() {
                 void act(
                   "ban",
                   () => banUser(u.id, reason, cancelSub),
-                  (r) => `Banned.${r.subscriptionCancelled ? " Their subscription was cancelled at PayPal." : ""}`,
+                  (r) => `Banned.${r.subscriptionCancelled ? ` Their subscription was cancelled at ${processor}.` : ""}`,
                 ).then(() => setBanOpen(false))
               }
             >

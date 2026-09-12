@@ -29,6 +29,7 @@ import { formatNumber } from "../lib/api";
 import {
   useChatGPTConnections,
   useConnections,
+  useDeepSeekChat,
   useDeepSeekKeys,
   useGeminiKeys,
   useQuotas,
@@ -41,6 +42,7 @@ export default function Overview() {
   const { gemini } = useGeminiKeys();
   const { deepseek } = useDeepSeekKeys();
   const { chatgpt } = useChatGPTConnections();
+  const { deepseekChat } = useDeepSeekChat();
   const { usage } = useUsage(30);
   const { quotas } = useQuotas(connections);
   const [now, setNow] = useState(() => Date.now());
@@ -57,14 +59,19 @@ export default function Overview() {
   const activeKeyCount = activeKeys.length + activeDeepSeek.length;
   const chatgptRows = chatgpt?.connections ?? [];
   const activeChatgpt = chatgptRows.filter((c) => c.status === "active");
-  const route = gemini?.route ?? deepseek?.route ?? null;
-  const sourcesKnown = connections !== null && gemini !== null && deepseek !== null && chatgpt !== null;
-  const activeSources = activeConnections.length + activeKeyCount + activeChatgpt.length;
-  const totalSources = (connections?.length ?? 0) + keys.length + deepseekKeys.length + chatgptRows.length;
+  const deepseekChatRows = deepseekChat?.connections ?? [];
+  const activeDeepSeekChat = deepseekChatRows.filter((c) => c.status === "active");
+  const route = gemini?.route ?? deepseek?.route ?? chatgpt?.route ?? deepseekChat?.route ?? null;
+  const sourcesKnown =
+    connections !== null && gemini !== null && deepseek !== null && chatgpt !== null && deepseekChat !== null;
+  const activeSources = activeConnections.length + activeKeyCount + activeChatgpt.length + activeDeepSeekChat.length;
+  const totalSources =
+    (connections?.length ?? 0) + keys.length + deepseekKeys.length + chatgptRows.length + deepseekChatRows.length;
   const needsAttention =
     (connections ?? []).filter((c) => c.status !== "active" || c.health?.status === "error").length +
     [...keys, ...deepseekKeys].filter((k) => k.status !== "active" || k.health?.status === "error").length +
-    chatgptRows.filter((c) => c.status !== "active" || c.health?.status === "error").length;
+    chatgptRows.filter((c) => c.status !== "active" || c.health?.status === "error").length +
+    deepseekChatRows.filter((c) => c.status !== "active" || c.health?.status === "error").length;
   const families = Object.values(quotas).flatMap((q) => q.snapshot?.families ?? []);
   const requestCount = usage?.totals.requests ?? 0;
   const errorRate = usage && usage.totals.requests ? Math.round((usage.totals.errors / usage.totals.requests) * 100) : 0;
@@ -107,6 +114,8 @@ export default function Overview() {
                     ? `Route: DeepSeek key ${route.label}`
                     : route.kind === "chatgpt"
                       ? `Route: ${route.label} (ChatGPT, Beta)`
+                    : route.kind === "deepseek_chat"
+                      ? `Route: ${route.label} (DeepSeek chat, Beta)`
                     : `Route: ${route.label} (Beta)`
                 : "Add a key or connect an account"
           }
@@ -246,6 +255,15 @@ export default function Overview() {
                   isDefault={c.isDefault}
                 />
               ))}
+              {deepseekChatRows.slice(0, 3).map((c) => (
+                <SourceLine
+                  key={c.id}
+                  icon={<DeepSeekLogo className="h-3.5 w-3.5 text-ink-dim" />}
+                  name={c.email}
+                  ok={c.status === "active" && c.health?.status !== "error"}
+                  isDefault={c.isDefault}
+                />
+              ))}
               {totalSources > 12 && <li className="text-[12px] text-ink-dim">+{totalSources - 12} more</li>}
             </ul>
           )}
@@ -317,7 +335,7 @@ function GetStarted() {
     {
       n: "1",
       title: "Add a model source",
-      text: "Paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, or connect a Google or ChatGPT account in Beta.",
+      text: "Paste a Gemini API key from Google AI Studio or a DeepSeek API key from its platform, or connect a Google, ChatGPT or DeepSeek chat account in Beta.",
       action: (
         <div className="flex flex-wrap gap-2">
           <Link to="/app/accounts?add=key">
@@ -338,6 +356,11 @@ function GetStarted() {
           <Link to="/app/accounts?connect=chatgpt">
             <Button size="sm" tone="ghost">
               Connect ChatGPT
+            </Button>
+          </Link>
+          <Link to="/app/accounts?connect=deepseek">
+            <Button size="sm" tone="ghost">
+              Connect DeepSeek
             </Button>
           </Link>
         </div>

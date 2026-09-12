@@ -22,6 +22,7 @@ interface Counts {
   deepseekKeys: number | null;
   accounts: number | null;
   chatgpt: number | null;
+  deepseekChat: number | null;
 }
 
 export default function Profile() {
@@ -45,6 +46,7 @@ export default function Profile() {
     deepseekKeys: null,
     accounts: null,
     chatgpt: null,
+    deepseekChat: null,
   });
 
   useEffect(() => {
@@ -67,6 +69,9 @@ export default function Profile() {
     get<{ connections: { status: string }[] }>("/api/openai/connections")
       .then((d) => set({ chatgpt: d.connections.filter((c) => c.status === "active").length }))
       .catch(() => set({ chatgpt: 0 }));
+    get<{ connections: { status: string }[] }>("/api/deepseek/connections")
+      .then((d) => set({ deepseekChat: d.connections.filter((c) => c.status === "active").length }))
+      .catch(() => set({ deepseekChat: 0 }));
     return () => {
       cancelled = true;
     };
@@ -192,7 +197,7 @@ export default function Profile() {
             to="/app/accounts"
             icon={Plug}
             title="Connected accounts"
-            sub={`${plural(counts.geminiKeys, "Gemini key")}, ${plural(counts.deepseekKeys, "DeepSeek key")}, ${plural(counts.accounts, "Google account")}, ${plural(counts.chatgpt, "ChatGPT account")}`}
+            sub={`${plural(counts.geminiKeys, "Gemini key")}, ${plural(counts.deepseekKeys, "DeepSeek key")}, ${plural(counts.accounts, "Google account")}, ${plural(counts.chatgpt, "ChatGPT account")}, ${plural(counts.deepseekChat, "DeepSeek account")}`}
           />
           <LinkRow to="/app/models" icon={Layers} title="Models" sub="Quota per model and what each key can call" />
           <LinkRow to="/app/keys" icon={KeyRound} title="API keys" sub={`${plural(counts.apiKeys, "active key")}`} />
@@ -204,7 +209,7 @@ export default function Profile() {
         <ul className="space-y-1.5 text-[12.5px] leading-relaxed text-ink-dim">
           <li>Chats are saved so you can search them. Delete any of them from the sidebar.</li>
           <li>Prompts sent to /v1 are never stored, only usage metadata: model, tokens, latency, outcome.</li>
-          <li>Gemini keys and Google tokens are encrypted at rest. Passwords are hashed with Argon2id, ohs_ keys are stored hashed.</li>
+          <li>Gemini and DeepSeek keys, Google and ChatGPT tokens, and DeepSeek chat credentials are encrypted at rest. Passwords are hashed with Argon2id, ohs_ keys are stored hashed.</li>
         </ul>
         <p className="mt-3 text-[12.5px] text-ink-dim">
           <Link to="/privacy" className="font-medium text-ink hover:underline">

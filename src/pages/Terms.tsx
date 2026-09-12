@@ -1,14 +1,14 @@
 import { Link } from "react-router-dom";
 import { LegalLayout } from "../components/marketing/LegalLayout";
 
-export const TERMS_VERSION = "2026-09-01";
+export const TERMS_VERSION = "2026-09-12";
 
 export default function Terms() {
   return (
     <LegalLayout
       eyebrow="Legal"
       title="Terms and Conditions"
-      updated="30 August 2026"
+      updated="12 September 2026"
       intro={
         <>
           These terms govern your use of Ohshi at <strong>ohshi.space</strong> (the “Service”). By creating an account
@@ -16,16 +16,18 @@ export default function Terms() {
           <Link to="/privacy" className="text-accent underline underline-offset-4">
             Privacy Policy
           </Link>
-          . Please read them. The section on your Google account matters more than most.
+          . Please read them. The sections on connected accounts and on Ohshi&apos;s own models matter more than most.
         </>
       }
     >
       <h2 id="service">1. What Ohshi is</h2>
       <p>
-        Ohshi is a hosted workspace that lets you use the AI models available to your own Google account, through a
-        chat interface and through an OpenAI compatible API, and shows you how much of that plan's quota remains. Ohshi
-        does not run models itself, does not sell model access, and is <strong>not affiliated with, endorsed by, or
-        operated by Google, Anthropic or OpenAI</strong>.
+        Ohshi is a hosted workspace: a chat interface and an OpenAI compatible API. Every plan includes Ohshi&apos;s
+        own models (OHS3 and OHS3 Pro), which run on servers Ohshi operates and are metered by the allowance in your
+        plan. You can also paste your own Gemini or DeepSeek API keys, or connect a Google, ChatGPT or DeepSeek chat
+        account, so those providers&apos; models run on the access you already hold. Ohshi does not resell those
+        providers&apos; access and is <strong>not affiliated with, endorsed by, or operated by Google, DeepSeek,
+        OpenAI, Anthropic or xAI</strong>.
       </p>
 
       <h2 id="account">2. Your account</h2>
@@ -36,15 +38,16 @@ export default function Terms() {
         <li>One person per account. Tell us promptly if you suspect unauthorised use.</li>
       </ul>
 
-      <h2 id="google">3. Your Google account and third party terms</h2>
+      <h2 id="google">3. Connected accounts and third party terms</h2>
       <p>
-        When you connect a Google account, you authorise Ohshi to make requests to Google's model services on your
-        behalf using OAuth tokens issued for that account. In doing so:
+        When you connect a Google, ChatGPT or DeepSeek chat account, or paste a Gemini or DeepSeek API key, you
+        authorise Ohshi to make requests to that provider on your behalf. In doing so:
       </p>
       <ul>
         <li>
-          <strong>Your plan, your quota.</strong> Every request Ohshi makes for you counts against the limits of the
-          Google plan attached to that account. Ohshi does not add, pool or resell quota.
+          <strong>Your plan, your quota.</strong> Requests to a connected provider count against that provider&apos;s
+          limits. Ohshi&apos;s own models count against the allowance in your Ohshi plan. Ohshi does not pool or
+          resell a provider&apos;s quota.
         </li>
         <li>
           <strong>You are responsible for compliance with Google's terms.</strong> This includes the Google Terms of
@@ -70,10 +73,10 @@ export default function Terms() {
 
       <h2 id="keys">4. API keys and agents</h2>
       <p>
-        API keys are secrets. Anything sent with your key is treated as coming from you and is billed against your
-        connected Google account. Store keys in a secrets manager, never in client-side code, and revoke a key in the
-        dashboard the moment you think it may have leaked. Automated use must respect the rate limits and quotas of the
-        Service and of your Google plan.
+        API keys are secrets. Anything sent with your key is treated as coming from you and runs on your default
+        route (a pasted provider key, a connected account, or Ohshi&apos;s own models). Store keys in a secrets
+        manager, never in client-side code, and revoke a key in the dashboard the moment you think it may have leaked.
+        Automated use must respect the rate limits of the Service and of the provider you have connected.
       </p>
 
       <h2 id="acceptable-use">5. Acceptable use</h2>
