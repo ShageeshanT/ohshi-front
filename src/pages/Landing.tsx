@@ -146,9 +146,9 @@ function Hero() {
             <Link to="/signup" className="btn-primary btn-lg">
               {h.primaryCta} <ArrowRight className="h-4 w-4" />
             </Link>
-            <button type="button" onClick={() => scrollToHash(lenis, "#developers")} className="btn-ghost btn-lg">
+            <a href="/quickstart.html" className="btn-ghost btn-lg">
               {h.secondaryCta}
-            </button>
+            </a>
           </motion.div>
           <motion.ul {...rise(0.52)} className="hero-trust hero-gap-lg flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px]">
             {h.trust.map((label) => (
@@ -524,9 +524,9 @@ function CallToAction() {
                 <Link to="/signup" className="btn-primary">
                   {c.primary} <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link to="/app/docs" className="btn-ghost">
+                <a href="/quickstart.html" className="btn-ghost">
                   {c.secondary}
-                </Link>
+                </a>
               </div>
               <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-1.5 text-[12.5px] text-ink-dim">
                 {["No card needed", "Your own key or plan", "Keys encrypted at rest"].map((t) => (

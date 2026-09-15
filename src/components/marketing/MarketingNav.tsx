@@ -88,7 +88,7 @@ export function MarketingNav(props: { minimal?: boolean }) {
         Sign in
       </Link>
       <Link to="/signup" className="btn-primary btn-sm">
-        Get started <ArrowRight className="h-3.5 w-3.5" />
+        Try free <ArrowRight className="h-3.5 w-3.5" />
       </Link>
     </>
   );

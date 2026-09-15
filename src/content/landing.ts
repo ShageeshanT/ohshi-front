@@ -151,14 +151,14 @@ export interface LandingCopy {
 export const COPY: LandingCopy = {
   nav: ["Why Ohshi", "How It Works", "Providers", "Pricing", "Developers", "FAQ"],
   hero: {
-    badge: "Start Free",
-    line1: "One Key.",
-    line2: "Chat and API.",
+    badge: "AI Chat and API for Developers",
+    line1: "Your AI.",
+    line2: "Chat and Code.",
     paragraph:
-      "Ohshi turns your own AI access into a chat workspace and an OpenAI compatible API. Start on OHS3, Ohshi's own model, with nothing to connect. Then paste a Gemini or DeepSeek API key, or connect the Google account behind your plan in Beta, and every call runs through one ohs_ key.",
-    primaryCta: "Get Started",
-    secondaryCta: "See the API",
-    trust: ["OHS3 Included, Nothing to Connect", "Bring Your Own Key or Plan", "Keys and Tokens Encrypted at Rest"],
+      "Use your Gemini or DeepSeek API key in one chat workspace and one OpenAI compatible API. Try Ohshi's included OHS3 models first, with nothing to connect. Add your own AI access when you're ready.",
+    primaryCta: "Try Free",
+    secondaryCta: "Read the Quickstart",
+    trust: ["No Card Needed", "OHS3 Included", "No Provider Key Needed to Start"],
   },
   why: {
     eyebrow: "Why Ohshi",

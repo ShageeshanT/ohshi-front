@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ohshi Quickstart | Your First Chat and API Call</title>
+    <meta name="description" content="Try Ohshi's included OHS3 models, create an API key, and make your first request. A public quickstart with Python and curl examples." />
+    <link rel="canonical" href="https://www.ohshi.space/quickstart.html" />
+    <link rel="icon" href="/favicon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Your First Chat and API Call with Ohshi" />
+    <meta property="og:description" content="Start with OHS3, with no provider key to connect. Follow the Python or curl example, then add your own AI access." />
+    <meta property="og:url" content="https://www.ohshi.space/quickstart.html" />
+    <meta property="og:image" content="https://www.ohshi.space/product-preview.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Your First Chat and API Call with Ohshi" />
+    <meta name="twitter:description" content="A public quickstart with Python and curl examples. Try OHS3 free, then add your own AI access." />
+    <meta name="twitter:image" content="https://www.ohshi.space/product-preview.png" />
+    <link rel="stylesheet" href="/quickstart.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header>
+      <a class="brand" href="/"><img src="/favicon.png" alt="" width="30" height="30" /> Ohshi</a>
+      <nav aria-label="Main"><a href="/#pricing">Pricing</a><a class="button" href="/signup">Try Free</a></nav>
+    </header>
+    <main id="main">
+      <section class="intro">
+        <p class="eyebrow">Developer Quickstart</p>
+        <h1>Your first chat.<br />Your first API call.</h1>
+        <p class="lede">Try Ohshi with the included OHS3 models. Then use your Gemini or DeepSeek API key in the same chat workspace and API.</p>
+        <p class="muted">No card or provider key needed to start. This guide is public; sending requests requires an Ohshi account.</p>
+        <div class="actions"><a class="button" href="/signup">Try Free Chat</a><a href="#api">Jump to the API example</a></div>
+      </section>
+      <section class="step" aria-labelledby="chat-title">
+        <p class="eyebrow">01 / Try a Real Task</p>
+        <h2 id="chat-title">Get an answer before connecting anything.</h2>
+        <p><a href="/signup">Create your free account</a>, open chat, choose <strong>OHS3</strong>, and try a task you actually have. For example:</p>
+        <blockquote>Write a Python function that removes duplicate lines from a text file while keeping their first order.</blockquote>
+        <p>The Free plan includes 5 OHS3 replies per day, up to 30 per month, shared between chat and API. <a href="/#pricing">See current plans and limits.</a></p>
+      </section>
+      <section class="step" id="api" aria-labelledby="api-title">
+        <p class="eyebrow">02 / Use the API</p>
+        <h2 id="api-title">One key for your chat completion calls.</h2>
+        <ol>
+          <li><a href="/signup?next=%2Fapp%2Fkeys">Create an account and open API keys</a>, or <a href="/app/keys">open your existing account's keys</a>.</li>
+          <li>Create an Ohshi API key. Copy it when it is shown and keep it private.</li>
+          <li>Replace <code>YOUR_OHSHI_KEY</code> in one of the examples below. Use <code>ohs3</code> to start without connecting a provider.</li>
+        </ol>
+        <h3>Python</h3>
+        <p>Install the <code>openai</code> package, then set <code>OHSHI_API_KEY</code> in your local environment to the key you created.</p>
+        <pre aria-label="Install the Python package"><code>pip install openai</code></pre>
+        <pre aria-label="Python chat completion example"><code>import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://www.ohshi.space/v1",
+    api_key=os.environ["OHSHI_API_KEY"],
+)
+
+response = client.chat.completions.create(
+    model="ohs3",
+    messages=[{
+        "role": "user",
+        "content": "Write a Python function to remove duplicate lines."
+    }],
+)
+
+print(response.choices[0].message.content)</code></pre>
+        <h3>curl</h3>
+        <p>Run this in a Bash-compatible terminal with your own Ohshi key.</p>
+        <pre aria-label="curl chat completion example"><code>curl https://www.ohshi.space/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_OHSHI_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"ohs3","messages":[{"role":"user","content":"Say hello in one sentence."}]}'</code></pre>
+        <p class="muted">Keep your API key on your server or local machine. Do not put it in browser code, screenshots, or a public repository.</p>
+      </section>
+      <section class="step" aria-labelledby="providers-title">
+        <p class="eyebrow">03 / Add Your AI Access</p>
+        <h2 id="providers-title">Bring Gemini or DeepSeek when you need them.</h2>
+        <p>Add your Gemini API key from Google AI Studio or your DeepSeek API key in <a href="/app/accounts">Connected accounts</a>. Your provider bills that key for usage. Choose a model in chat, or use its exact model ID from your <a href="/app/docs">account's API docs</a>.</p>
+        <p>Your <code>ohs_</code> key and the API base URL stay the same. Google, ChatGPT, and DeepSeek chat account connections are also offered in Beta; availability and limits depend on the provider. A consumer subscription is not a guaranteed API allowance.</p>
+      </section>
+      <section class="step" aria-labelledby="help-title">
+        <h2 id="help-title">If your first request fails</h2>
+        <dl>
+          <dt>401 / Invalid key</dt><dd>Use an Ohshi <code>ohs_</code> key in the Authorization header. Provider keys belong in Connected accounts.</dd>
+          <dt>429 / Limit reached</dt><dd>Check your allowance and the retry information in the response. OHS3 has both daily and monthly limits.</dd>
+          <dt>503 / Model unavailable</dt><dd>The model host may be busy or unavailable. If the response provides <code>Retry-After</code>, wait that long before retrying.</dd>
+        </dl>
+        <div class="actions"><a class="button" href="/signup">Start Free</a><a href="/app/docs">Open My API Docs</a></div>
+      </section>
+    </main>
+    <footer><span>Ohshi · Chat and API on your own AI access.</span><nav aria-label="Legal"><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav></footer>
+  </body>
+</html>

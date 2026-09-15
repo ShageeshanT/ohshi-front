@@ -156,6 +156,9 @@ export function ClerkSignupForm(props: { registrationOpen: boolean; afterAuth: s
         </p>
       )}
 
+      <TermsCheckbox checked={accepted} onChange={setAccepted} />
+      <ErrorLine>{error}</ErrorLine>
+
       <div className="grid gap-2">
         {SOCIAL_PROVIDERS.map((p) => (
           <SocialButton
@@ -177,7 +180,6 @@ export function ClerkSignupForm(props: { registrationOpen: boolean; afterAuth: s
             onChange={setEmail}
             type="email"
             autoComplete="email"
-            autoFocus
             placeholder="you@example.com"
           />
         </Field>
@@ -191,14 +193,12 @@ export function ClerkSignupForm(props: { registrationOpen: boolean; afterAuth: s
             placeholder="At least 8 characters"
           />
         </Field>
-        <TermsCheckbox checked={accepted} onChange={setAccepted} />
         {/* Clerk's bot protection (Cloudflare Turnstile) renders itself here.
             It must exist in the DOM *before* signUp.password() runs or the
             attempt is rejected with `captcha_invalid`. Usually it stays
             invisible and this div collapses to nothing; when a challenge is
             actually shown, .auth-main scrolls rather than clipping the card. */}
         <div id="clerk-captcha" data-cl-theme={theme} data-cl-size="flexible" className="empty:hidden" />
-        <ErrorLine>{error}</ErrorLine>
         <Button type="submit" busy={working} className="w-full" disabled={!canSubmit}>
           Create Account
         </Button>

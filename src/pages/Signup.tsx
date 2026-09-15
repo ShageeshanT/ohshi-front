@@ -40,7 +40,7 @@ export default function Signup() {
     <AuthShell
       page="signup"
       title="Create your account"
-      subtitle="Chat and an API on your own Google AI access."
+      subtitle="Start free with OHS3. No card or provider key needed."
       footer={
         <>
           Already have an account?{" "}
