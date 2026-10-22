@@ -49,6 +49,7 @@ import type { LucideIcon } from "lucide-react";
 import { useChatList } from "../App";
 import { BrandHero, BrandMark } from "../components/brand";
 import { DeepSeekLogo, GeminiLogo, OpenAILogo } from "../components/logos";
+import FileCard from "../components/FileCard";
 import Markdown from "../components/Markdown";
 import ModelPicker from "../components/ModelPicker";
 import { Topbar } from "../components/Topbar";
@@ -73,6 +74,7 @@ import {
   type ChatSummary,
   type RouteKind,
 } from "../lib/chat";
+import { fileUrl, splitFiles } from "../lib/files";
 
 interface StreamState {
   content: string;
@@ -690,6 +692,7 @@ export default function Chat() {
                     <AssistantMessage
                       key={m.id}
                       message={m}
+                      chatId={chatId}
                       models={models}
                       onRegenerate={m.id === lastAssistantId && !busy ? regenerate : undefined}
                     />
@@ -990,6 +993,8 @@ function UserBubble(props: { message: ChatMessage }) {
 
 function AssistantMessage(props: {
   message?: ChatMessage;
+  /** The chat a saved reply belongs to: its files download from there. */
+  chatId?: string;
   streaming?: StreamState;
   models: ChatModelsPayload | null;
   modelId?: string;
@@ -998,6 +1003,9 @@ function AssistantMessage(props: {
   const content = props.streaming ? props.streaming.content : (props.message?.content ?? "");
   const reasoning = props.streaming ? props.streaming.reasoning : (props.message?.reasoning ?? "");
   const streaming = Boolean(props.streaming);
+  // Text and file blocks, in order; a saved reply (a real id) can be downloaded.
+  const segments = useMemo(() => splitFiles(content, !streaming), [content, streaming]);
+  const savedId = !streaming && props.message && props.message.id > 0 ? props.message.id : null;
   const [copied, setCopied] = useState(false);
   const [showReasoning, setShowReasoning] = useState(false);
   const [holdReasoningClosed, setHoldReasoningClosed] = useState(false);
@@ -1035,8 +1043,28 @@ function AssistantMessage(props: {
           </div>
         )}
         {content ? (
-          <div className={streaming ? "cursor-blink" : ""}>
-            <Markdown text={content} />
+          <div>
+            {segments.map((segment, i) => {
+              if (segment.kind === "text") {
+                const blink = streaming && i === segments.length - 1;
+                return (
+                  <div key={`text-${i}`} className={blink ? "cursor-blink" : ""}>
+                    <Markdown text={segment.text} />
+                  </div>
+                );
+              }
+              const { block } = segment;
+              const chatId = props.chatId;
+              return (
+                <FileCard
+                  key={`file-${block.index}`}
+                  block={block}
+                  url={chatId && savedId ? (format) => fileUrl(chatId, savedId, block, format) : null}
+                  writing={streaming && !block.closed}
+                  incomplete={!streaming && !block.closed && props.message?.status === "interrupted"}
+                />
+              );
+            })}
           </div>
         ) : streaming && !reasoning ? (
           <div className="flex items-center gap-2 py-1 text-[13px] text-ink-dim">

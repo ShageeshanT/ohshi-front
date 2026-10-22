@@ -135,6 +135,46 @@ export async function uploadFile<T>(path: string, file: File, signal?: AbortSign
   return data as T;
 }
 
+/** Fetch a file the API builds — with the same credentials as every other
+ *  call, which a plain link would not carry under Clerk — and hand it to the
+ *  browser as a download, named by the response's Content-Disposition. */
+export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+  const resp = await fetch(path, { headers: { ...(await authHeader()) }, credentials: "same-origin" });
+  if (resp.status === 401) authListeners.forEach((fn) => fn());
+  if (!resp.ok) {
+    let data: unknown = null;
+    try {
+      data = await resp.json();
+    } catch {
+      data = null;
+    }
+    throw new ApiError(resp.status, extractMessage(data, resp.status), data);
+  }
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filenameFrom(resp.headers.get("content-disposition")) || fallbackName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function filenameFrom(header: string | null): string {
+  if (!header) return "";
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      /* fall back to the plain name */
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain ? plain[1] : "";
+}
+
 /** POST that returns the raw streaming Response (Server-Sent Events). */
 export async function streamPost(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
   const resp = await fetch(path, {
