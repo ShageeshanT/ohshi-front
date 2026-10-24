@@ -4,6 +4,7 @@
  * sits in. Contract: viewBox 0 0 24 24, default size h-5 w-5, overridable.
  */
 
+import { VenetianMask } from "lucide-react";
 import { useBrandArt } from "./brand";
 
 interface LogoProps {
@@ -136,8 +137,14 @@ export function ModelFallbackLogo({ className }: LogoProps) {
 }
 
 /** The right mark for a model family's vendor. */
+/** The admins' Uncensored model (a mask — it is not any vendor's mark). */
+export function UncensoredLogo({ className }: LogoProps) {
+  return <VenetianMask className={className ?? "h-5 w-5"} aria-hidden />;
+}
+
 export function vendorLogo(vendor: string) {
   if (vendor === "ohshi") return OhshiLogo;
+  if (vendor === "uncensored") return UncensoredLogo;
   if (vendor === "anthropic") return ClaudeLogo;
   if (vendor === "openai") return OpenAILogo;
   if (vendor === "google") return GeminiLogo;

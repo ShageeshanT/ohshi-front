@@ -101,6 +101,17 @@ export function isKeyRoute(kind: RouteKind | null | undefined): boolean {
 /** The vendor the picker groups Ohshi's own models (ohs3 / ohs3-pro) under. */
 export const OHSHI_VENDOR = "ohshi";
 
+/** The admins' Uncensored model, listed while its Kaggle session is on. */
+export const UNCENSORED_VENDOR = "uncensored";
+
+/** The ``uncensored`` block of GET /api/chat/models — admins only. */
+export interface UncensoredBlock {
+  status: "off" | "starting" | "on";
+  endsMs: number | null;
+  minutes: number;
+  model: string;
+}
+
 /** The plan's meter behind Ohshi's own models (see ohshi/ollama/quota.py). */
 export interface OhshiMeter {
   available: boolean;
@@ -132,6 +143,8 @@ export function meterLine(meter: OhshiMeter | null | undefined): string {
 export interface ChatModelsPayload {
   /** Ohshi's own models: whether they exist here, and the plan's meter. */
   ohshi?: OhshiMeter;
+  /** The Uncensored switch's state; present for admins only. */
+  uncensored?: UncensoredBlock;
   connected: boolean;
   /** null when nothing usable is configured (the built-in list is shown). */
   route: RouteKind | null;
@@ -169,13 +182,15 @@ export const POPULAR_FAMILIES = [
 
 /** Split a model list into the famous few and the long tail (order preserved).
  *  The backend names the top section on the Gemini API route; the Code Assist
- *  list falls back to POPULAR_FAMILIES. Ohshi's own models always lead. */
+ *  list falls back to POPULAR_FAMILIES. Ohshi's own models always lead — after
+ *  the admins' Uncensored model while it is on. */
 export function splitPopular<T extends { id: string; vendor?: string }>(
   families: T[],
   popularIds: string[] | null = null,
 ): { popular: T[]; other: T[] } {
-  const own = families.filter((f) => f.vendor === OHSHI_VENDOR);
-  const rest = families.filter((f) => f.vendor !== OHSHI_VENDOR);
+  const isOwn = (f: T) => f.vendor === OHSHI_VENDOR || f.vendor === UNCENSORED_VENDOR;
+  const own = families.filter(isOwn);
+  const rest = families.filter((f) => !isOwn(f));
   const rank = new Map((popularIds ?? POPULAR_FAMILIES).map((id, i) => [id, i]));
   const popular = rest
     .filter((f) => rank.has(f.id))

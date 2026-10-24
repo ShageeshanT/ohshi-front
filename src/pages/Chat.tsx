@@ -75,6 +75,7 @@ import {
   type RouteKind,
 } from "../lib/chat";
 import { fileUrl, splitFiles } from "../lib/files";
+import { UNCENSORED_EVENT, UNCENSORED_MODEL_ID, type UncensoredEventDetail } from "../lib/uncensored";
 
 interface StreamState {
   content: string;
@@ -198,6 +199,22 @@ export default function Chat() {
     setModel(id);
     storeModel(id);
   };
+
+  // The sidebar's Uncensored switch (admins): reload the list whenever it
+  // changes, and pick the model the moment the admin's own switch brings it on.
+  useEffect(() => {
+    const onSwitch = (e: Event) => {
+      const detail = (e as CustomEvent<UncensoredEventDetail>).detail;
+      void loadModels().then(() => {
+        if (detail?.select) {
+          setModel(UNCENSORED_MODEL_ID);
+          storeModel(UNCENSORED_MODEL_ID);
+        }
+      });
+    };
+    window.addEventListener(UNCENSORED_EVENT, onSwitch);
+    return () => window.removeEventListener(UNCENSORED_EVENT, onSwitch);
+  }, [loadModels]);
 
   // --- load a chat ------------------------------------------------------------
   const stopTick = useCallback(() => {
@@ -594,7 +611,13 @@ export default function Chat() {
       onSend={() => void send()}
       onStop={stop}
       busy={busy}
-      disabled={Boolean(loadError) || (models !== null && !models.connected && !models.ohshi?.available)}
+      disabled={
+        Boolean(loadError) ||
+        (models !== null &&
+          !models.connected &&
+          !models.ohshi?.available &&
+          models.uncensored?.status !== "on")
+      }
       models={models}
       model={model}
       onModelChange={chooseModel}

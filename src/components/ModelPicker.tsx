@@ -8,7 +8,15 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import type { ChatModelsPayload, ModelFamily, OhshiMeter } from "../lib/chat";
 import { countdown, timeAgo } from "../lib/api";
-import { OHSHI_VENDOR, effortLabel, familyName, modelLabel, routeLabel, splitPopular } from "../lib/chat";
+import {
+  OHSHI_VENDOR,
+  UNCENSORED_VENDOR,
+  effortLabel,
+  familyName,
+  modelLabel,
+  routeLabel,
+  splitPopular,
+} from "../lib/chat";
 import { vendorLogo } from "./logos";
 import { Spinner, quotaTone, toneTextClass } from "./ui";
 
@@ -171,6 +179,10 @@ export default function ModelPicker(props: {
 /** The right-hand figure of a row: the plan's meter for Ohshi's own models
  *  ("3/5 today"), the live percentage for everything else. */
 function remainingLabel(f: ModelFamily, meter: OhshiMeter | undefined): string {
+  if (f.vendor === UNCENSORED_VENDOR) {
+    // The session's time left, not a quota.
+    return f.resetMs ? `${countdown(f.resetMs).replace(/^in /, "")} left` : "";
+  }
   if (f.vendor === OHSHI_VENDOR) {
     if (f.exhausted) return `out${f.resetMs ? `, ${countdown(f.resetMs)}` : ""}`;
     if (!meter?.available || meter.dailyLimit === undefined || meter.monthlyLimit === undefined) return "";

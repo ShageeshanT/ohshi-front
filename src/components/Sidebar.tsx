@@ -31,6 +31,7 @@ import type { ChatSummary } from "../lib/chat";
 import { groupChatsByDate } from "../lib/chat";
 import { searchHotkey } from "../lib/api";
 import { BrandMark, Wordmark } from "./brand";
+import UncensoredSwitch from "./UncensoredSwitch";
 import { Avatar } from "./ui";
 
 export interface SidebarProps {
@@ -145,6 +146,7 @@ export default function Sidebar(p: SidebarProps) {
             <Divider collapsed={c} label="Operator" />
             <nav className="space-y-0.5 px-2">
               <SideLink icon={ShieldCheck} label="Admin" to="/app/admin" collapsed={c} onClick={p.onMobileClose} />
+              <UncensoredSwitch collapsed={c} />
             </nav>
           </>
         )}
