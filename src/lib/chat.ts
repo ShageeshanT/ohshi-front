@@ -104,6 +104,9 @@ export const OHSHI_VENDOR = "ohshi";
 /** The admins' Uncensored model, listed while its Kaggle session is on. */
 export const UNCENSORED_VENDOR = "uncensored";
 
+/** The admins' Zro models, on Ohshi's own key. */
+export const ZRO_VENDOR = "zro";
+
 /** The ``uncensored`` block of GET /api/chat/models — admins only. */
 export interface UncensoredBlock {
   status: "off" | "starting" | "on";
@@ -188,7 +191,8 @@ export function splitPopular<T extends { id: string; vendor?: string }>(
   families: T[],
   popularIds: string[] | null = null,
 ): { popular: T[]; other: T[] } {
-  const isOwn = (f: T) => f.vendor === OHSHI_VENDOR || f.vendor === UNCENSORED_VENDOR;
+  const isOwn = (f: T) =>
+    f.vendor === OHSHI_VENDOR || f.vendor === UNCENSORED_VENDOR || f.vendor === ZRO_VENDOR;
   const own = families.filter(isOwn);
   const rest = families.filter((f) => !isOwn(f));
   const rank = new Map((popularIds ?? POPULAR_FAMILIES).map((id, i) => [id, i]));
