@@ -10,7 +10,6 @@ import type { ChatModelsPayload, ModelFamily, OhshiMeter } from "../lib/chat";
 import { countdown, timeAgo } from "../lib/api";
 import {
   OHSHI_VENDOR,
-  IMAGES_VENDOR,
   UNCENSORED_VENDOR,
   effortLabel,
   familyName,
@@ -180,7 +179,7 @@ export default function ModelPicker(props: {
 /** The right-hand figure of a row: the plan's meter for Ohshi's own models
  *  ("3/5 today"), the live percentage for everything else. */
 function remainingLabel(f: ModelFamily, meter: OhshiMeter | undefined): string {
-  if (f.vendor === UNCENSORED_VENDOR || f.vendor === IMAGES_VENDOR) {
+  if (f.vendor === UNCENSORED_VENDOR) {
     // The session's time left, not a quota.
     return f.resetMs ? `${countdown(f.resetMs).replace(/^in /, "")} left` : "";
   }

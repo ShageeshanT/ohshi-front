@@ -4,7 +4,7 @@
  * sits in. Contract: viewBox 0 0 24 24, default size h-5 w-5, overridable.
  */
 
-import { Images, VenetianMask } from "lucide-react";
+import { VenetianMask } from "lucide-react";
 import { useBrandArt } from "./brand";
 
 interface LogoProps {
@@ -142,15 +142,9 @@ export function UncensoredLogo({ className }: LogoProps) {
   return <VenetianMask className={className ?? "h-5 w-5"} aria-hidden />;
 }
 
-/** The admins' image model. */
-export function ImagesLogo({ className }: LogoProps) {
-  return <Images className={className ?? "h-5 w-5"} aria-hidden />;
-}
-
 export function vendorLogo(vendor: string) {
   if (vendor === "ohshi") return OhshiLogo;
   if (vendor === "uncensored") return UncensoredLogo;
-  if (vendor === "images") return ImagesLogo;
   if (vendor === "anthropic") return ClaudeLogo;
   if (vendor === "openai") return OpenAILogo;
   if (vendor === "google") return GeminiLogo;

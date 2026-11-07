@@ -33,7 +33,6 @@ import {
   ChevronRight,
   Code2,
   Copy,
-  Download,
   FileText,
   Image as ImageIcon,
   Loader2,
@@ -76,7 +75,6 @@ import {
   type RouteKind,
 } from "../lib/chat";
 import { fileUrl, splitFiles } from "../lib/files";
-import { IMAGES_EVENT, IMAGES_MODEL_ID, isImageModel } from "../lib/images";
 import { UNCENSORED_EVENT, UNCENSORED_MODEL_ID, type UncensoredEventDetail } from "../lib/uncensored";
 
 interface StreamState {
@@ -202,25 +200,20 @@ export default function Chat() {
     storeModel(id);
   };
 
-  // The sidebar's Kaggle switches (admins: Uncensored, Images): reload the list
-  // whenever one changes, and pick its model the moment the admin's own switch
-  // brings it on.
+  // The sidebar's Uncensored switch (admins): reload the list whenever it
+  // changes, and pick the model the moment the admin's own switch brings it on.
   useEffect(() => {
-    const listen = (event: string, modelId: string) => {
-      const onSwitch = (e: Event) => {
-        const detail = (e as CustomEvent<UncensoredEventDetail>).detail;
-        void loadModels().then(() => {
-          if (detail?.select) {
-            setModel(modelId);
-            storeModel(modelId);
-          }
-        });
-      };
-      window.addEventListener(event, onSwitch);
-      return () => window.removeEventListener(event, onSwitch);
+    const onSwitch = (e: Event) => {
+      const detail = (e as CustomEvent<UncensoredEventDetail>).detail;
+      void loadModels().then(() => {
+        if (detail?.select) {
+          setModel(UNCENSORED_MODEL_ID);
+          storeModel(UNCENSORED_MODEL_ID);
+        }
+      });
     };
-    const offs = [listen(UNCENSORED_EVENT, UNCENSORED_MODEL_ID), listen(IMAGES_EVENT, IMAGES_MODEL_ID)];
-    return () => offs.forEach((off) => off());
+    window.addEventListener(UNCENSORED_EVENT, onSwitch);
+    return () => window.removeEventListener(UNCENSORED_EVENT, onSwitch);
   }, [loadModels]);
 
   // --- load a chat ------------------------------------------------------------
@@ -623,8 +616,7 @@ export default function Chat() {
         (models !== null &&
           !models.connected &&
           !models.ohshi?.available &&
-          models.uncensored?.status !== "on" &&
-          models.images?.status !== "on")
+          models.uncensored?.status !== "on")
       }
       models={models}
       model={model}
@@ -884,9 +876,7 @@ function Composer(props: {
             ? props.models && !props.models.connected && props.models.ohshi && !props.models.ohshi.available
               ? "Ohshi's own models are used up for now"
               : "Add a key or connect an account to start chatting"
-            : isImageModel(props.model)
-              ? "Describe a picture…   --ar 16:9 · --seed 42 · --no text"
-              : "Ask anything…"
+            : "Ask anything…"
         }
         rows={1}
         autoFocus={props.autoFocus}
@@ -1010,52 +1000,6 @@ function AttachmentList(props: { items: Attachment[] }) {
   );
 }
 
-/** Pictures an image model made: large, each opening full size, with a download. */
-function PictureList(props: { items: Attachment[] }) {
-  return (
-    <div className="mb-2 flex flex-wrap gap-2">
-      {props.items.map((a) => (
-        <figure key={a.id} className="group relative max-w-full">
-          <a
-            href={a.url}
-            target="_blank"
-            rel="noreferrer"
-            className="block overflow-hidden rounded-xl border border-edge bg-ink/[0.03]"
-          >
-            <img
-              src={a.url}
-              alt={a.name}
-              loading="lazy"
-              className="block max-h-[min(70vh,640px)] w-auto max-w-full object-contain"
-            />
-          </a>
-          <a
-            href={a.url}
-            download={a.name}
-            aria-label={`Download ${a.name}`}
-            className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/55 px-2 py-1 text-[11.5px] font-medium text-white backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-          >
-            <Download className="h-3.5 w-3.5" /> Download
-          </a>
-        </figure>
-      ))}
-    </div>
-  );
-}
-
-/** While a picture is being made: a placeholder the size of a picture. */
-function PicturePending() {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="aspect-[4/5] w-56 animate-pulse rounded-xl border border-edge bg-ink/[0.05]" />
-      <div className="flex items-center gap-2 text-[13px] text-ink-dim">
-        <span className="thinking-dots" aria-hidden />
-        Making your picture…
-      </div>
-    </div>
-  );
-}
-
 function UserBubble(props: { message: ChatMessage }) {
   const attachments = props.message.attachments ?? [];
   return (
@@ -1089,7 +1033,6 @@ function AssistantMessage(props: {
   const [showReasoning, setShowReasoning] = useState(false);
   const [holdReasoningClosed, setHoldReasoningClosed] = useState(false);
   const modelId = props.message?.model || props.modelId || "";
-  const pictures = (props.message?.attachments ?? []).filter((a) => a.kind === "image" && a.url);
   // While only reasoning is streaming, open the panel so ohs3-pro does not look hung.
   const autoReasoning = streaming && Boolean(reasoning) && !content && !holdReasoningClosed;
   const reasoningOpen = showReasoning || autoReasoning;
@@ -1122,7 +1065,6 @@ function AssistantMessage(props: {
             )}
           </div>
         )}
-        {pictures.length > 0 && <PictureList items={pictures} />}
         {content ? (
           <div>
             {segments.map((segment, i) => {
@@ -1148,14 +1090,10 @@ function AssistantMessage(props: {
             })}
           </div>
         ) : streaming && !reasoning ? (
-          isImageModel(modelId) ? (
-            <PicturePending />
-          ) : (
-            <div className="flex items-center gap-2 py-1 text-[13px] text-ink-dim">
-              <span className="thinking-dots" aria-hidden />
-              Thinking…
-            </div>
-          )
+          <div className="flex items-center gap-2 py-1 text-[13px] text-ink-dim">
+            <span className="thinking-dots" aria-hidden />
+            Thinking…
+          </div>
         ) : null}
         {!streaming && props.message && (
           <div className="mt-2 flex flex-wrap items-center gap-1 text-[11.5px] text-ink-dim">
