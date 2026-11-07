@@ -26,6 +26,8 @@ export interface UncensoredState {
   remainingMs?: number;
   message?: string;
   endedReason?: "stopped" | "time" | "failed" | "lost";
+  /** What the run has loaded so far (the image model's variants). */
+  variants?: string[];
 }
 
 export const UNCENSORED_MODEL_ID = "uncensored";

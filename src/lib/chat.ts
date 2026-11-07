@@ -107,6 +107,9 @@ export const UNCENSORED_VENDOR = "uncensored";
 /** The admins' Zro models, on Ohshi's own key. */
 export const ZRO_VENDOR = "zro";
 
+/** The admins' image model (RealVisXL), listed while its Kaggle session is on. */
+export const IMAGES_VENDOR = "images";
+
 /** The ``uncensored`` block of GET /api/chat/models — admins only. */
 export interface UncensoredBlock {
   status: "off" | "starting" | "on";
@@ -148,6 +151,8 @@ export interface ChatModelsPayload {
   ohshi?: OhshiMeter;
   /** The Uncensored switch's state; present for admins only. */
   uncensored?: UncensoredBlock;
+  /** The image switch's state and the variants it has loaded; admins only. */
+  images?: UncensoredBlock & { variants: string[] };
   connected: boolean;
   /** null when nothing usable is configured (the built-in list is shown). */
   route: RouteKind | null;
@@ -192,7 +197,10 @@ export function splitPopular<T extends { id: string; vendor?: string }>(
   popularIds: string[] | null = null,
 ): { popular: T[]; other: T[] } {
   const isOwn = (f: T) =>
-    f.vendor === OHSHI_VENDOR || f.vendor === UNCENSORED_VENDOR || f.vendor === ZRO_VENDOR;
+    f.vendor === OHSHI_VENDOR ||
+    f.vendor === UNCENSORED_VENDOR ||
+    f.vendor === ZRO_VENDOR ||
+    f.vendor === IMAGES_VENDOR;
   const own = families.filter(isOwn);
   const rest = families.filter((f) => !isOwn(f));
   const rank = new Map((popularIds ?? POPULAR_FAMILIES).map((id, i) => [id, i]));
