@@ -36,7 +36,10 @@ const POLL_MS: Record<UncensoredStatus, number> = { off: 30_000, starting: 4_000
 function describe(spec: KaggleSwitchSpec, state: UncensoredState | null, leftMs: number): { text: string; tone: string } {
   if (!state) return { text: "Checking…", tone: "text-ink-faint" };
   if (!state.configured) return { text: "Needs a Kaggle account on the server", tone: "text-ink-faint" };
-  if (state.status === "starting") return { text: spec.starting, tone: "text-warn" };
+  if (state.status === "starting") {
+    if (state.phase === "queued") return { text: "Waiting for a free Kaggle GPU…", tone: "text-warn" };
+    return { text: spec.starting, tone: "text-warn" };
+  }
   if (state.status === "on") {
     const detail = spec.onDetail?.(state) ?? "";
     return { text: `On · ${timeLeft(leftMs)} left${detail ? ` · ${detail}` : ""}`, tone: "text-ok" };
